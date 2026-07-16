@@ -1,6 +1,7 @@
 import Button from "@/components/ui/Button";
 import TrustBadge from "./TrustBadge";
 import StatCard from "./StatCard";
+import GlobalExportPanel from "./GlobalExportPanel";
 
 export default function Hero() {
   return (
@@ -42,38 +43,11 @@ export default function Hero() {
 
         {/* RIGHT */}
         <div>
-          <div className="rounded-3xl border border-dashed border-green-300 bg-gradient-to-br from-green-50 to-white p-10 shadow-xl">
-            <h2 className="text-2xl font-bold text-gray-900">
-              Global Export Intelligence
-            </h2>
-
-            <p className="mt-3 text-gray-600">
-              Connecting trusted Indian agricultural suppliers with global
-              importers through quality, compliance and dependable logistics.
-            </p>
-
-            <div className="mt-10 grid gap-5">
-              <DashboardItem icon="🌍" title="18+ Countries Served" />
-              <DashboardItem icon="📦" title="25+ Export Products" />
-              <DashboardItem icon="🚢" title="99.9% On-Time Shipment" />
-              <DashboardItem icon="⭐" title="APEDA Registered Exporter" />
-            </div>
-
-            <div className="mt-8 rounded-2xl bg-white p-6 shadow">
-              <p className="font-semibold text-[#2E7D32]">
-                Interactive Experience
-              </p>
-
-              <ul className="mt-4 space-y-2 text-gray-600">
-                <li>✓ 3D Product Showcase</li>
-                <li>✓ Interactive World Map</li>
-                <li>✓ Live Export Routes</li>
-              </ul>
-            </div>
-          </div>
+          <GlobalExportPanel />
         </div>
       </div>
 
+      {/* Statistics */}
       <div className="mt-24 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard value="25+" label="Export Products" />
         <StatCard value="18+" label="Target Countries" />
@@ -81,20 +55,5 @@ export default function Hero() {
         <StatCard value="24/7" label="Buyer Support" />
       </div>
     </section>
-  );
-}
-
-function DashboardItem({
-  icon,
-  title,
-}: {
-  icon: string;
-  title: string;
-}) {
-  return (
-    <div className="flex items-center rounded-2xl bg-white p-5 shadow-sm">
-      <span className="mr-4 text-3xl">{icon}</span>
-      <span className="text-lg font-semibold text-gray-800">{title}</span>
-    </div>
   );
 }
