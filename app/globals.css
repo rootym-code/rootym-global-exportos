@@ -1,3 +1,28 @@
+:root {
+  /* ROOTYM Brand */
+
+  --primary: #2E7D32;
+  --primary-light: #E8F5E9;
+
+  --secondary: #1B5E20;
+
+  --text: #111827;
+
+  --text-light: #6B7280;
+
+  --background: #FFFFFF;
+
+  --surface: #F8FAFC;
+
+  --border: #E5E7EB;
+
+  --success: #22C55E;
+
+  --warning: #F59E0B;
+}
+
+
+
 @import "tailwindcss";
 
 :root {
