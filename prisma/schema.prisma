@@ -1,0 +1,85 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum InquiryStatus {
+  NEW
+  CONTACTED
+  QUOTATION_SENT
+  NEGOTIATION
+  CONFIRMED
+  REJECTED
+}
+
+enum InquiryPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model Inquiry {
+  id              String            @id @default(cuid())
+
+  /// Human-readable inquiry number (e.g. RQ-20260717-000001)
+  inquiryNumber   String            @unique
+
+  companyName     String
+  contactPerson   String
+
+  email           String
+  phone           String?
+
+  country         String
+
+  /// Product name submitted by the customer.
+  /// This can later be linked to a Product table.
+  product         String
+
+  quantity        String?
+  unit            String?
+
+  message         String
+
+  status          InquiryStatus     @default(NEW)
+  priority        InquiryPriority   @default(MEDIUM)
+
+  /// Source of the inquiry (Website, IndiaMART, TradeIndia, etc.)
+  source          String?           @default("Website")
+
+  /// Internal admin notes
+  notes           String?
+
+  /// Request metadata
+  ipAddress       String?
+  userAgent       String?
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([inquiryNumber])
+  @@index([email])
+  @@index([status])
+  @@index([country])
+  @@index([product])
+  @@index([createdAt])
+}
+
+model Admin {
+  id          String   @id @default(cuid())
+
+  name        String
+
+  email       String   @unique
+
+  password    String
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
