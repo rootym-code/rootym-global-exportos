@@ -6,72 +6,186 @@ interface ReviewStepProps {
   formData: InquiryFormData;
 }
 
+function displayValue(value: string) {
+  return value.trim() || "Not Provided";
+}
+
 export default function ReviewStep({
   formData,
 }: ReviewStepProps) {
   return (
     <div>
       <h2 className="text-3xl font-bold text-gray-900">
-        Review Your Export Inquiry
+        Review &amp; Submit Inquiry
       </h2>
 
       <p className="mt-4 text-lg text-gray-600">
-        In the final version, this page will display a complete summary of
-        your export inquiry before submission.
+        Please review your export inquiry carefully before submitting it to the
+        ROOTYM export team.
       </p>
 
-      <div className="mt-10 rounded-2xl border border-gray-200 bg-gray-50 p-6">
+      {/* Product Details */}
+
+      <div className="mt-10 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
         <h3 className="text-xl font-semibold text-gray-900">
-          Inquiry Summary
+          Product Details
         </h3>
 
-        <div className="mt-6 space-y-3 text-gray-700">
-          <p>
-            <strong>Product:</strong>{" "}
-            {formData.product || "Not selected"}
-          </p>
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          <ReviewItem
+            label="Product"
+            value={displayValue(formData.product)}
+          />
 
-          <p>
-            <strong>Destination:</strong>{" "}
-            {formData.country || "Not selected"}
-          </p>
+          <ReviewItem
+            label="Destination Country"
+            value={displayValue(formData.country)}
+          />
 
-          <p>
-            <strong>Quantity:</strong>{" "}
-            {formData.quantity || "Not specified"}
-          </p>
+          <ReviewItem
+            label="Quantity"
+            value={
+              formData.quantity
+                ? `${formData.quantity} ${formData.quantityUnit}`
+                : "Not Provided"
+            }
+          />
 
-          <p>
-            <strong>Packaging:</strong>{" "}
-            {formData.packaging || "Not specified"}
-          </p>
+          <ReviewItem
+            label="Packaging"
+            value={displayValue(formData.packaging)}
+          />
 
-          <p>
-            <strong>Company:</strong>{" "}
-            {formData.companyName || "Not provided"}
-          </p>
+          <ReviewItem
+            label="Packaging Instructions"
+            value={displayValue(formData.packagingInstructions)}
+          />
+        </div>
+      </div>
 
-          <p>
-            <strong>Contact Person:</strong>{" "}
-            {formData.contactPerson || "Not provided"}
-          </p>
+      {/* Buyer Information */}
 
-          <p>
-            <strong>Email:</strong>{" "}
-            {formData.email || "Not provided"}
-          </p>
+      <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <h3 className="text-xl font-semibold text-gray-900">
+          Buyer Information
+        </h3>
 
-          <p>
-            <strong>Phone:</strong>{" "}
-            {formData.phone || "Not provided"}
-          </p>
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          <ReviewItem
+            label="Company Name"
+            value={displayValue(formData.companyName)}
+          />
 
-          <p>
-            <strong>Requirements:</strong>{" "}
-            {formData.requirements || "None"}
+          <ReviewItem
+            label="Buyer Type"
+            value={displayValue(formData.buyerType)}
+          />
+
+          <ReviewItem
+            label="Contact Person"
+            value={displayValue(formData.contactPerson)}
+          />
+
+          <ReviewItem
+            label="Designation"
+            value={displayValue(formData.designation)}
+          />
+
+          <ReviewItem
+            label="Business Email"
+            value={displayValue(formData.email)}
+          />
+
+          <ReviewItem
+            label="Phone / WhatsApp"
+            value={displayValue(formData.phone)}
+          />
+
+          <ReviewItem
+            label="Website"
+            value={displayValue(formData.website)}
+          />
+        </div>
+      </div>
+
+      {/* Delivery Terms */}
+
+      <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <h3 className="text-xl font-semibold text-gray-900">
+          Preferred Delivery Terms
+        </h3>
+
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          <ReviewItem
+            label="Preferred Incoterm"
+            value={
+              formData.preferredIncoterm === "Not Sure"
+                ? "Not Sure (ROOTYM team will recommend)"
+                : displayValue(formData.preferredIncoterm)
+            }
+          />
+
+          {formData.preferredIncoterm !== "Not Sure" && (
+            <ReviewItem
+              label="Named Port / Place"
+              value={displayValue(formData.namedPlace)}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* Additional Requirements */}
+
+      <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <h3 className="text-xl font-semibold text-gray-900">
+          Additional Requirements
+        </h3>
+
+        <div className="mt-5 rounded-xl bg-gray-50 p-4">
+          <p className="whitespace-pre-wrap leading-7 text-gray-700">
+            {formData.requirements.trim()
+              ? formData.requirements
+              : "Not Provided"}
           </p>
         </div>
       </div>
+
+      {/* Submission Notice */}
+
+      <div className="mt-8 rounded-2xl border border-green-100 bg-green-50 p-6">
+        <h3 className="text-xl font-semibold text-[#2E7D32]">
+          Almost Done!
+        </h3>
+
+        <p className="mt-3 leading-7 text-gray-700">
+          Please review all information carefully. After you submit your
+          inquiry, the ROOTYM export team will evaluate your requirements and
+          contact you with a quotation or request additional information if
+          needed.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+interface ReviewItemProps {
+  label: string;
+  value: string;
+}
+
+function ReviewItem({
+  label,
+  value,
+}: ReviewItemProps) {
+  return (
+    <div>
+      <p className="text-sm font-medium text-gray-500">
+        {label}
+      </p>
+
+      <p className="mt-1 text-base font-semibold text-gray-900">
+        {value}
+      </p>
     </div>
   );
 }

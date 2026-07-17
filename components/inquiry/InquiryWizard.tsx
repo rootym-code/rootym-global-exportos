@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import type { InquiryFormData } from "@/types/inquiry";
+
 import ProgressBar from "./ProgressBar";
 import NavigationButtons from "./NavigationButtons";
 
@@ -10,9 +12,9 @@ import CountryStep from "./steps/CountryStep";
 import QuantityStep from "./steps/QuantityStep";
 import PackagingStep from "./steps/PackagingStep";
 import CompanyStep from "./steps/CompanyStep";
+import IncotermsStep from "./steps/IncotermsStep";
 import RequirementsStep from "./steps/RequirementsStep";
 import ReviewStep from "./steps/ReviewStep";
-import type { InquiryFormData } from "@/types/inquiry";
 
 const steps = [
   "Product",
@@ -20,30 +22,51 @@ const steps = [
   "Quantity",
   "Packaging",
   "Company",
+  "Shipping Terms",
   "Requirements",
   "Review",
 ];
-
-
 
 export default function InquiryWizard() {
   const [currentStep, setCurrentStep] = useState(0);
 
   const [formData, setFormData] = useState<InquiryFormData>({
+    // Step 1 - Product
     product: "",
+
+    // Step 2 - Destination
     country: "",
+
+    // Step 3 - Quantity
     quantity: "",
+    quantityUnit: "MT",
+
+    // Step 4 - Packaging
     packaging: "",
+    packagingInstructions: "",
+
+    // Step 5 - Buyer Information
     companyName: "",
+    buyerType: "",
+
     contactPerson: "",
+    designation: "",
+
     email: "",
     phone: "",
+    website: "",
+
+    // Step 6 - Preferred Shipping Terms (Incoterms)
+    preferredIncoterm: "",
+    namedPlace: "",
+
+    // Step 7 - Additional Requirements
     requirements: "",
   });
 
-  function updateFormData(
-    field: keyof InquiryFormData,
-    value: string
+  function updateFormData<K extends keyof InquiryFormData>(
+    field: K,
+    value: InquiryFormData[K]
   ) {
     setFormData((prev) => ({
       ...prev,
@@ -107,14 +130,26 @@ export default function InquiryWizard() {
 
       case 5:
         return (
-          <RequirementsStep
+          <IncotermsStep
             formData={formData}
             updateFormData={updateFormData}
           />
         );
 
       case 6:
-        return <ReviewStep formData={formData} />;
+        return (
+          <RequirementsStep
+            formData={formData}
+            updateFormData={updateFormData}
+          />
+        );
+
+      case 7:
+        return (
+          <ReviewStep
+            formData={formData}
+          />
+        );
 
       default:
         return (
@@ -126,6 +161,13 @@ export default function InquiryWizard() {
     }
   }
 
+  // Step Validation
+  const isNextDisabled =
+    (currentStep === 0 && !formData.product) ||
+    (currentStep === 1 && !formData.country) ||
+    (currentStep === 2 && !formData.quantity) ||
+    (currentStep === 3 && !formData.packaging);
+
   return (
     <div className="mx-auto mt-16 max-w-4xl rounded-3xl bg-white p-10 shadow-xl">
       <ProgressBar
@@ -134,13 +176,16 @@ export default function InquiryWizard() {
         title={steps[currentStep]}
       />
 
-      <div className="mt-12">{renderStep()}</div>
+      <div className="mt-12">
+        {renderStep()}
+      </div>
 
       <NavigationButtons
         currentStep={currentStep}
         totalSteps={steps.length}
         onPrevious={previousStep}
         onNext={nextStep}
+        isNextDisabled={isNextDisabled}
       />
     </div>
   );
