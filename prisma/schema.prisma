@@ -29,44 +29,70 @@ enum AdminRole {
   ADMIN
 }
 
+// ============================================================
+// SPRINT 8 ENUMS
+// ============================================================
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum PricingType {
+  FIXED
+  MARKET
+}
+
+enum QuoteStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  CANCELLED
+}
+
 model Inquiry {
-  id                String                  @id @default(cuid())
+  id String @id @default(cuid())
 
   /// Human-readable inquiry number
-  inquiryNumber     String                  @unique
+  inquiryNumber String @unique
 
-  companyName       String
-  contactPerson     String
+  companyName   String
+  contactPerson String
 
-  email             String
-  phone             String?
+  email String
+  phone String?
 
-  country           String
+  country String
 
   /// Product name submitted by customer
-  product           String
+  product String
 
-  quantity          String?
-  unit              String?
+  quantity String?
+  unit     String?
 
-  message           String
+  message String
 
-  status            InquiryStatus           @default(NEW)
-  priority          InquiryPriority         @default(MEDIUM)
+  status   InquiryStatus   @default(NEW)
+  priority InquiryPriority @default(MEDIUM)
 
   /// Source of inquiry
-  source            String?                 @default("Website")
+  source String? @default("Website")
 
   /// Request metadata
-  ipAddress         String?
-  userAgent         String?
+  ipAddress String?
+  userAgent String?
 
-  createdAt         DateTime                @default(now())
-  updatedAt         DateTime                @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  statusHistory     InquiryStatusHistory[]
-  notes             InquiryNote[]
+  statusHistory InquiryStatusHistory[]
+  notes         InquiryNote[]
+
+  // Sprint 8
+  quotes Quote[]
 
   @@index([inquiryNumber])
   @@index([email])
@@ -77,61 +103,227 @@ model Inquiry {
 }
 
 model InquiryStatusHistory {
-  id            String          @id @default(cuid())
+  id String @id @default(cuid())
 
-  inquiryId     String
-  inquiry       Inquiry         @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  inquiryId String
+  inquiry   Inquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
 
-  oldStatus     InquiryStatus?
-  newStatus     InquiryStatus
+  oldStatus InquiryStatus?
+  newStatus InquiryStatus
 
-  changedById   String?
-  changedBy     Admin?          @relation(fields: [changedById], references: [id], onDelete: SetNull)
+  changedById String?
+  changedBy   Admin?  @relation(fields: [changedById], references: [id], onDelete: SetNull)
 
-  createdAt     DateTime        @default(now())
+  createdAt DateTime @default(now())
 
   @@index([inquiryId])
   @@index([createdAt])
 }
 
 model InquiryNote {
-  id            String          @id @default(cuid())
+  id String @id @default(cuid())
 
-  inquiryId     String
-  inquiry       Inquiry         @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  inquiryId String
+  inquiry   Inquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
 
-  note          String          @db.Text
+  note String @db.Text
 
-  createdById   String?
-  createdBy     Admin?          @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdById String?
+  createdBy   Admin?  @relation(fields: [createdById], references: [id], onDelete: SetNull)
 
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([inquiryId])
   @@index([createdAt])
 }
 
 model Admin {
-  id                String                    @id @default(cuid())
+  id String @id @default(cuid())
 
-  name              String
+  name String
 
-  email             String                    @unique
+  email String @unique
 
-  password          String
+  password String
 
-  role              AdminRole                 @default(SUPER_ADMIN)
+  role AdminRole @default(SUPER_ADMIN)
 
-  isActive          Boolean                   @default(true)
+  isActive Boolean @default(true)
 
-  lastLogin         DateTime?
+  lastLogin DateTime?
 
-  createdAt         DateTime                  @default(now())
+  createdAt DateTime @default(now())
 
-  updatedAt         DateTime                  @updatedAt
+  updatedAt DateTime @updatedAt
 
   // Relations
-  inquiryNotes      InquiryNote[]
-  statusChanges     InquiryStatusHistory[]
+  inquiryNotes  InquiryNote[]
+  statusChanges InquiryStatusHistory[]
+}
+
+// ============================================================
+// PRODUCT MASTER
+// ============================================================
+
+model Product {
+  id String @id @default(cuid())
+
+  sku String @unique
+
+  name String
+
+  slug String @unique
+
+  shortDescription String?
+
+  description String? @db.Text
+
+  category String?
+
+  origin String?
+
+  hsCode String?
+
+  defaultUnit String
+
+  minOrderQty Decimal? @db.Decimal(18, 3)
+
+  maxOrderQty Decimal? @db.Decimal(18, 3)
+
+  status ProductStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  pricing    ProductPricing[]
+  quoteItems QuoteItem[]
+
+  @@index([status])
+  @@index([category])
+  @@index([name])
+}
+
+//
+// Product Price History
+//
+
+model ProductPricing {
+  id String @id @default(cuid())
+
+  productId String
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  pricingType PricingType @default(FIXED)
+
+  currency String
+
+  price Decimal @db.Decimal(18, 2)
+
+  validFrom DateTime?
+
+  validTo DateTime?
+
+  isActive Boolean @default(true)
+
+  remarks String?
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+  @@index([isActive])
+}
+
+//
+// Quote Header
+//
+
+model Quote {
+  id String @id @default(cuid())
+
+  quoteNumber String @unique
+
+  inquiryId String?
+
+  inquiry Inquiry? @relation(fields: [inquiryId], references: [id], onDelete: SetNull)
+
+  companyName String
+
+  contactPerson String
+
+  email String
+
+  phone String?
+
+  country String
+
+  currency String
+
+  subtotal Decimal @default(0) @db.Decimal(18, 2)
+
+  discount Decimal @default(0) @db.Decimal(18, 2)
+
+  freight Decimal @default(0) @db.Decimal(18, 2)
+
+  insurance Decimal @default(0) @db.Decimal(18, 2)
+
+  tax Decimal @default(0) @db.Decimal(18, 2)
+
+  grandTotal Decimal @default(0) @db.Decimal(18, 2)
+
+  validityDays Int @default(15)
+
+  status QuoteStatus @default(DRAFT)
+
+  notes String? @db.Text
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  items QuoteItem[]
+
+  @@index([quoteNumber])
+  @@index([status])
+  @@index([companyName])
+  @@index([country])
+}
+
+//
+// Quote Line Item
+//
+
+model QuoteItem {
+  id String @id @default(cuid())
+
+  quoteId String
+
+  quote Quote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  productId String
+
+  product Product @relation(fields: [productId], references: [id])
+
+  description String?
+
+  quantity Decimal @db.Decimal(18, 3)
+
+  unit String
+
+  unitPrice Decimal @db.Decimal(18, 2)
+
+  lineTotal Decimal @db.Decimal(18, 2)
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  @@index([quoteId])
+  @@index([productId])
 }
