@@ -1,50 +1,73 @@
+/**
+ * ============================================================
+ * ROOTYM Global Export Platform
+ * File: app/api/inquiry/route.ts
+ *
+ * Public Inquiry API
+ * Uses ROOTYM Brain
+ * ============================================================
+ */
+
 import { NextRequest, NextResponse } from "next/server";
-import { createInquiry } from "@/lib/services/inquiry.service";
+
+import Brain from "@/lib/brain/engine";
+import { createBrainContext } from "@/lib/brain/context";
+
 import { inquirySchema } from "@/lib/validations/inquiry";
+
+import type {
+  CreateInquiryPayload,
+  CreateInquiryResult,
+} from "@/lib/brain/inquiry/CreateInquiryHandler";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const validation = inquirySchema.safeParse(body);
+    const payload = inquirySchema.parse(
+      body,
+    ) as CreateInquiryPayload;
 
-    if (!validation.success) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Validation failed.",
-          errors: validation.error.flatten().fieldErrors,
-        },
-        { status: 400 }
+    const context = createBrainContext(request);
+
+    const result =
+      await Brain.execute<
+        CreateInquiryPayload,
+        CreateInquiryResult
+      >(
+        "CREATE_INQUIRY",
+        payload,
+        context,
       );
-    }
-
-    const inquiry = await createInquiry(validation.data, {
-      ipAddress:
-        request.headers.get("x-forwarded-for") ??
-        request.headers.get("x-real-ip") ??
-        undefined,
-
-      userAgent: request.headers.get("user-agent") ?? undefined,
-    });
 
     return NextResponse.json(
       {
         success: true,
-        message: "Inquiry submitted successfully.",
-        inquiry,
+        message:
+          "Inquiry submitted successfully.",
+        data: result,
       },
-      { status: 201 }
+      {
+        status: 201,
+      },
     );
   } catch (error) {
-    console.error("Inquiry API Error:", error);
+    console.error(
+      "Inquiry submission failed:",
+      error,
+    );
 
     return NextResponse.json(
       {
         success: false,
-        message: "Internal server error.",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Unable to submit inquiry.",
       },
-      { status: 500 }
+      {
+        status: 400,
+      },
     );
   }
 }

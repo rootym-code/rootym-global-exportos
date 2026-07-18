@@ -9,7 +9,7 @@ import {
   Ship,
 } from "lucide-react";
 
-import Button from "@/components/ui/Button";
+import { Button } from "@/components/ui/Button";
 import { products } from "@/data/products";
 
 type PageProps = {

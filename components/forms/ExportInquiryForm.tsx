@@ -1,41 +1,116 @@
 "use client";
 
 import { useState } from "react";
-import Button from "@/components/ui/Button";
+import { Button } from "@/components/ui/Button";
+
+type InquiryFormState = {
+  company: string;
+  contact: string;
+  email: string;
+  phone: string;
+  country: string;
+  product: string;
+  quantity: string;
+  packaging: string;
+  destinationPort: string;
+  incoterm: string;
+  purchaseDate: string;
+  requirements: string;
+};
+
+const initialForm: InquiryFormState = {
+  company: "",
+  contact: "",
+  email: "",
+  phone: "",
+  country: "",
+  product: "",
+  quantity: "",
+  packaging: "",
+  destinationPort: "",
+  incoterm: "FOB",
+  purchaseDate: "",
+  requirements: "",
+};
 
 export default function ExportInquiryForm() {
-  const [form, setForm] = useState({
-    company: "",
-    contact: "",
-    email: "",
-    phone: "",
-    country: "",
-    product: "",
-    quantity: "",
-    packaging: "",
-    destinationPort: "",
-    incoterm: "FOB",
-    purchaseDate: "",
-    requirements: "",
-  });
+  const [form, setForm] = useState<InquiryFormState>(initialForm);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
   function handleChange(
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
   ) {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value } = e.target;
+
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    console.log(form);
+    setSuccessMessage("");
+    setErrorMessage("");
+    setIsSubmitting(true);
 
-    alert(
-      "Thank you! Your export inquiry has been captured. Backend integration will be added in a later sprint."
-    );
+    const message = `Packaging: ${form.packaging || "-"}
+
+Destination Port: ${form.destinationPort || "-"}
+
+Incoterm: ${form.incoterm || "-"}
+
+Expected Purchase Date: ${form.purchaseDate || "-"}
+
+Additional Requirements:
+${form.requirements || "-"}`;
+
+    try {
+      const response = await fetch("/api/inquiry", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          companyName: form.company,
+          contactPerson: form.contact,
+          email: form.email,
+          phone: form.phone,
+          country: form.country,
+          product: form.product,
+          quantity: form.quantity,
+          unit: "Custom",
+          message,
+        }),
+      });
+
+      const data: { message?: string } = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Failed to submit your export inquiry."
+        );
+      }
+
+      setSuccessMessage(
+        "Thank you! Your export inquiry has been submitted successfully. Our export team will contact you shortly."
+      );
+
+      setForm(initialForm);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Something went wrong. Please try again."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -69,6 +144,7 @@ export default function ExportInquiryForm() {
               name="company"
               value={form.company}
               onChange={handleChange}
+              required
             />
 
             <Input
@@ -76,6 +152,7 @@ export default function ExportInquiryForm() {
               name="contact"
               value={form.contact}
               onChange={handleChange}
+              required
             />
 
             <Input
@@ -84,6 +161,7 @@ export default function ExportInquiryForm() {
               name="email"
               value={form.email}
               onChange={handleChange}
+              required
             />
 
             <Input
@@ -91,6 +169,7 @@ export default function ExportInquiryForm() {
               name="phone"
               value={form.phone}
               onChange={handleChange}
+              required
             />
 
             <Input
@@ -98,6 +177,7 @@ export default function ExportInquiryForm() {
               name="country"
               value={form.country}
               onChange={handleChange}
+              required
             />
           </div>
         </div>
@@ -115,6 +195,7 @@ export default function ExportInquiryForm() {
               name="product"
               value={form.product}
               onChange={handleChange}
+              required
             />
 
             <Input
@@ -123,6 +204,7 @@ export default function ExportInquiryForm() {
               placeholder="Example: 25 MT"
               value={form.quantity}
               onChange={handleChange}
+              required
             />
 
             <Input
@@ -186,8 +268,26 @@ export default function ExportInquiryForm() {
           />
         </div>
 
-        <Button className="w-full">
-          Submit Export Inquiry
+        {successMessage && (
+          <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+            {successMessage}
+          </div>
+        )}
+
+        {errorMessage && (
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {errorMessage}
+          </div>
+        )}
+
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={isSubmitting}
+        >
+          {isSubmitting
+            ? "Submitting Export Inquiry..."
+            : "Submit Export Inquiry"}
         </Button>
       </form>
     </section>

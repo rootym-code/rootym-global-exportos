@@ -24,44 +24,49 @@ enum InquiryPriority {
   URGENT
 }
 
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+}
+
 model Inquiry {
-  id              String            @id @default(cuid())
+  id                String                  @id @default(cuid())
 
-  /// Human-readable inquiry number (e.g. RQ-20260717-000001)
-  inquiryNumber   String            @unique
+  /// Human-readable inquiry number
+  inquiryNumber     String                  @unique
 
-  companyName     String
-  contactPerson   String
+  companyName       String
+  contactPerson     String
 
-  email           String
-  phone           String?
+  email             String
+  phone             String?
 
-  country         String
+  country           String
 
-  /// Product name submitted by the customer.
-  /// This can later be linked to a Product table.
-  product         String
+  /// Product name submitted by customer
+  product           String
 
-  quantity        String?
-  unit            String?
+  quantity          String?
+  unit              String?
 
-  message         String
+  message           String
 
-  status          InquiryStatus     @default(NEW)
-  priority        InquiryPriority   @default(MEDIUM)
+  status            InquiryStatus           @default(NEW)
+  priority          InquiryPriority         @default(MEDIUM)
 
-  /// Source of the inquiry (Website, IndiaMART, TradeIndia, etc.)
-  source          String?           @default("Website")
-
-  /// Internal admin notes
-  notes           String?
+  /// Source of inquiry
+  source            String?                 @default("Website")
 
   /// Request metadata
-  ipAddress       String?
-  userAgent       String?
+  ipAddress         String?
+  userAgent         String?
 
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+
+  // Relations
+  statusHistory     InquiryStatusHistory[]
+  notes             InquiryNote[]
 
   @@index([inquiryNumber])
   @@index([email])
@@ -71,15 +76,62 @@ model Inquiry {
   @@index([createdAt])
 }
 
+model InquiryStatusHistory {
+  id            String          @id @default(cuid())
+
+  inquiryId     String
+  inquiry       Inquiry         @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+
+  oldStatus     InquiryStatus?
+  newStatus     InquiryStatus
+
+  changedById   String?
+  changedBy     Admin?          @relation(fields: [changedById], references: [id], onDelete: SetNull)
+
+  createdAt     DateTime        @default(now())
+
+  @@index([inquiryId])
+  @@index([createdAt])
+}
+
+model InquiryNote {
+  id            String          @id @default(cuid())
+
+  inquiryId     String
+  inquiry       Inquiry         @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+
+  note          String          @db.Text
+
+  createdById   String?
+  createdBy     Admin?          @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([inquiryId])
+  @@index([createdAt])
+}
+
 model Admin {
-  id          String   @id @default(cuid())
+  id                String                    @id @default(cuid())
 
-  name        String
+  name              String
 
-  email       String   @unique
+  email             String                    @unique
 
-  password    String
+  password          String
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  role              AdminRole                 @default(SUPER_ADMIN)
+
+  isActive          Boolean                   @default(true)
+
+  lastLogin         DateTime?
+
+  createdAt         DateTime                  @default(now())
+
+  updatedAt         DateTime                  @updatedAt
+
+  // Relations
+  inquiryNotes      InquiryNote[]
+  statusChanges     InquiryStatusHistory[]
 }
