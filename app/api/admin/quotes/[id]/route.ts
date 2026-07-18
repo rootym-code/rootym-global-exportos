@@ -1,12 +1,15 @@
+/**
+ * ============================================================
+ * ROOTYM
+ * File: app/api/admin/quotes/[id]/route.ts
+ * Sprint 8.1
+ * ============================================================
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 
-import { authenticateAdmin } from "@/lib/auth";
-import {
-  deleteQuote,
-  getQuoteById,
-  updateQuote,
-} from "@/lib/services/quote.service";
-import { updateQuoteSchema } from "@/lib/validation/quote";
+import { quoteManagementService } from "@/lib/services/quote-management.service";
+import { verifyAdminToken } from "@/lib/jwt";
 
 interface RouteContext {
   params: Promise<{
@@ -14,126 +17,115 @@ interface RouteContext {
   }>;
 }
 
+async function authorize(request: NextRequest) {
+  const token =
+    request.cookies.get("rootym_admin_token")?.value;
+
+  if (!token) {
+    return NextResponse.json(
+      {
+        message: "Unauthorized.",
+      },
+      {
+        status: 401,
+      }
+    );
+  }
+
+  const admin =
+    await verifyAdminToken(token);
+
+  if (!admin) {
+    return NextResponse.json(
+      {
+        message: "Unauthorized.",
+      },
+      {
+        status: 401,
+      }
+    );
+  }
+
+  return admin;
+}
+
+/**
+ * ------------------------------------------------------------
+ * GET /api/admin/quotes/:id
+ * ------------------------------------------------------------
+ */
+
 export async function GET(
   request: NextRequest,
   { params }: RouteContext
 ) {
+  const auth = await authorize(request);
+
+  if (auth instanceof NextResponse) {
+    return auth;
+  }
+
   try {
-    const auth = await authenticateAdmin(request);
-
-    if (!auth.authenticated) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: auth.error,
-        },
-        {
-          status: auth.status ?? 401,
-        }
-      );
-    }
-
     const { id } = await params;
 
-    const quote = await getQuoteById(id);
+    const quote =
+      await quoteManagementService.get(id);
 
-    if (!quote) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Quotation not found.",
-        },
-        {
-          status: 404,
-        }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: quote,
-    });
+    return NextResponse.json(quote);
   } catch (error) {
-    console.error(
-      "GET /api/admin/quotes/[id]",
-      error
-    );
+    console.error(error);
 
     return NextResponse.json(
       {
-        success: false,
-        message: "Unable to fetch quotation.",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Unable to load quote.",
       },
       {
-        status: 500,
+        status: 404,
       }
     );
   }
 }
 
+/**
+ * ------------------------------------------------------------
+ * PUT /api/admin/quotes/:id
+ * ------------------------------------------------------------
+ */
+
 export async function PUT(
   request: NextRequest,
   { params }: RouteContext
 ) {
+  const auth = await authorize(request);
+
+  if (auth instanceof NextResponse) {
+    return auth;
+  }
+
   try {
-    const auth = await authenticateAdmin(request);
-
-    if (!auth.authenticated) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: auth.error,
-        },
-        {
-          status: auth.status ?? 401,
-        }
-      );
-    }
-
     const { id } = await params;
 
     const body = await request.json();
 
-    const parsed =
-      updateQuoteSchema.safeParse(body);
-
-    if (!parsed.success) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Validation failed.",
-          errors: parsed.error.flatten(),
-        },
-        {
-          status: 400,
-        }
+    const quote =
+      await quoteManagementService.update(
+        id,
+        body
       );
-    }
 
-    const quote = await updateQuote(
-      id,
-      parsed.data
-    );
-
-    return NextResponse.json({
-      success: true,
-      message:
-        "Quotation updated successfully.",
-      data: quote,
-    });
+    return NextResponse.json(quote);
   } catch (error) {
-    console.error(
-      "PUT /api/admin/quotes/[id]",
-      error
-    );
+    console.error(error);
 
     return NextResponse.json(
       {
-        success: false,
         message:
           error instanceof Error
             ? error.message
-            : "Unable to update quotation.",
+            : "Unable to update quote.",
       },
       {
         status: 400,
@@ -142,47 +134,41 @@ export async function PUT(
   }
 }
 
+/**
+ * ------------------------------------------------------------
+ * DELETE /api/admin/quotes/:id
+ * ------------------------------------------------------------
+ */
+
 export async function DELETE(
   request: NextRequest,
   { params }: RouteContext
 ) {
+  const auth = await authorize(request);
+
+  if (auth instanceof NextResponse) {
+    return auth;
+  }
+
   try {
-    const auth = await authenticateAdmin(request);
-
-    if (!auth.authenticated) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: auth.error,
-        },
-        {
-          status: auth.status ?? 401,
-        }
-      );
-    }
-
     const { id } = await params;
 
-    await deleteQuote(id);
+    await quoteManagementService.delete(id);
 
     return NextResponse.json({
       success: true,
       message:
-        "Quotation deleted successfully.",
+        "Quote deleted successfully.",
     });
   } catch (error) {
-    console.error(
-      "DELETE /api/admin/quotes/[id]",
-      error
-    );
+    console.error(error);
 
     return NextResponse.json(
       {
-        success: false,
         message:
           error instanceof Error
             ? error.message
-            : "Unable to delete quotation.",
+            : "Unable to delete quote.",
       },
       {
         status: 400,

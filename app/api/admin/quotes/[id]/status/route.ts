@@ -1,11 +1,20 @@
+/**
+ * ============================================================
+ * ROOTYM
+ * File: app/api/admin/quotes/[id]/status/route.ts
+ * Sprint 8.1
+ * ============================================================
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 
-import { authenticateAdmin } from "@/lib/auth";
-import { QuoteStatus } from "@/lib/generated/prisma";
+import { verifyAdminToken } from "@/lib/jwt";
+import { quoteManagementService } from "@/lib/services/quote-management.service";
+import { quoteStatusSchema } from "@/lib/validators/quote";
 import {
-  getQuoteById,
-  updateQuoteStatus,
-} from "@/lib/services/quote.service";
+  getNextAllowedStatuses,
+  isQuoteFinal,
+} from "@/lib/utils/quote-status";
 
 interface RouteContext {
   params: Promise<{
@@ -13,46 +22,90 @@ interface RouteContext {
   }>;
 }
 
-const ALLOWED_STATUSES: QuoteStatus[] = [
-  "DRAFT",
-  "SENT",
-  "ACCEPTED",
-  "REJECTED",
-  "EXPIRED",
-  "CANCELLED",
-];
+async function authorize(request: NextRequest) {
+  const token =
+    request.cookies.get("rootym_admin_token")?.value;
+
+  if (!token) {
+    return NextResponse.json(
+      {
+        message: "Unauthorized.",
+      },
+      {
+        status: 401,
+      }
+    );
+  }
+
+  const admin =
+    await verifyAdminToken(token);
+
+  if (!admin) {
+    return NextResponse.json(
+      {
+        message: "Unauthorized.",
+      },
+      {
+        status: 401,
+      }
+    );
+  }
+
+  return admin;
+}
+
+/**
+ * ------------------------------------------------------------
+ * PATCH /api/admin/quotes/:id/status
+ * ------------------------------------------------------------
+ */
 
 export async function PATCH(
   request: NextRequest,
   { params }: RouteContext
 ) {
+  const auth = await authorize(request);
+
+  if (auth instanceof NextResponse) {
+    return auth;
+  }
+
   try {
-    const auth = await authenticateAdmin(request);
-
-    if (!auth.authenticated) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: auth.error,
-        },
-        {
-          status: auth.status ?? 401,
-        }
-      );
-    }
-
     const { id } = await params;
 
     const body = await request.json();
 
-    const status =
-      body.status as QuoteStatus | undefined;
+    const input =
+      quoteStatusSchema.parse(body);
 
-    if (!status) {
+    const quote =
+      await quoteManagementService.get(id);
+
+    if (isQuoteFinal(quote.status)) {
       return NextResponse.json(
         {
-          success: false,
-          message: "Quote status is required.",
+          message:
+            "Finalized quotes cannot be modified.",
+        },
+        {
+          status: 409,
+        }
+      );
+    }
+
+    const allowedStatuses =
+      getNextAllowedStatuses(
+        quote.status
+      );
+
+    if (
+      !allowedStatuses.includes(
+        input.status
+      )
+    ) {
+      return NextResponse.json(
+        {
+          message: `Invalid status transition from ${quote.status} to ${input.status}.`,
         },
         {
           status: 400,
@@ -60,56 +113,38 @@ export async function PATCH(
       );
     }
 
-    if (!ALLOWED_STATUSES.includes(status)) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Invalid quote status.",
-        },
-        {
-          status: 400,
-        }
+    const updated =
+      await quoteManagementService.changeStatus(
+        id,
+        input.status
       );
-    }
 
-    const quote = await getQuoteById(id);
-
-    if (!quote) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Quotation not found.",
-        },
-        {
-          status: 404,
-        }
-      );
-    }
-
-    const updatedQuote =
-      await updateQuoteStatus(id, status);
+    /**
+     * Future enhancement:
+     *
+     * await auditService.log(...)
+     * await notificationService.notify(...)
+     * await emailService.send(...)
+     */
 
     return NextResponse.json({
       success: true,
-      message: `Quotation status updated to ${status}.`,
-      data: updatedQuote,
+      message:
+        "Quote status updated successfully.",
+      data: updated,
     });
   } catch (error) {
-    console.error(
-      "PATCH /api/admin/quotes/[id]/status",
-      error
-    );
+    console.error(error);
 
     return NextResponse.json(
       {
-        success: false,
         message:
           error instanceof Error
             ? error.message
-            : "Unable to update quotation status.",
+            : "Unable to update quote status.",
       },
       {
-        status: 500,
+        status: 400,
       }
     );
   }

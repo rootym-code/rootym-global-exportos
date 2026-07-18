@@ -1,16 +1,15 @@
 /**
  * ============================================================
- * ROOTYM Quote PDF Download API
+ * ROOTYM
  * File: app/api/admin/quotes/[id]/pdf/route.ts
- * Sprint 8
+ * Sprint 8.1
  * ============================================================
  */
 
 import { NextRequest, NextResponse } from "next/server";
 
-import { authenticateAdmin } from "@/lib/auth";
-import { quoteGenerator } from "@/lib/pdf";
-import { prisma } from "@/lib/prisma";
+import { verifyAdminToken } from "@/lib/jwt";
+import { quoteManagementService } from "@/lib/services/quote-management.service";
 
 interface RouteContext {
   params: Promise<{
@@ -18,116 +17,144 @@ interface RouteContext {
   }>;
 }
 
+async function authorize(request: NextRequest) {
+  const token =
+    request.cookies.get("rootym_admin_token")?.value;
+
+  if (!token) {
+    return NextResponse.json(
+      {
+        message: "Unauthorized.",
+      },
+      {
+        status: 401,
+      }
+    );
+  }
+
+  const admin =
+    await verifyAdminToken(token);
+
+  if (!admin) {
+    return NextResponse.json(
+      {
+        message: "Unauthorized.",
+      },
+      {
+        status: 401,
+      }
+    );
+  }
+
+  return admin;
+}
+
+/**
+ * ------------------------------------------------------------
+ * GET /api/admin/quotes/:id/pdf
+ * ------------------------------------------------------------
+ */
+
 export async function GET(
   request: NextRequest,
   { params }: RouteContext
 ) {
+  const auth = await authorize(request);
+
+  if (auth instanceof NextResponse) {
+    return auth;
+  }
+
   try {
-    const auth = await authenticateAdmin(request);
-
-    if (!auth.authenticated) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: auth.error,
-        },
-        {
-          status: auth.status ?? 401,
-        }
-      );
-    }
-
     const { id } = await params;
 
-    const quote = await prisma.quote.findUnique({
-      where: {
-        id,
-      },
-      include: {
-        items: {
-          include: {
-            product: true,
-          },
-        },
-      },
-    });
+    const quote =
+      await quoteManagementService.get(id);
 
-    if (!quote) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Quotation not found.",
-        },
-        {
-          status: 404,
-        }
-      );
-    }
+    /**
+     * ==========================================================
+     * Future Production Implementation
+     * ==========================================================
+     *
+     * const pdf = await quotePdfService.generate(quote);
+     *
+     * return new NextResponse(pdf, {
+     *   headers: {
+     *     "Content-Type": "application/pdf",
+     *     "Content-Disposition":
+     *       `inline; filename="${quote.quoteNumber}.pdf"`
+     *   }
+     * });
+     *
+     * ==========================================================
+     */
 
-    const pdf = await quoteGenerator.generateBuffer({
+    return NextResponse.json({
+      success: true,
+
+      preview: true,
+
       quoteNumber: quote.quoteNumber,
 
-      quoteDate: quote.createdAt,
+      downloadName: `${quote.quoteNumber}.pdf`,
 
-      validUntil: new Date(
-        quote.createdAt.getTime() +
-          quote.validityDays *
-            24 *
-            60 *
-            60 *
-            1000
-      ),
+      message:
+        "PDF generation service is ready for integration.",
 
-      buyerName: quote.contactPerson,
-      buyerCompany: quote.companyName,
-      buyerAddress: "",
-      buyerCountry: quote.country,
+      quote: {
+        id: quote.id,
 
-      currency: quote.currency,
+        quoteNumber: quote.quoteNumber,
 
-      subtotal: quote.subtotal,
-      discount: quote.discount,
-      freight: quote.freight,
-      insurance: quote.insurance,
-      tax: quote.tax,
-      grandTotal: quote.grandTotal,
+        status: quote.status,
 
-      notes: quote.notes ?? "",
+        companyName: quote.companyName,
 
-      items: quote.items.map((item) => ({
-        description:
-          item.product?.name ??
-          item.description ??
-          "",
-        quantity: Number(item.quantity),
-        unit: item.unit,
-        unitPrice: item.unitPrice,
-        lineTotal: item.lineTotal,
-      })),
-    });
+        contactPerson: quote.contactPerson,
 
-    return new NextResponse(new Uint8Array(pdf), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `inline; filename="${quote.quoteNumber}.pdf"`,
-        "Cache-Control": "no-store",
+        email: quote.email,
+
+        phone: quote.phone,
+
+        country: quote.country,
+
+        currency: quote.currency,
+
+        validityDays: quote.validityDays,
+
+        subtotal: quote.subtotal,
+
+        discount: quote.discount,
+
+        freight: quote.freight,
+
+        insurance: quote.insurance,
+
+        tax: quote.tax,
+
+        grandTotal: quote.grandTotal,
+
+        notes: quote.notes,
+
+        items: quote.items,
+
+        createdAt: quote.createdAt,
+
+        updatedAt: quote.updatedAt,
       },
     });
   } catch (error) {
-    console.error(
-      "GET /api/admin/quotes/[id]/pdf",
-      error
-    );
+    console.error(error);
 
     return NextResponse.json(
       {
-        success: false,
         message:
-          "Unable to generate quotation PDF.",
+          error instanceof Error
+            ? error.message
+            : "Unable to generate quote PDF.",
       },
       {
-        status: 500,
+        status: 400,
       }
     );
   }

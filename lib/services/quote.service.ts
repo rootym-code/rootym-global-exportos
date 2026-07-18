@@ -1,372 +1,192 @@
 /**
- * ROOTYM Sprint 8
+ * ============================================================
+ * ROOTYM
  * File: lib/services/quote.service.ts
- *
- * Quote Service
+ * Sprint 8.1
+ * ============================================================
  */
 
-import { Prisma, QuoteStatus } from "@/lib/generated/prisma";
-import { prisma } from "@/lib/prisma";
 import type {
-  CreateQuoteInput,
-  UpdateQuoteInput,
-} from "@/lib/validation/quote";
+  Quote,
+  QuoteStatus,
+} from "@/lib/generated/prisma";
 
-function decimal(n: number) {
-  return new Prisma.Decimal(n);
+const API_BASE = "/api/admin/quotes";
+
+export interface QuoteListResponse {
+  items: Quote[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
 }
 
-function calculateTotals(
-  input: Pick<
-    CreateQuoteInput,
-    "items" | "discount" | "freight" | "insurance" | "tax"
-  >
-) {
-  const subtotal = input.items.reduce(
-    (sum, item) => sum + item.quantity * item.unitPrice,
-    0
-  );
-
-  const grandTotal =
-    subtotal -
-    input.discount +
-    input.freight +
-    input.insurance +
-    input.tax;
-
-  return {
-    subtotal,
-    grandTotal,
-  };
+export interface QuoteListParams {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  status?: string;
 }
 
-export async function generateQuoteNumber(
-  tx: Prisma.TransactionClient
-) {
-  const year = new Date().getFullYear();
+export interface SendQuotePayload {
+  to: string;
+  cc?: string;
+  subject: string;
+  message: string;
+}
 
-  const latest = await tx.quote.findFirst({
-    where: {
-      quoteNumber: {
-        startsWith: `QT-${year}-`,
+class QuoteService {
+  private async request<T>(
+    url: string,
+    options?: RequestInit
+  ): Promise<T> {
+    const response = await fetch(url, {
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...(options?.headers ?? {}),
       },
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
+      ...options,
+    });
 
-  let next = 1;
+    if (!response.ok) {
+      let message = "Request failed.";
 
-  if (latest) {
-    const last = Number(
-      latest.quoteNumber.split("-").pop() ?? "0"
-    );
+      try {
+        const body = await response.json();
+        message =
+          body.message ??
+          body.error ??
+          message;
+      } catch {}
 
-    next = last + 1;
+      throw new Error(message);
+    }
+
+    if (response.status === 204) {
+      return undefined as T;
+    }
+
+    return response.json();
   }
 
-  return `QT-${year}-${String(next).padStart(
-    5,
-    "0"
-  )}`;
-}
+  async list(
+    params: QuoteListParams = {}
+  ): Promise<QuoteListResponse> {
+    const query = new URLSearchParams();
 
-/**
- * Lightweight list used by Admin Quote Table.
- */
-export async function listQuotes() {
-  return prisma.quote.findMany({
-    select: {
-      id: true,
-      quoteNumber: true,
-      companyName: true,
-      contactPerson: true,
-      email: true,
-      phone: true,
-      country: true,
-      currency: true,
-      grandTotal: true,
-      status: true,
-      createdAt: true,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
-}
+    if (params.page)
+      query.set("page", String(params.page));
 
-/**
- * Full quote used by View/Edit/PDF/Email.
- */
-export async function getQuoteById(id: string) {
-  return prisma.quote.findUnique({
-    where: {
-      id,
-    },
-    include: {
-      inquiry: true,
-      items: {
-        include: {
-          product: true,
-        },
-      },
-    },
-  });
-}
+    if (params.pageSize)
+      query.set(
+        "pageSize",
+        String(params.pageSize)
+      );
 
-export async function createQuote(
-  data: CreateQuoteInput
-) {
-  return prisma.$transaction(async (tx) => {
-    const totals = calculateTotals(data);
+    if (params.search)
+      query.set("search", params.search);
 
-    const quote = await tx.quote.create({
-      data: {
-        quoteNumber:
-          await generateQuoteNumber(tx),
+    if (params.status)
+      query.set("status", params.status);
 
-        inquiryId: data.inquiryId || null,
-
-        companyName: data.companyName,
-        contactPerson: data.contactPerson,
-        email: data.email,
-        phone: data.phone || null,
-        country: data.country,
-        currency: data.currency,
-
-        subtotal: decimal(totals.subtotal),
-        discount: decimal(data.discount),
-        freight: decimal(data.freight),
-        insurance: decimal(data.insurance),
-        tax: decimal(data.tax),
-        grandTotal: decimal(
-          totals.grandTotal
-        ),
-
-        validityDays: data.validityDays,
-        status: data.status,
-
-        notes: data.notes || null,
-      },
-    });
-
-    await tx.quoteItem.createMany({
-      data: data.items.map((item) => ({
-        quoteId: quote.id,
-        productId: item.productId,
-        description:
-          item.description || null,
-        quantity: decimal(item.quantity),
-        unit: item.unit,
-        unitPrice: decimal(
-          item.unitPrice
-        ),
-        lineTotal: decimal(
-          item.quantity * item.unitPrice
-        ),
-      })),
-    });
-
-    return tx.quote.findUniqueOrThrow({
-      where: {
-        id: quote.id,
-      },
-      include: {
-        inquiry: true,
-        items: {
-          include: {
-            product: true,
-          },
-        },
-      },
-    });
-  });
-}
-
-export async function updateQuote(
-  id: string,
-  data: UpdateQuoteInput
-) {
-  return prisma.$transaction(async (tx) => {
-    const existing =
-      await tx.quote.findUnique({
-        where: {
-          id,
-        },
-      });
-
-    if (!existing) {
-      throw new Error("Quote not found.");
-    }
-
-    let subtotal = Number(
-      existing.subtotal
+    return this.request<QuoteListResponse>(
+      `${API_BASE}?${query.toString()}`
     );
+  }
 
-    let grandTotal = Number(
-      existing.grandTotal
+  async get(id: string): Promise<Quote> {
+    return this.request<Quote>(
+      `${API_BASE}/${id}`
     );
+  }
 
-    if (data.items) {
-      const totals = calculateTotals({
-        items: data.items,
-        discount:
-          data.discount ??
-          Number(existing.discount),
-        freight:
-          data.freight ??
-          Number(existing.freight),
-        insurance:
-          data.insurance ??
-          Number(existing.insurance),
-        tax:
-          data.tax ??
-          Number(existing.tax),
-      });
-
-      subtotal = totals.subtotal;
-      grandTotal = totals.grandTotal;
-
-      await tx.quoteItem.deleteMany({
-        where: {
-          quoteId: id,
-        },
-      });
-
-      await tx.quoteItem.createMany({
-        data: data.items.map((item) => ({
-          quoteId: id,
-          productId: item.productId,
-          description:
-            item.description || null,
-          quantity: decimal(item.quantity),
-          unit: item.unit,
-          unitPrice: decimal(
-            item.unitPrice
-          ),
-          lineTotal: decimal(
-            item.quantity *
-              item.unitPrice
-          ),
-        })),
-      });
-    }
-
-    await tx.quote.update({
-      where: {
-        id,
-      },
-      data: {
-        inquiryId:
-          data.inquiryId ??
-          existing.inquiryId,
-
-        companyName:
-          data.companyName ??
-          existing.companyName,
-
-        contactPerson:
-          data.contactPerson ??
-          existing.contactPerson,
-
-        email:
-          data.email ??
-          existing.email,
-
-        phone:
-          data.phone ??
-          existing.phone,
-
-        country:
-          data.country ??
-          existing.country,
-
-        currency:
-          data.currency ??
-          existing.currency,
-
-        discount:
-          data.discount !== undefined
-            ? decimal(data.discount)
-            : undefined,
-
-        freight:
-          data.freight !== undefined
-            ? decimal(data.freight)
-            : undefined,
-
-        insurance:
-          data.insurance !== undefined
-            ? decimal(data.insurance)
-            : undefined,
-
-        tax:
-          data.tax !== undefined
-            ? decimal(data.tax)
-            : undefined,
-
-        subtotal: decimal(subtotal),
-        grandTotal: decimal(
-          grandTotal
-        ),
-
-        validityDays:
-          data.validityDays ??
-          existing.validityDays,
-
-        status:
-          data.status ??
-          existing.status,
-
-        notes:
-          data.notes ??
-          existing.notes,
-      },
+  async create(
+    payload: unknown
+  ): Promise<Quote> {
+    return this.request<Quote>(API_BASE, {
+      method: "POST",
+      body: JSON.stringify(payload),
     });
+  }
 
-    return tx.quote.findUniqueOrThrow({
-      where: {
-        id,
-      },
-      include: {
-        inquiry: true,
-        items: {
-          include: {
-            product: true,
-          },
-        },
-      },
-    });
-  });
+  async update(
+    id: string,
+    payload: unknown
+  ): Promise<Quote> {
+    return this.request<Quote>(
+      `${API_BASE}/${id}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      }
+    );
+  }
+
+  async delete(
+    id: string
+  ): Promise<void> {
+    return this.request<void>(
+      `${API_BASE}/${id}`,
+      {
+        method: "DELETE",
+      }
+    );
+  }
+
+  async changeStatus(
+    id: string,
+    status: QuoteStatus,
+    remarks?: string
+  ): Promise<Quote> {
+    return this.request<Quote>(
+      `${API_BASE}/${id}/status`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          status,
+          remarks,
+        }),
+      }
+    );
+  }
+
+  async duplicate(
+    id: string
+  ): Promise<Quote> {
+    return this.request<Quote>(
+      `${API_BASE}/${id}/duplicate`,
+      {
+        method: "POST",
+      }
+    );
+  }
+
+  async send(
+    id: string,
+    payload: SendQuotePayload
+  ): Promise<void> {
+    return this.request<void>(
+      `${API_BASE}/${id}/send`,
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }
+    );
+  }
+
+  getPdfUrl(id: string): string {
+    return `${API_BASE}/${id}/pdf`;
+  }
+
+  downloadPdf(id: string): void {
+    window.open(
+      this.getPdfUrl(id),
+      "_blank",
+      "noopener,noreferrer"
+    );
+  }
 }
 
-export async function updateQuoteStatus(
-  id: string,
-  status: QuoteStatus
-) {
-  return prisma.quote.update({
-    where: {
-      id,
-    },
-    data: {
-      status,
-    },
-  });
-}
-
-export async function deleteQuote(id: string) {
-  return prisma.$transaction(async (tx) => {
-    await tx.quoteItem.deleteMany({
-      where: {
-        quoteId: id,
-      },
-    });
-
-    return tx.quote.delete({
-      where: {
-        id,
-      },
-    });
-  });
-}
+export const quoteService =
+  new QuoteService();

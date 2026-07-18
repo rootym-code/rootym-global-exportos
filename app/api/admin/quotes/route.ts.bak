@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ============================================================
  * ROOTYM
  * File: app/api/admin/quotes/route.ts
@@ -8,28 +8,23 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
-import { verifyAdminToken } from "@/lib/jwt";
 import { quoteManagementService } from "@/lib/services/quote-management.service";
 
+// Import your existing admin auth helper.
+// Replace this import if your project uses a different helper.
+import { verifyAdminToken } from "@/lib/auth/jwt";
+
 async function authorize(request: NextRequest) {
-  const token =
-    request.cookies.get("rootym_admin_token")?.value;
+  const admin = await verifyAdminToken(request);
 
-  if (!token) {
+  if (!admin) {
     return NextResponse.json(
       { message: "Unauthorized." },
       { status: 401 }
     );
   }
 
-  try {
-    return await verifyAdminToken(token);
-  } catch {
-    return NextResponse.json(
-      { message: "Unauthorized." },
-      { status: 401 }
-    );
-  }
+  return admin;
 }
 
 /**

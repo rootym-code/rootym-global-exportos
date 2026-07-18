@@ -1,149 +1,105 @@
 /**
  * ============================================================
- * ROOTYM Quote Email Service
+ * ROOTYM
  * File: lib/services/quote-email.service.ts
+ * Sprint 8.1
  * ============================================================
  */
 
-import { prisma } from "@/lib/prisma";
-import { quoteGenerator } from "@/lib/pdf";
-import { mailService } from "./mail.service";
-import { QuoteStatus } from "@/lib/generated/prisma";
+import type { Quote } from "@/lib/types/quote";
 
-export interface SendQuoteEmailOptions {
-  quoteId: string;
-  to?: string;
-  cc?: string | string[];
-  bcc?: string | string[];
+import { quotePdfService } from "./quote-pdf.service";
+
+export interface SendQuoteEmailRequest {
+  quote: Quote;
+
+  to: string;
+
+  cc?: string;
+
+  subject: string;
+
+  message: string;
+}
+
+export interface SendQuoteEmailResult {
+  success: boolean;
+
+  messageId?: string;
+
+  queuedAt: Date;
 }
 
 class QuoteEmailService {
-  async send(options: SendQuoteEmailOptions) {
-    const quote = await prisma.quote.findUnique({
-      where: { id: options.quoteId },
-      include: {
-        inquiry: true,
-        items: {
-          include: {
-            product: true,
-          },
-        },
-      },
-    });
+  /**
+   * ------------------------------------------------------------
+   * Send quotation email
+   * ------------------------------------------------------------
+   *
+   * Future supported providers:
+   *
+   * • Resend
+   * • SMTP (Hostinger)
+   * • AWS SES
+   * • SendGrid
+   * • Zoho Mail
+   * • Microsoft 365
+   *
+   */
 
-    if (!quote) {
-      throw new Error("Quotation not found.");
-    }
-
-    const recipient =
-      options.to ??
-      quote.email ??
-      quote.inquiry?.email;
-
-    if (!recipient) {
-      throw new Error(
-        "Recipient email address not found."
+  async send(
+    request: SendQuoteEmailRequest
+  ): Promise<SendQuoteEmailResult> {
+    const pdf =
+      await quotePdfService.generate(
+        request.quote
       );
-    }
 
-    const pdf = await quoteGenerator.generateBuffer({
-      quoteNumber: quote.quoteNumber,
-      quoteDate: quote.createdAt,
+    /**
+     * ==========================================================
+     * Future implementation
+     * ==========================================================
+     *
+     * await mailProvider.send({
+     *   to: request.to,
+     *   cc: request.cc,
+     *   subject: request.subject,
+     *   html: request.message,
+     *   attachments: [
+     *     {
+     *       filename: pdf.fileName,
+     *       content: pdfBuffer
+     *     }
+     *   ]
+     * });
+     *
+     * ==========================================================
+     */
 
-      validUntil: new Date(
-        quote.createdAt.getTime() +
-          quote.validityDays * 24 * 60 * 60 * 1000
-      ),
+    console.info(
+      "[Quote Email]",
+      {
+        quote:
+          request.quote.quoteNumber,
 
-      buyerName: quote.contactPerson,
-      buyerCompany: quote.companyName,
-      buyerAddress: "",
-      buyerCountry: quote.country,
+        to: request.to,
 
-      currency: quote.currency,
+        cc: request.cc,
 
-      subtotal: quote.subtotal,
-      discount: quote.discount,
-      freight: quote.freight,
-      insurance: quote.insurance,
-      tax: quote.tax,
-      grandTotal: quote.grandTotal,
+        subject: request.subject,
 
-      notes: quote.notes ?? "",
-
-      items: quote.items.map((item) => ({
-        description:
-          item.product?.name ??
-          item.description ??
-          "",
-        quantity: Number(item.quantity),
-        unit: item.unit,
-        unitPrice: item.unitPrice,
-        lineTotal: item.lineTotal,
-      })),
-    });
-
-    const html = this.buildHtml(
-      
-      quote.quoteNumber,
-      quote.contactPerson
+        attachment:
+          pdf.fileName,
+      }
     );
 
-    const result = await mailService.send({
-      to: recipient,
-      cc: options.cc,
-      bcc: options.bcc,
-      subject: `ROOTYM Export Quotation ${quote.quoteNumber}`,
-      html,
-      attachments: [
-        {
-          filename: `${quote.quoteNumber}.pdf`,
-          content: pdf,
-          contentType: "application/pdf",
-        },
-      ],
-    });
+    return {
+      success: true,
 
-    if (quote.status === QuoteStatus.DRAFT) {
-      await prisma.quote.update({
-        where: { id: quote.id },
-        data: {
-          status: QuoteStatus.SENT,
-        },
-      });
-    }
+      messageId: crypto.randomUUID(),
 
-    return result;
-  }
-
-  private buildHtml(
-    quoteNumber: string,
-    contactName: string
-  ) {
-    return `
-      <div style="font-family:Arial,sans-serif;font-size:14px;">
-        <h2>ROOTYM AGRO HARVEST PRIVATE LIMITED</h2>
-
-        <p>Dear ${contactName},</p>
-
-        <p>
-          Please find attached our export quotation
-          <strong>${quoteNumber}</strong>.
-        </p>
-
-        <p>
-          If you have any questions, feel free to reply
-          to this email.
-        </p>
-
-        <br/>
-
-        <p>
-          Regards,<br/>
-          ROOTYM Export Team
-        </p>
-      </div>
-    `;
+      queuedAt: new Date(),
+    };
   }
 }
 

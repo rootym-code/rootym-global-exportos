@@ -90,9 +90,7 @@ model Inquiry {
   // Relations
   statusHistory InquiryStatusHistory[]
   notes         InquiryNote[]
-
-  // Sprint 8
-  quotes Quote[]
+  quotes        Quote[]
 
   @@index([inquiryNumber])
   @@index([email])
@@ -160,6 +158,10 @@ model Admin {
   // Relations
   inquiryNotes  InquiryNote[]
   statusChanges InquiryStatusHistory[]
+
+  // Quote Audit
+  createdQuotes Quote[] @relation("QuoteCreatedBy")
+  updatedQuotes Quote[] @relation("QuoteUpdatedBy")
 }
 
 // ============================================================
@@ -282,6 +284,13 @@ model Quote {
 
   notes String? @db.Text
 
+  // Audit
+  createdById String?
+  createdBy   Admin?  @relation("QuoteCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  updatedById String?
+  updatedBy   Admin?  @relation("QuoteUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
 
   updatedAt DateTime @updatedAt
@@ -293,6 +302,8 @@ model Quote {
   @@index([status])
   @@index([companyName])
   @@index([country])
+  @@index([createdById])
+  @@index([updatedById])
 }
 
 //

@@ -1,15 +1,16 @@
 /**
  * ============================================================
- * ROOTYM Quote Email API
+ * ROOTYM
  * File: app/api/admin/quotes/[id]/send/route.ts
- * Sprint 8
+ * Sprint 8.1
  * ============================================================
  */
 
 import { NextRequest, NextResponse } from "next/server";
 
-import { authenticateAdmin } from "@/lib/auth";
-import { quoteEmailService } from "@/lib/services/quote-email.service";
+import { verifyAdminToken } from "@/lib/jwt";
+import { quoteManagementService } from "@/lib/services/quote-management.service";
+import { sendQuoteSchema } from "@/lib/validators/quote";
 
 interface RouteContext {
   params: Promise<{
@@ -17,94 +18,135 @@ interface RouteContext {
   }>;
 }
 
-interface RequestBody {
-  to?: string;
-  cc?: string | string[];
-  bcc?: string | string[];
+async function authorize(request: NextRequest) {
+  const token =
+    request.cookies.get("rootym_admin_token")?.value;
+
+  if (!token) {
+    return NextResponse.json(
+      {
+        message: "Unauthorized.",
+      },
+      {
+        status: 401,
+      }
+    );
+  }
+
+  const admin =
+    await verifyAdminToken(token);
+
+  if (!admin) {
+    return NextResponse.json(
+      {
+        message: "Unauthorized.",
+      },
+      {
+        status: 401,
+      }
+    );
+  }
+
+  return admin;
 }
+
+/**
+ * ------------------------------------------------------------
+ * POST /api/admin/quotes/:id/send
+ * ------------------------------------------------------------
+ */
 
 export async function POST(
   request: NextRequest,
   { params }: RouteContext
 ) {
+  const auth = await authorize(request);
+
+  if (auth instanceof NextResponse) {
+    return auth;
+  }
+
   try {
-    /**
-     * --------------------------------------------------------
-     * Authentication
-     * --------------------------------------------------------
-     */
-
-    const auth = await authenticateAdmin(request);
-
-    if (!auth.authenticated) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: auth.error,
-        },
-        {
-          status: auth.status ?? 401,
-        }
-      );
-    }
-
-
-
-    /**
-     * --------------------------------------------------------
-     * Parameters
-     * --------------------------------------------------------
-     */
-
     const { id } = await params;
 
-    let body: RequestBody = {};
+    const body = await request.json();
 
-    try {
-      body = await request.json();
-    } catch {
-      body = {};
-    }
+    const input =
+      sendQuoteSchema.parse(body);
+
+    const quote =
+      await quoteManagementService.get(id);
 
     /**
-     * --------------------------------------------------------
-     * Send Email
-     * --------------------------------------------------------
+     * ==========================================================
+     * Future implementation
+     * ==========================================================
+     *
+     * 1. Generate PDF
+     *    const pdf = await pdfService.generateQuote(id);
+     *
+     * 2. Upload PDF (optional)
+     *
+     * 3. Send Email
+     *    await mailService.send({
+     *      to: input.to,
+     *      cc: input.cc,
+     *      subject: input.subject,
+     *      html: input.message,
+     *      attachments: [...]
+     *    });
+     *
+     * 4. Update Quote Status
+     *    if (quote.status === "DRAFT") {
+     *      await quoteManagementService.changeStatus(
+     *        id,
+     *        "SENT"
+     *      );
+     *    }
+     *
+     * 5. Create Timeline Entry
+     *
+     * 6. Create Audit Log
+     *
+     * 7. Save Email History
+     *
+     * ==========================================================
      */
-
-    const result = await quoteEmailService.send({
-      quoteId: id,
-      to: body.to,
-      cc: body.cc,
-      bcc: body.bcc,
-    });
 
     return NextResponse.json({
       success: true,
-      message: "Quotation emailed successfully.",
+
+      message:
+        "Quote send request accepted.",
+
       data: {
-        messageId: result.messageId,
-        accepted: result.accepted,
-        rejected: result.rejected,
-        response: result.response,
+        quoteId: quote.id,
+
+        quoteNumber:
+          quote.quoteNumber,
+
+        to: input.to,
+
+        cc: input.cc ?? null,
+
+        subject: input.subject,
+
+        queuedAt:
+          new Date().toISOString(),
       },
     });
   } catch (error) {
-    console.error(
-      "POST /api/admin/quotes/[id]/send",
-      error
-    );
+    console.error(error);
 
     return NextResponse.json(
       {
-        success: false,
         message:
           error instanceof Error
             ? error.message
-            : "Unable to send quotation email.",
+            : "Unable to send quote.",
       },
       {
-        status: 500,
+        status: 400,
       }
     );
   }
