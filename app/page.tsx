@@ -1,42 +1,49 @@
 import Navbar from "@/components/layout/Navbar";
-import Hero from "@/components/sections/Hero";
-import ProductShowcase from "@/components/sections/ProductShowcase";
-import WhyChooseRootym from "@/components/sections/WhyChooseRootym";
-import ExportProcess from "@/components/sections/ExportProcess";
-import Certifications from "@/components/sections/Certifications";
-import GlobalMarkets from "@/components/sections/GlobalMarkets";
-import CallToAction from "@/components/sections/CallToAction";
-import Testimonials from "@/components/sections/Testimonials";
-import FAQ from "@/components/sections/FAQ";
 import Footer from "@/components/layout/Footer";
+
+import PremiumHero from "@/components/home/PremiumHero";
+import PremiumFeatures from "@/components/home/PremiumFeatures";
+import PremiumExportProcess from "@/components/home/PremiumExportProcess";
+import PremiumCertifications from "@/components/home/PremiumCertifications";
+import PremiumGlobalMarkets from "@/components/home/PremiumGlobalMarkets";
+import PremiumTestimonials from "@/components/home/PremiumTestimonials";
+import PremiumFAQ from "@/components/home/PremiumFAQ";
+import PremiumCTA from "@/components/home/PremiumCTA";
+import ProductShowcase from "@/components/sections/ProductShowcase";
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen bg-background overflow-x-hidden">
       <Navbar />
 
-      {/* Hero */}
-      <Hero />
+      {/* Premium Hero */}
+      <PremiumHero />
 
-      {/* Featured Products */}
+      {/* Products */}
       <ProductShowcase />
 
-      {/* Why ROOTYM */}
-      <WhyChooseRootym />
+      {/* Premium Features */}
+      <PremiumFeatures />
 
-      {/* Export Process */}
-      <ExportProcess />
+      {/* Export Journey */}
+      <PremiumExportProcess />
 
       {/* Certifications */}
-      <Certifications />
+      <PremiumCertifications />
 
-      <GlobalMarkets />
-      <Testimonials />
-      <FAQ />
+      {/* Global Presence */}
+      <PremiumGlobalMarkets />
 
-<CallToAction />
-<Footer />
+      {/* Testimonials */}
+      <PremiumTestimonials />
+
+      {/* FAQ */}
+      <PremiumFAQ />
+
+      {/* CTA */}
+      <PremiumCTA />
+
+      <Footer />
     </main>
-    
   );
 }

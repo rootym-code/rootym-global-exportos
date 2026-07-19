@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
+import Section from "@/components/ui/section";
+import SectionHeader from "@/components/ui/section-header";
 import { products } from "@/data/products";
 
 const sectionVariants: Variants = {
@@ -55,16 +57,20 @@ const itemVariants: Variants = {
 
 export default function ProductShowcase() {
   return (
-    <motion.section
-      variants={sectionVariants}
-      initial="hidden"
-      whileInView="visible"
-      viewport={{
-        once: true,
-        amount: 0.15,
-      }}
-      className="relative overflow-hidden"
-    >
+<Section
+  background="gradient"
+  spacing="xl"
+  className="relative overflow-hidden"
+>
+  <motion.div
+    variants={sectionVariants}
+    initial="hidden"
+    whileInView="visible"
+    viewport={{
+      once: true,
+      amount: 0.15,
+    }}
+  >
       {/* Ambient Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
@@ -94,43 +100,17 @@ export default function ProductShowcase() {
           className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-emerald-100/40 blur-[110px]"
         />
       </div>
-
-      <div className="relative mx-auto max-w-7xl px-6 py-24">
-        <motion.div
-          variants={itemVariants}
-          className="text-center"
-        >
+      <div className="relative">
+      <motion.div variants={itemVariants}>
+  <SectionHeader
+    align="center"
+    eyebrow="Premium Agricultural Exports"
+    title="Fresh From India. Ready For Global Markets."
+    description="Carefully sourced agricultural products for importers, wholesalers, distributors and supermarket chains across global markets."
+  />
+</motion.div>
          
-         <motion.span
-  whileHover={{
-    scale: 1.05,
-  }}
-  transition={{
-    duration: 0.4,
-    ease: "easeOut",
-  }}
-  className="inline-flex rounded-full bg-green-100 px-5 py-2 text-sm font-semibold text-[#2E7D32]"
->
 
-
-            Featured Export Products
-          </motion.span>
-
-          <motion.h2
-            variants={itemVariants}
-            className="mt-6 text-5xl font-bold text-gray-900"
-          >
-            Fresh From India. Ready For Global Markets.
-          </motion.h2>
-
-          <motion.p
-            variants={itemVariants}
-            className="mx-auto mt-6 max-w-3xl text-lg leading-8 text-gray-600"
-          >
-            Carefully sourced agricultural products for importers,
-            wholesalers, distributors and supermarkets across the world.
-          </motion.p>
-        </motion.div>
         <div className="mt-16 grid gap-8 md:grid-cols-2 xl:grid-cols-3">
 {products.map((product, index) => (
     
@@ -161,7 +141,21 @@ export default function ProductShowcase() {
       duration: 0.25,
     },
   }}
-  className="group relative overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-lg"
+  className="
+  group
+  relative
+  overflow-hidden
+  rounded-[32px]
+  border
+  border-white/40
+  bg-white/80
+  backdrop-blur-xl
+  shadow-[0_10px_50px_rgba(0,0,0,0.08)]
+  transition-all
+  duration-500
+  hover:-translate-y-2
+  hover:shadow-[0_20px_70px_rgba(34,197,94,0.18)]
+  "
 >
 
 
@@ -177,11 +171,13 @@ export default function ProductShowcase() {
                 transition={{
                   duration: 0.35,
                 }}
-                className="absolute inset-0 rounded-3xl bg-gradient-to-br from-green-100/30 via-transparent to-emerald-100/20"
+                className="absolute inset-0 rounded-[32px] bg-gradient-to-br from-emerald-300/20 via-transparent to-green-100/20"
               />
 
               {/* Top Badges */}
               <div className="relative flex justify-between px-6 pt-6">
+                
+                
                 <motion.span
                   whileHover={{
                     scale: 1.08,
@@ -202,12 +198,13 @@ export default function ProductShowcase() {
               </div>
 
               <Link href={`/products/${product.slug}`}>
-                <div className="relative h-72 cursor-pointer overflow-hidden bg-gradient-to-br from-green-50 via-white to-green-50">
+                <div className="relative h-72 cursor-pointer overflow-hidden bg-gradient-to-br from-emerald-50 via-white to-lime-50">
                   <motion.div
-                    whileHover={{
-                      scale: 1.08,
-                      rotate: -1,
-                    }}
+     whileHover={{
+      scale: 1.06,
+      rotate: -0.5,
+      y: -4,
+    }}
                     transition={{
                       duration: 0.45,
                     }}
@@ -223,13 +220,13 @@ export default function ProductShowcase() {
                 </div>
               </Link>
 
-              <div className="relative p-8">
+              <div className="relative p-8 space-y-2">
                 <Link href={`/products/${product.slug}`}>
                   <motion.h3
                     whileHover={{
                       x: 4,
                     }}
-                    className="cursor-pointer text-2xl font-bold text-gray-900 transition-colors hover:text-[#2E7D32]"
+                    className="cursor-pointer text-2xl font-bold tracking-tight text-slate-900 transition-all duration-300 hover:text-primary"
                   >
                     {product.name}
                   </motion.h3>
@@ -277,7 +274,7 @@ export default function ProductShowcase() {
                 {/* Export Badges */}
                 <motion.div
                   variants={itemVariants}
-                  className="mt-6 flex flex-wrap gap-2"
+                  className="mt-8 flex flex-wrap gap-3"
                 >
                   <motion.span
                     whileHover={{
@@ -287,7 +284,7 @@ export default function ProductShowcase() {
                     transition={{
                       duration: 0.2,
                     }}
-                    className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-[#2E7D32]"
+                  className="rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1.5 text-xs font-semibold tracking-wide text-emerald-700"
                   >
                     APEDA
                   </motion.span>
@@ -300,7 +297,7 @@ export default function ProductShowcase() {
                     transition={{
                       duration: 0.2,
                     }}
-                    className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700"
+className="rounded-full border border-sky-200 bg-sky-50 px-4 py-1.5 text-xs font-semibold tracking-wide text-sky-700"
                   >
                     Export Ready
                   </motion.span>
@@ -313,14 +310,14 @@ export default function ProductShowcase() {
                     transition={{
                       duration: 0.2,
                     }}
-                    className="rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-700"
+                    className="rounded-full border border-amber-200 bg-amber-50 px-4 py-1.5 text-xs font-semibold tracking-wide text-amber-700"
                   >
                     Premium Quality
                   </motion.span>
                 </motion.div>
 
                 {/* CTA Buttons */}
-                <div className="mt-8 grid grid-cols-2 gap-3">
+                <div className="mt-10 grid grid-cols-2 gap-4">
                   <motion.div
                     whileHover={{
                       scale: 1.03,
@@ -330,10 +327,10 @@ export default function ProductShowcase() {
                     }}
                   >
                     <Link href={`/products/${product.slug}`}>
-                      <Button
-                        variant="secondary"
-                        className="w-full"
-                      >
+                    <Button
+  variant="secondary"
+  className="h-12 w-full rounded-xl font-semibold transition-all duration-300 hover:shadow-lg"
+>
                         View Details
                       </Button>
                     </Link>
@@ -347,19 +344,19 @@ export default function ProductShowcase() {
                       scale: 0.97,
                     }}
                   >
-                    <Button className="w-full">
+                  <Button className="h-12 w-full rounded-xl bg-gradient-to-r from-primary to-emerald-600 font-semibold shadow-lg transition-all duration-300 hover:shadow-xl">
                       Request Quote
                     </Button>
                   </motion.div>
                 </div>
 
                 {/* Footer */}
-                <div className="mt-6 flex items-center justify-between border-t border-gray-100 pt-5">
+                <div className="mt-8 flex items-center justify-between border-t border-border/50 pt-6">
                   <motion.div
                     whileHover={{
                       x: 3,
                     }}
-                    className="flex items-center gap-2 text-sm font-medium text-[#2E7D32]"
+                    className="flex items-center gap-2 text-sm font-semibold text-primary"
                   >
                     <BadgeCheck className="h-4 w-4" />
                     Ready for Export
@@ -373,7 +370,7 @@ export default function ProductShowcase() {
                       duration: 0.2,
                     }}
                   >
-                    <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-[#2E7D32]" />
+                    <ArrowRight className="h-5 w-5 text-muted-foreground transition-all duration-300 group-hover:translate-x-1 group-hover:text-primary" />
                   </motion.div>
                 </div>
               </div>
@@ -390,13 +387,14 @@ export default function ProductShowcase() {
                 transition={{
                   duration: 0.35,
                 }}
-                className="absolute bottom-0 left-0 h-1 w-full origin-left bg-gradient-to-r from-[#2E7D32] via-green-500 to-emerald-400"
+                className="absolute bottom-0 left-0 h-1.5 w-full origin-left rounded-full bg-gradient-to-r from-primary via-emerald-500 to-lime-400"
               />
             </motion.div>
           ))}
         </div>
       </div>
-    </motion.section>
+      </motion.div>
+</Section>
 
 
   );
