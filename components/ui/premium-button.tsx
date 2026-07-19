@@ -65,8 +65,8 @@ const variants = {
   secondary:
     "bg-slate-900 text-white hover:bg-slate-800 shadow-lg hover:shadow-xl dark:bg-slate-100 dark:text-slate-900",
 
-  outline:
-    "border border-border bg-background hover:bg-muted text-foreground",
+    outline:
+    "border border-border bg-transparent text-foreground hover:bg-muted/70",
 
   ghost:
     "bg-transparent hover:bg-muted text-foreground",

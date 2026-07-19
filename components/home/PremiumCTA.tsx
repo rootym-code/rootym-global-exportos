@@ -52,23 +52,28 @@ export default function PremiumCTA() {
               and timely international deliveries.
             </p>
 
+           
+           
             <div className="mt-10 flex flex-wrap justify-center gap-4">
-              <PremiumButton
-                size="xl"
-                className="bg-white text-primary hover:bg-white/90"
-                rightIcon={<ArrowRight className="h-5 w-5" />}
-              >
-                Request a Quote
-              </PremiumButton>
+  <PremiumButton
+    size="xl"
+    variant="gradient"
+    rightIcon={<ArrowRight className="h-5 w-5" />}
+  >
+    Request a Quote
+  </PremiumButton>
 
-              <PremiumButton
-                size="xl"
-                variant="outline"
-                className="border-white text-white hover:bg-white/10"
-              >
-                Explore Products
-              </PremiumButton>
-            </div>
+  <PremiumButton
+    size="xl"
+    variant="outline"
+    className="border-2 border-white !text-white hover:bg-white/10"
+  >
+    Explore Products
+  </PremiumButton>
+</div>
+
+
+
 
             <div className="mt-12 flex flex-wrap justify-center gap-10 text-white">
               <div className="flex items-center gap-3">

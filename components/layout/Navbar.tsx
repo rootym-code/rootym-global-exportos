@@ -9,11 +9,9 @@ import { AnimatePresence, motion } from "framer-motion";
 // Navigation items
 const NAV_ITEMS = [
   { label: "Home", href: "/" },
-  { label: "Products", href: "/products" },
-  { label: "Why ROOTYM", href: "/why-rootym" },
-  { label: "Export Services", href: "/services" },
-  { label: "Quality", href: "/quality" },
-  { label: "Global Markets", href: "/markets" },
+  { label: "About Us", href: "/about" },
+  { label: "Meet The Directors", href: "/meet-the-directors" },
+  { label: "Certification", href: "/certifications" },
   { label: "Contact", href: "/contact" },
 ];
 
@@ -204,17 +202,18 @@ const Navbar = () => {
               }}
               whileTap={{ scale: 0.97 }}
             >
-              <Button
-                variant="primary"
-                className="ml-3 px-6 py-2 text-base shadow-sm"
-              >
-                Request Quote
-              </Button>
+              <Link href="/request-quote">
+                <Button
+                  variant="primary"
+                  className="ml-3 px-6 py-2 text-base shadow-sm"
+                >
+                  Request Quote
+                </Button>
+              </Link>
             </motion.div>
           </div>
-
-          {/* Mobile Toggle */}
-          <motion.button
+                    {/* Mobile Toggle */}
+                    <motion.button
             whileTap={{ scale: 0.9 }}
             whileHover={{ scale: 1.05 }}
             className="lg:hidden flex items-center justify-center p-2 rounded-xl hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-300"
@@ -343,13 +342,17 @@ const Navbar = () => {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
-                    <Button
-                      variant="primary"
-                      className="mt-5 w-full text-base px-6 py-2"
+                    <Link
+                      href="/request-quote"
                       onClick={() => setMobileOpen(false)}
                     >
-                      Request Quote
-                    </Button>
+                      <Button
+                        variant="primary"
+                        className="mt-5 w-full text-base px-6 py-2"
+                      >
+                        Request Quote
+                      </Button>
+                    </Link>
                   </motion.div>
                 </nav>
               </motion.div>

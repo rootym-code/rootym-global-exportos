@@ -2,6 +2,7 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 
 import PremiumHero from "@/components/home/PremiumHero";
+import ProductShowcase from "@/components/sections/ProductShowcase";
 import PremiumFeatures from "@/components/home/PremiumFeatures";
 import PremiumExportProcess from "@/components/home/PremiumExportProcess";
 import PremiumCertifications from "@/components/home/PremiumCertifications";
@@ -9,23 +10,22 @@ import PremiumGlobalMarkets from "@/components/home/PremiumGlobalMarkets";
 import PremiumTestimonials from "@/components/home/PremiumTestimonials";
 import PremiumFAQ from "@/components/home/PremiumFAQ";
 import PremiumCTA from "@/components/home/PremiumCTA";
-import ProductShowcase from "@/components/sections/ProductShowcase";
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-background overflow-x-hidden">
+    <main className="min-h-screen overflow-x-hidden bg-background">
       <Navbar />
 
-      {/* Premium Hero */}
+      {/* Hero */}
       <PremiumHero />
 
-      {/* Products */}
+      {/* Featured Products */}
       <ProductShowcase />
 
-      {/* Premium Features */}
+      {/* Why ROOTYM */}
       <PremiumFeatures />
 
-      {/* Export Journey */}
+      {/* Export Process */}
       <PremiumExportProcess />
 
       {/* Certifications */}
@@ -40,7 +40,7 @@ export default function Home() {
       {/* FAQ */}
       <PremiumFAQ />
 
-      {/* CTA */}
+      {/* Call To Action */}
       <PremiumCTA />
 
       <Footer />
