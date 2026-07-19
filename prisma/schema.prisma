@@ -232,6 +232,7 @@ model Admin {
   // Activity Audit
   activities Activity[] @relation("ActivityPerformedBy")
 }
+
 // ============================================================
 // PRODUCT MASTER
 // ============================================================
@@ -320,7 +321,7 @@ model Quote {
 
   inquiryId String?
 
-inquiry Inquiry? @relation(fields: [inquiryId], references: [id], onDelete: SetNull)
+  inquiry Inquiry? @relation(fields: [inquiryId], references: [id], onDelete: SetNull)
 
   // ========================================================
   // Sprint 9 - Quote Versioning
@@ -330,7 +331,7 @@ inquiry Inquiry? @relation(fields: [inquiryId], references: [id], onDelete: SetN
 
   parentQuoteId String?
 
-parentQuote Quote? @relation("QuoteRevisions", fields: [parentQuoteId], references: [id], onDelete: SetNull)
+  parentQuote Quote? @relation("QuoteRevisions", fields: [parentQuoteId], references: [id], onDelete: SetNull)
 
   revisions Quote[] @relation("QuoteRevisions")
 
@@ -374,11 +375,11 @@ parentQuote Quote? @relation("QuoteRevisions", fields: [parentQuoteId], referenc
 
   createdById String?
 
-createdBy Admin? @relation("QuoteCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdBy Admin? @relation("QuoteCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
 
   updatedById String?
 
-updatedBy Admin? @relation("QuoteUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  updatedBy Admin? @relation("QuoteUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
 
@@ -396,7 +397,6 @@ updatedBy Admin? @relation("QuoteUpdatedBy", fields: [updatedById], references: 
   @@index([country])
   @@index([createdById])
   @@index([updatedById])
-
   // Sprint 9
   @@index([parentQuoteId])
 }
@@ -433,6 +433,7 @@ model QuoteItem {
   @@index([quoteId])
   @@index([productId])
 }
+
 // ============================================================
 // ACTIVITY TIMELINE (Sprint 9)
 // ============================================================
@@ -469,8 +470,8 @@ model Activity {
 
   /// Admin user (nullable for System / AI / Customer)
   performedById String?
-  
-performedBy Admin? @relation("ActivityPerformedBy", fields: [performedById], references: [id], onDelete: SetNull)
+
+  performedBy Admin? @relation("ActivityPerformedBy", fields: [performedById], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
 
@@ -656,6 +657,355 @@ model NumberSequence {
 // type ✔
 // year ✔
 //
+
+// ============================================================
+// SPRINT 10 CMS FOUNDATION
+// ============================================================
+
+enum CmsPageStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  DOCUMENT
+  AUDIO
+  OTHER
+}
+
+enum RedirectType {
+  PERMANENT
+  TEMPORARY
+}
+
+// ============================================================
+// LANGUAGE
+// ============================================================
+
+model Language {
+  id String @id @default(cuid())
+
+  /// ISO language code (en, hi, ar, fr)
+  code String @unique
+
+  /// Display name
+  name String
+
+  /// Native language name
+  nativeName String?
+
+  /// Default language
+  isDefault Boolean @default(false)
+
+  /// Active language
+  isActive Boolean @default(true)
+
+  /// Display order
+  sortOrder Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  pageTranslations CmsPageTranslation[]
+
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+// ============================================================
+// CMS PAGE
+// ============================================================
+
+model CmsPage {
+  id String @id @default(cuid())
+
+  /// Internal page title
+  title String
+
+  /// URL slug
+  slug String @unique
+
+  /// Page status
+  status CmsPageStatus @default(DRAFT)
+
+  /// Homepage flag
+  isHomePage Boolean @default(false)
+
+  /// Navigation visibility
+  showInMenu Boolean @default(true)
+
+  /// SEO
+  metaTitle       String?
+  metaDescription String? @db.Text
+  metaKeywords    String?
+  canonicalUrl    String?
+
+  /// Publishing
+  publishedAt DateTime?
+
+  /// Audit
+  createdById String?
+  updatedById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  translations CmsPageTranslation[]
+  menuItems    MenuItem[]
+
+  @@index([status])
+  @@index([slug])
+  @@index([publishedAt])
+  @@index([showInMenu])
+}
+
+// ============================================================
+// CMS PAGE TRANSLATIONS
+// ============================================================
+
+model CmsPageTranslation {
+  id String @id @default(cuid())
+
+  pageId String
+
+  languageId String
+
+  /// Localized page content
+  title String
+
+  slug String
+
+  excerpt String?
+
+  content String? @db.Text
+
+  /// SEO
+  metaTitle       String?
+  metaDescription String? @db.Text
+  metaKeywords    String?
+
+  /// Publishing
+  isPublished Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  page CmsPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  language Language @relation(fields: [languageId], references: [id], onDelete: Cascade)
+
+  @@unique([pageId, languageId])
+  @@unique([languageId, slug])
+  @@index([pageId])
+  @@index([languageId])
+  @@index([slug])
+  @@index([isPublished])
+}
+
+// ============================================================
+// MEDIA LIBRARY
+// ============================================================
+
+model Media {
+  id String @id @default(cuid())
+
+  /// Original filename
+  fileName String
+
+  /// Stored filename
+  storedFileName String
+
+  /// Public URL or relative path
+  fileUrl String
+
+  /// Storage provider (local, s3, cloudinary, etc.)
+  storageProvider String? @default("local")
+
+  /// MIME type
+  mimeType String?
+
+  /// IMAGE / VIDEO / DOCUMENT / AUDIO / OTHER
+  mediaType MediaType
+
+  /// File size in bytes
+  fileSize BigInt?
+
+  /// Image dimensions
+  width  Int?
+  height Int?
+
+  /// Optional alt text
+  altText String?
+
+  /// Optional title
+  title String?
+
+  /// Optional description
+  description String? @db.Text
+
+  /// Folder/category
+  folder String?
+
+  /// Soft delete
+  isDeleted Boolean @default(false)
+
+  /// Audit
+  uploadedById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([mediaType])
+  @@index([folder])
+  @@index([isDeleted])
+  @@index([createdAt])
+}
+
+// ============================================================
+// MENU
+// ============================================================
+
+model Menu {
+  id String @id @default(cuid())
+
+  /// Internal menu name
+  name String
+
+  /// Unique menu identifier
+  code String @unique
+
+  /// Description
+  description String?
+
+  /// Active menu
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  items MenuItem[]
+
+  @@index([isActive])
+}
+
+// ============================================================
+// MENU ITEM
+// ============================================================
+
+model MenuItem {
+  id String @id @default(cuid())
+
+  menuId String
+
+  /// Parent item for dropdowns
+  parentId String?
+
+  /// Display label
+  label String
+
+  /// URL
+  url String
+
+  /// Optional linked CMS page
+  pageId String?
+
+  /// Display order
+  sortOrder Int @default(0)
+
+  /// Open in new tab
+  openInNewTab Boolean @default(false)
+
+  /// Visibility
+  isVisible Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  menu Menu @relation(fields: [menuId], references: [id], onDelete: Cascade)
+
+  parent MenuItem? @relation("MenuHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+
+  children MenuItem[] @relation("MenuHierarchy")
+
+  page CmsPage? @relation(fields: [pageId], references: [id], onDelete: SetNull)
+
+  @@index([menuId])
+  @@index([parentId])
+  @@index([pageId])
+  @@index([sortOrder])
+  @@index([isVisible])
+}
+
+// ============================================================
+// SITE SETTINGS
+// ============================================================
+
+model SiteSetting {
+  id String @id @default(cuid())
+
+  /// Unique configuration key
+  key String @unique
+
+  /// Configuration value
+  value String? @db.Text
+
+  /// Category (General, SEO, Contact, Social, etc.)
+  category String?
+
+  /// Description for administrators
+  description String?
+
+  /// Data type
+  /// text, number, boolean, json
+  valueType String @default("text")
+
+  /// Publicly accessible setting
+  isPublic Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([isPublic])
+}
+
+// ============================================================
+// URL REDIRECTS
+// ============================================================
+
+model Redirect {
+  id String @id @default(cuid())
+
+  /// Old URL
+  fromPath String @unique
+
+  /// New URL
+  toPath String
+
+  /// Permanent or Temporary
+  redirectType RedirectType @default(PERMANENT)
+
+  /// Active redirect
+  isActive Boolean @default(true)
+
+  /// Optional remarks
+  notes String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([redirectType])
+}
+
 // ============================================================
 //
 // Schema Review Status
