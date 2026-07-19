@@ -1,127 +1,783 @@
 ﻿/**
- * ============================================================
- * ROOTYM
- * File: app/api/admin/quotes/route.ts
- * Sprint 8.1
- * ============================================================
+ * ============================================================================
+ * Project      : ROOTYM Global Export Platform
+ * Organization : ROOTYM AGRO HARVEST PRIVATE LIMITED
+ * Module       : Quote Management
+ * Feature      : Admin Quote API
+ * File         : app/api/admin/quotes/route.ts
+ * Version      : 1.0.0
+ *
+ * ============================================================================
+ * DESCRIPTION
+ * ============================================================================
+ *
+ * Administrative Quote Management API.
+ *
+ * Responsibilities
+ * ----------------
+ * • List Quotes
+ * • Search Quotes
+ * • Pagination
+ * • Filtering
+ * • Quote Creation
+ *
+ * Business logic is delegated to QuoteBusinessService.
+ * ============================================================================
  */
 
 import { NextRequest, NextResponse } from "next/server";
 
-import { verifyAdminToken } from "@/lib/jwt";
-import { quoteManagementService } from "@/lib/services/quote-management.service";
+import { Prisma, QuoteStatus } from "@/lib/generated/prisma";
 
-async function authorize(request: NextRequest) {
-  const token =
-    request.cookies.get("rootym_admin_token")?.value;
+import { prisma } from "@/lib/prisma";
 
-  if (!token) {
-    return NextResponse.json(
-      { message: "Unauthorized." },
-      { status: 401 }
-    );
+import QuoteBusinessService from "@/lib/services/quote-business.service";
+
+import { authenticateAdmin } from "@/lib/auth";
+
+/* ============================================================================
+ * GET
+ * ========================================================================== */
+
+export async function GET(
+    request: NextRequest
+) {
+
+    try {
+
+        const auth = await authenticateAdmin(request);
+
+        if (!auth.authenticated || !auth.admin) {
+        
+            return NextResponse.json(
+        
+                {
+        
+                    success: false,
+        
+                    message:
+                        auth.error ?? "Unauthorized",
+        
+                },
+        
+                {
+        
+                    status:
+                        auth.status ?? 401,
+        
+                },
+        
+            );
+        
+        }
+        
+        const admin = auth.admin;
+
+
+        const { searchParams } =
+            new URL(request.url);
+
+        const page =
+            Number(
+                searchParams.get("page") ?? "1"
+            );
+
+        const pageSize =
+            Number(
+                searchParams.get("pageSize") ?? "20"
+            );
+
+        const search =
+            searchParams.get("search") ?? "";
+
+        const status =
+            searchParams.get("status");
+
+        const country =
+            searchParams.get("country");
+
+        const where: Prisma.QuoteWhereInput = {};
+
+        /* ============================================================
+         * Search
+         * ============================================================ */
+
+        if (search) {
+
+            where.OR = [
+
+                {
+                    quoteNumber: {
+                        contains: search,
+                        mode: "insensitive",
+                    },
+                },
+
+                {
+                    companyName: {
+                        contains: search,
+                        mode: "insensitive",
+                    },
+                },
+
+                {
+                    contactPerson: {
+                        contains: search,
+                        mode: "insensitive",
+                    },
+                },
+
+                {
+                    email: {
+                        contains: search,
+                        mode: "insensitive",
+                    },
+                },
+
+            ];
+
+        }
+
+        /* ============================================================
+         * Filters
+         * ============================================================ */
+
+        if (status) {
+
+            where.status =
+                status as QuoteStatus;
+
+        }
+
+        if (country) {
+
+            where.country = country;
+
+        }
+
+        const total =
+            await prisma.quote.count({
+
+                where,
+
+            });
+
+        const quotes =
+            await prisma.quote.findMany({
+
+                where,
+
+                include: {
+
+                    inquiry: true,
+
+                    createdBy: true,
+
+                },
+
+                orderBy: {
+
+                    createdAt: "desc",
+
+                },
+
+                skip:
+                    (page - 1) *
+                    pageSize,
+
+                take:
+                    pageSize,
+
+            });
+            return NextResponse.json({
+
+              success: true,
+  
+              data: quotes,
+  
+              pagination: {
+  
+                  page,
+  
+                  pageSize,
+  
+                  total,
+  
+                  totalPages:
+                      Math.ceil(
+                          total / pageSize
+                      ),
+  
+              },
+  
+          });
+  
+      } catch (error) {
+  
+          console.error(
+              "GET /api/admin/quotes",
+              error
+          );
+  
+          return NextResponse.json(
+  
+              {
+  
+                  success: false,
+  
+                  message:
+                      error instanceof Error
+                          ? error.message
+                          : "Unable to fetch quotes.",
+  
+              },
+  
+              {
+  
+                  status: 500,
+  
+              },
+  
+          );
+  
+      }
+  
   }
-
-  try {
-    return await verifyAdminToken(token);
-  } catch {
-    return NextResponse.json(
-      { message: "Unauthorized." },
-      { status: 401 }
-    );
+  
+  /* ============================================================================
+   * POST
+   * ============================================================================
+   *
+   * Creates a quotation.
+   *
+   * All business rules are delegated to QuoteBusinessService.
+   * ========================================================================== */
+  
+  export async function POST(
+      request: NextRequest
+  ) {
+  
+      try {
+  
+         
+        
+        const auth =
+        await authenticateAdmin(
+            request
+        );
+    
+    if (
+        !auth.authenticated ||
+        !auth.admin
+    ) {
+    
+        return NextResponse.json(
+    
+            {
+    
+                success: false,
+    
+                message:
+                    auth.error ??
+                    "Unauthorized",
+    
+            },
+    
+            {
+    
+                status:
+                    auth.status ??
+                    401,
+    
+            },
+    
+        );
+    
+    }
+    
+    const admin =
+        auth.admin;
+  
+          const body =
+              await request.json();
+  
+          /* ============================================================
+           * Required Fields
+           * ============================================================ */
+  
+          if (!body.companyName) {
+  
+              return NextResponse.json(
+  
+                  {
+  
+                      success: false,
+  
+                      message:
+                          "Company name is required.",
+  
+                  },
+  
+                  {
+  
+                      status: 400,
+  
+                  },
+  
+              );
+  
+          }
+  
+          if (!body.contactPerson) {
+  
+              return NextResponse.json(
+  
+                  {
+  
+                      success: false,
+  
+                      message:
+                          "Contact person is required.",
+  
+                  },
+  
+                  {
+  
+                      status: 400,
+  
+                  },
+  
+              );
+  
+          }
+  
+          if (!body.email) {
+  
+              return NextResponse.json(
+  
+                  {
+  
+                      success: false,
+  
+                      message:
+                          "Email is required.",
+  
+                  },
+  
+                  {
+  
+                      status: 400,
+  
+                  },
+  
+              );
+  
+          }
+  
+          if (!body.country) {
+  
+              return NextResponse.json(
+  
+                  {
+  
+                      success: false,
+  
+                      message:
+                          "Country is required.",
+  
+                  },
+  
+                  {
+  
+                      status: 400,
+  
+                  },
+  
+              );
+  
+          }
+  
+          if (!body.currency) {
+  
+              return NextResponse.json(
+  
+                  {
+  
+                      success: false,
+  
+                      message:
+                          "Currency is required.",
+  
+                  },
+  
+                  {
+  
+                      status: 400,
+  
+                  },
+  
+              );
+  
+          }
+  
+          if (
+              !Array.isArray(body.items) ||
+              body.items.length === 0
+          ) {
+  
+              return NextResponse.json(
+  
+                  {
+  
+                      success: false,
+  
+                      message:
+                          "At least one quote item is required.",
+  
+                  },
+  
+                  {
+  
+                      status: 400,
+  
+                  },
+  
+              );
+  
+          }
+  
+          /* ============================================================
+           * Create Quote
+           * ============================================================ */
+  
+          const quote =
+              await QuoteBusinessService.createQuote({
+  
+                  inquiryId:
+                      body.inquiryId,
+  
+                  companyName:
+                      body.companyName,
+  
+                  contactPerson:
+                      body.contactPerson,
+  
+                  email:
+                      body.email,
+  
+                  phone:
+                      body.phone,
+  
+                  country:
+                      body.country,
+  
+                  currency:
+                      body.currency,
+  
+                  items:
+                      body.items,
+  
+                  discount:
+                      body.discount,
+  
+                  freight:
+                      body.freight,
+  
+                  insurance:
+                      body.insurance,
+  
+                  tax:
+                      body.tax,
+  
+                  validityDays:
+                      body.validityDays,
+  
+                  notes:
+                      body.notes,
+  
+                  createdById:
+                  admin.adminId,
+  
+              });
+  
+          return NextResponse.json(
+  
+              {
+  
+                  success: true,
+  
+                  message:
+                      "Quotation created successfully.",
+  
+                  data: quote,
+  
+              },
+  
+              {
+  
+                  status: 201,
+  
+              },
+  
+          );
+  
+      } catch (error) {
+  
+          console.error(
+              "POST /api/admin/quotes",
+              error
+          );
+  
+          return NextResponse.json(
+  
+              {
+  
+                  success: false,
+  
+                  message:
+                      error instanceof Error
+                          ? error.message
+                          : "Unable to create quotation.",
+  
+              },
+  
+              {
+  
+                  status: 500,
+  
+              },
+  
+          );
+  
+      }
+  
   }
-}
-
-/**
- * ------------------------------------------------------------
- * GET /api/admin/quotes
- * ------------------------------------------------------------
+  /* ============================================================================
+ * PRIVATE HELPERS
+ * ============================================================================
  */
 
-export async function GET(request: NextRequest) {
-  const auth = await authorize(request);
+function parsePositiveInteger(
+  value: string | null,
+  defaultValue: number
+): number {
 
-  if (auth instanceof NextResponse) {
-    return auth;
+  if (!value) {
+
+      return defaultValue;
+
   }
 
-  try {
-    const { searchParams } = new URL(request.url);
+  const parsed = Number(value);
 
-    const result =
-      await quoteManagementService.list({
-        page: Number(
-          searchParams.get("page") ?? 1
-        ),
+  if (!Number.isFinite(parsed) || parsed <= 0) {
 
-        pageSize: Number(
-          searchParams.get("pageSize") ?? 10
-        ),
+      return defaultValue;
 
-        search:
-          searchParams.get("search") ??
-          undefined,
-
-        status:
-          searchParams.get("status") ??
-          undefined,
-      });
-
-    return NextResponse.json(result);
-  } catch (error) {
-    console.error(error);
-
-    return NextResponse.json(
-      {
-        message:
-          error instanceof Error
-            ? error.message
-            : "Unable to load quotes.",
-      },
-      {
-        status: 500,
-      }
-    );
   }
+
+  return Math.floor(parsed);
+
 }
 
-/**
- * ------------------------------------------------------------
- * POST /api/admin/quotes
- * ------------------------------------------------------------
- */
+function buildPagination(
 
-export async function POST(request: NextRequest) {
-  const auth = await authorize(request);
+  page: number,
 
-  if (auth instanceof NextResponse) {
-    return auth;
-  }
+  pageSize: number,
 
-  try {
-    const body = await request.json();
+  total: number,
 
-    const quote =
-      await quoteManagementService.create(
-        body
-      );
+) {
 
-    return NextResponse.json(quote, {
-      status: 201,
-    });
-  } catch (error) {
-    console.error(error);
+  return {
 
-    return NextResponse.json(
-      {
-        message:
-          error instanceof Error
-            ? error.message
-            : "Unable to create quote.",
-      },
-      {
-        status: 400,
-      }
-    );
-  }
+      page,
+
+      pageSize,
+
+      total,
+
+      totalPages: Math.ceil(total / pageSize),
+
+      hasNext: page * pageSize < total,
+
+      hasPrevious: page > 1,
+
+  };
+
 }
+
+function successResponse(
+
+  data: unknown,
+
+  message?: string,
+
+  status: number = 200,
+
+) {
+
+  return NextResponse.json(
+
+      {
+
+          success: true,
+
+          message,
+
+          data,
+
+      },
+
+      {
+
+          status,
+
+      },
+
+  );
+
+}
+
+function paginatedResponse(
+
+  data: unknown,
+
+  page: number,
+
+  pageSize: number,
+
+  total: number,
+
+) {
+
+  return NextResponse.json({
+
+      success: true,
+
+      data,
+
+      pagination: buildPagination(
+
+          page,
+
+          pageSize,
+
+          total,
+
+      ),
+
+  });
+
+}
+
+function errorResponse(
+
+  message: string,
+
+  status: number = 500,
+
+) {
+
+  return NextResponse.json(
+
+      {
+
+          success: false,
+
+          message,
+
+      },
+
+      {
+
+          status,
+
+      },
+
+  );
+
+}
+
+/* ============================================================================
+* FUTURE ENDPOINTS
+* ============================================================================
+*
+* This route intentionally supports only:
+*
+*      GET
+*      POST
+*
+* Additional REST endpoints:
+*
+*      GET    /api/admin/quotes/[id]
+*
+*      PUT    /api/admin/quotes/[id]
+*
+*      DELETE /api/admin/quotes/[id]
+*
+*      POST   /api/admin/quotes/[id]/revision
+*
+*      POST   /api/admin/quotes/[id]/status
+*
+*      POST   /api/admin/quotes/[id]/send
+*
+*      GET    /api/admin/quotes/[id]/pdf
+*
+*      GET    /api/admin/quotes/[id]/timeline
+*
+* will each have their own dedicated route handler.
+*
+* Keeping each route focused makes the API easier to maintain,
+* easier to test, and aligns with enterprise REST design.
+* ============================================================================
+*/
+
+/* ============================================================================
+* ROUTE SUMMARY
+* ============================================================================
+*
+* GET
+* ----
+* • Search Quotes
+* • Filter Quotes
+* • Pagination
+* • Sorting
+*
+* POST
+* ----
+* • Create Quote
+*
+* Business Rules
+* --------------
+* Delegated entirely to QuoteBusinessService.
+*
+* Authentication
+* --------------
+* Admin only.
+*
+* Response Format
+* ---------------
+* {
+*   success,
+*   message,
+*   data,
+*   pagination?
+* }
+*
+* ============================================================================
+*
+* Sprint 9 Status
+*
+* ✅ Quote Listing
+* ✅ Search
+* ✅ Filters
+* ✅ Pagination
+* ✅ Quote Creation
+* ✅ Authentication
+* ✅ Business Layer Delegation
+* ✅ Enterprise Ready
+*
+* ============================================================================
+*/

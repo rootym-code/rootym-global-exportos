@@ -15,6 +15,8 @@ import {
   type QuoteListParams,
   type QuoteListResponse,
   type SendQuotePayload,
+  type CreateQuotePayload,
+  type UpdateQuotePayload,
 } from "@/lib/services/quote.service";
 
 import type {
@@ -166,7 +168,7 @@ export function useQuotes(initial?: QuoteListParams) {
   );
 
   const create = useCallback(
-    async (payload: unknown) => {
+    async (payload: CreateQuotePayload) => {
       const quote =
         await quoteService.create(payload);
 
@@ -180,7 +182,7 @@ export function useQuotes(initial?: QuoteListParams) {
   const update = useCallback(
     async (
       id: string,
-      payload: unknown
+      payload: UpdateQuotePayload
     ) => {
       const quote =
         await quoteService.update(
