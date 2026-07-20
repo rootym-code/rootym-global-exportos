@@ -1,5 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+
+import PublicFloatingProvider from "@/components/r-captain/floating/PublicFloatingProvider";
+
 import "./globals.css";
 
 const geistSans = Geist({
@@ -59,7 +62,9 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable}`}
     >
       <body className="min-h-screen bg-background text-foreground antialiased">
-        {children}
+        <PublicFloatingProvider>
+          {children}
+        </PublicFloatingProvider>
       </body>
     </html>
   );
