@@ -50,8 +50,9 @@ enum AdminRole {
 // ============================================================
 
 enum ProductStatus {
-  ACTIVE
-  INACTIVE
+  DRAFT
+  PUBLISHED
+  ARCHIVED
 }
 
 enum PricingType {
@@ -262,7 +263,11 @@ model Product {
 
   maxOrderQty Decimal? @db.Decimal(18, 3)
 
-  status ProductStatus @default(ACTIVE)
+  status ProductStatus @default(DRAFT)
+
+  featuredImageId String?
+
+  featuredImage Media? @relation("ProductFeaturedImage", fields: [featuredImageId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
 
@@ -275,6 +280,7 @@ model Product {
   @@index([status])
   @@index([category])
   @@index([name])
+  @@index([featuredImageId])
 }
 
 // ============================================================
@@ -856,7 +862,8 @@ model Media {
   isDeleted Boolean @default(false)
 
   /// Audit
-  uploadedById String?
+  uploadedById       String?
+  featuredInProducts Product[] @relation("ProductFeaturedImage")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

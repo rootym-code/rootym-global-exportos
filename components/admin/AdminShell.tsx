@@ -12,39 +12,85 @@ import {
   LogOut,
   Menu,
   X,
+  FileText,
+  ImageIcon,
 } from "lucide-react";
 
 interface AdminShellProps {
   children: React.ReactNode;
 }
 
-const navigation = [
+interface NavigationItem {
+  title: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+interface NavigationGroup {
+  title?: string;
+  items: NavigationItem[];
+}
+
+const navigationGroups: NavigationGroup[] = [
   {
-    title: "Dashboard",
-    href: "/admin",
-    icon: LayoutDashboard,
+    items: [
+      {
+        title: "Dashboard",
+        href: "/admin",
+        icon: LayoutDashboard,
+      },
+    ],
   },
   {
-    title: "Inquiries",
-    href: "/admin/inquiries",
-    icon: MessageSquare,
+    title: "CONTENT",
+    items: [
+      {
+        title: "CMS Pages",
+        href: "/admin/cms/pages",
+        icon: FileText,
+      },
+      {
+        title: "Media Library",
+        href: "/admin/cms/media",
+        icon: ImageIcon,
+      },
+    ],
   },
   {
-    title: "Products",
-    href: "/admin/products",
-    icon: Package,
+    title: "BUSINESS",
+    items: [
+      {
+        title: "Products",
+        href: "/admin/products",
+        icon: Package,
+      },
+      {
+        title: "Inquiries",
+        href: "/admin/inquiries",
+        icon: MessageSquare,
+      },
+      {
+        title: "Buyers",
+        href: "/admin/buyers",
+        icon: Users,
+      },
+    ],
   },
   {
-    title: "Buyers",
-    href: "/admin/buyers",
-    icon: Users,
-  },
-  {
-    title: "Settings",
-    href: "/admin/settings",
-    icon: Settings,
+    title: "SYSTEM",
+    items: [
+      {
+        title: "Settings",
+        href: "/admin/settings",
+        icon: Settings,
+      },
+    ],
   },
 ];
+
+const navigationItems = navigationGroups.flatMap(
+  (group) => group.items
+);
 
 export default function AdminShell({
   children,
@@ -55,7 +101,17 @@ export default function AdminShell({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const pageTitle = useMemo(() => {
-    const current = navigation.find((item) => item.href === pathname);
+    const current = navigationItems.find((item) => {
+      if (item.href === "/admin") {
+        return pathname === "/admin";
+      }
+
+      return (
+        pathname === item.href ||
+        pathname.startsWith(`${item.href}/`)
+      );
+    });
+
     return current?.title ?? "ROOTYM Admin";
   }, [pathname]);
 
@@ -85,31 +141,45 @@ export default function AdminShell({
           </p>
         </div>
 
-        <nav className="flex-1 space-y-2 px-4 py-6">
-          {navigation.map((item) => {
-            const Icon = item.icon;
+        <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
+        {navigationGroups.map((group, groupIndex) => (
+            <div key={group.title ?? `group-${groupIndex}`}>
+              {group.title && (
+                <div className="mb-2 px-4 text-[11px] font-semibold uppercase tracking-[0.2em] text-green-200">
+                  {group.title}
+                </div>
+              )}
 
-            const active =
-              pathname === item.href ||
-              (item.href !== "/admin" &&
-                pathname.startsWith(item.href));
+              <div className="space-y-2">
+                {group.items.map((item) => {
+                  const Icon = item.icon;
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setMobileOpen(false)}
-                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
-                  active
-                    ? "bg-white text-[#1B5E20]"
-                    : "text-white hover:bg-green-700"
-                }`}
-              >
-                <Icon className="h-5 w-5" />
-                {item.title}
-              </Link>
-            );
-          })}
+                  const active =
+                    item.href === "/admin"
+                      ? pathname === "/admin"
+                      : pathname === item.href ||
+                        pathname.startsWith(`${item.href}/`);
+
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setMobileOpen(false)}
+                      className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
+                        active
+                          ? "bg-white text-[#1B5E20]"
+                          : "text-white hover:bg-green-700"
+                      }`}
+                    >
+                      <Icon className="h-5 w-5 shrink-0" />
+
+                      <span>{item.title}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         <div className="border-t border-green-700 p-4">
@@ -177,7 +247,6 @@ export default function AdminShell({
             </div>
           </div>
         </header>
-
         <main className="flex-1 p-6 lg:p-8">
           {children}
         </main>
@@ -185,3 +254,5 @@ export default function AdminShell({
     </div>
   );
 }
+
+// END OF FILE

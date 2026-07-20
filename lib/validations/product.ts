@@ -1,8 +1,9 @@
 import { z } from "zod";
 
 export const productStatusSchema = z.enum([
-  "ACTIVE",
-  "INACTIVE",
+  "DRAFT",
+  "PUBLISHED",
+  "ARCHIVED",
 ]);
 
 export const pricingTypeSchema = z.enum([
@@ -79,14 +80,24 @@ export const createProductSchema = z.object({
     .nonnegative()
     .optional(),
 
-  status: productStatusSchema.default("ACTIVE"),
-});
+  status: productStatusSchema.default(
+    "DRAFT"
+  ),
 
-export const updateProductSchema =
-  createProductSchema.partial();
+  featuredImageId: z
+    .string()
+    .uuid()
+    .nullable()
+    .optional(),
+  });
 
-export type CreateProductInput =
-  z.infer<typeof createProductSchema>;
-
-export type UpdateProductInput =
-  z.infer<typeof updateProductSchema>;
+  export const updateProductSchema =
+    createProductSchema.partial();
+  
+  export type CreateProductInput =
+    z.infer<typeof createProductSchema>;
+  
+  export type UpdateProductInput =
+    z.infer<typeof updateProductSchema>;
+  
+  // END OF FILE

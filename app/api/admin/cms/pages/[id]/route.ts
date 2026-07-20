@@ -3,19 +3,31 @@ import { NextRequest } from "next/server";
 import ApiResponse from "@/lib/api/api-response";
 import handleApiError from "@/lib/api/handle-api-error";
 
+import { authenticateAdmin } from "@/lib/auth";
+
 import cmsPageService from "@/lib/services/cms/page.service";
 
-interface RouteContext {
+type RouteContext = {
   params: Promise<{
     id: string;
   }>;
-}
+};
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: RouteContext
 ) {
   try {
+    const auth = await authenticateAdmin(request);
+
+    if (!auth.authenticated) {
+      return ApiResponse.error({
+        message: auth.error ?? "Unauthorized.",
+        code: "UNAUTHORIZED",
+        status: auth.status,
+      });
+    }
+
     const { id } = await params;
 
     const page = await cmsPageService.getById(id);
@@ -28,16 +40,29 @@ export async function GET(
   }
 }
 
-export async function PUT(
+export async function PATCH(
   request: NextRequest,
   { params }: RouteContext
 ) {
   try {
+    const auth = await authenticateAdmin(request);
+
+    if (!auth.authenticated) {
+      return ApiResponse.error({
+        message: auth.error ?? "Unauthorized.",
+        code: "UNAUTHORIZED",
+        status: auth.status,
+      });
+    }
+
     const { id } = await params;
 
     const body = await request.json();
 
-    const page = await cmsPageService.update(id, body);
+    const page = await cmsPageService.update(
+      id,
+      body
+    );
 
     return ApiResponse.success({
       message: "CMS page updated successfully.",
@@ -49,18 +74,28 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: RouteContext
 ) {
   try {
+    const auth = await authenticateAdmin(request);
+
+    if (!auth.authenticated) {
+      return ApiResponse.error({
+        message: auth.error ?? "Unauthorized.",
+        code: "UNAUTHORIZED",
+        status: auth.status,
+      });
+    }
+
     const { id } = await params;
 
     await cmsPageService.delete(id);
 
-    return ApiResponse.success({
-      message: "CMS page deleted successfully.",
-    });
+    return ApiResponse.noContent();
   } catch (error) {
     return handleApiError(error);
   }
 }
+
+// END OF FILE

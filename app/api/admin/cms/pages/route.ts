@@ -3,10 +3,22 @@ import { NextRequest } from "next/server";
 import ApiResponse from "@/lib/api/api-response";
 import handleApiError from "@/lib/api/handle-api-error";
 
+import { authenticateAdmin } from "@/lib/auth";
+
 import cmsPageService from "@/lib/services/cms/page.service";
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = await authenticateAdmin(request);
+
+    if (!auth.authenticated) {
+      return ApiResponse.error({
+        message: auth.error ?? "Unauthorized.",
+        code: "UNAUTHORIZED",
+        status: auth.status,
+      });
+    }
+
     const { searchParams } = new URL(request.url);
 
     const page = Number(searchParams.get("page") ?? 1);
@@ -42,6 +54,16 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await authenticateAdmin(request);
+
+    if (!auth.authenticated) {
+      return ApiResponse.error({
+        message: auth.error ?? "Unauthorized.",
+        code: "UNAUTHORIZED",
+        status: auth.status,
+      });
+    }
+
     const body = await request.json();
 
     const page = await cmsPageService.create(body);

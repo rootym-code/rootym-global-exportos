@@ -62,6 +62,30 @@ function buildWhere(filters: ProductFilters): Prisma.ProductWhereInput {
   return where;
 }
 
+async function validateFeaturedImage(
+  featuredImageId?: string | null
+) {
+  if (!featuredImageId) {
+    return null;
+  }
+
+  const media = await prisma.media.findUnique({
+    where: {
+      id: featuredImageId,
+    },
+  });
+
+  if (!media) {
+    throw new Error("Selected featured image does not exist.");
+  }
+
+  if (media.isDeleted) {
+    throw new Error("Selected featured image has been deleted.");
+  }
+
+  return media;
+}
+
 export async function listProducts(filters: ProductFilters = {}) {
   const page = Math.max(DEFAULT_PAGE, filters.page ?? DEFAULT_PAGE);
 
@@ -78,6 +102,7 @@ export async function listProducts(filters: ProductFilters = {}) {
     prisma.product.findMany({
       where,
       include: {
+        featuredImage: true,
         pricing: {
           where: {
             isActive: true,
@@ -112,8 +137,11 @@ export async function listProducts(filters: ProductFilters = {}) {
 
 export async function getProductById(id: string) {
   return prisma.product.findUnique({
-    where: { id },
+    where: {
+      id,
+    },
     include: {
+      featuredImage: true,
       pricing: {
         orderBy: {
           createdAt: "desc",
@@ -144,7 +172,6 @@ export async function getProductBySlug(slug: string) {
     },
   });
 }
-
 export async function createProduct(data: CreateProductInput) {
   const existingSku = await getProductBySku(data.sku);
 
@@ -157,6 +184,8 @@ export async function createProduct(data: CreateProductInput) {
   if (existingSlug) {
     throw new Error("Product slug already exists.");
   }
+
+  await validateFeaturedImage(data.featuredImageId);
 
   return prisma.product.create({
     data: {
@@ -178,6 +207,20 @@ export async function createProduct(data: CreateProductInput) {
           ? new Prisma.Decimal(data.maxOrderQty)
           : null,
       status: data.status,
+
+      featuredImage:
+        data.featuredImageId
+          ? {
+              connect: {
+                id: data.featuredImageId,
+              },
+            }
+          : undefined,
+    },
+
+    include: {
+      featuredImage: true,
+      pricing: true,
     },
   });
 }
@@ -187,7 +230,9 @@ export async function updateProduct(
   data: UpdateProductInput
 ) {
   const existing = await prisma.product.findUnique({
-    where: { id },
+    where: {
+      id,
+    },
   });
 
   if (!existing) {
@@ -210,51 +255,88 @@ export async function updateProduct(
     }
   }
 
+  if (data.featuredImageId !== undefined) {
+    await validateFeaturedImage(data.featuredImageId);
+  }
+
   return prisma.product.update({
     where: {
       id,
     },
     data: {
-      ...(data.sku !== undefined && { sku: data.sku }),
-      ...(data.name !== undefined && { name: data.name }),
-      ...(data.slug !== undefined && { slug: data.slug }),
+      ...(data.sku !== undefined && {
+        sku: data.sku,
+      }),
+
+      ...(data.name !== undefined && {
+        name: data.name,
+      }),
+
+      ...(data.slug !== undefined && {
+        slug: data.slug,
+      }),
+
       ...(data.shortDescription !== undefined && {
         shortDescription: data.shortDescription || null,
       }),
+
       ...(data.description !== undefined && {
         description: data.description || null,
       }),
+
       ...(data.category !== undefined && {
         category: data.category || null,
       }),
+
       ...(data.origin !== undefined && {
         origin: data.origin || null,
       }),
+
       ...(data.hsCode !== undefined && {
         hsCode: data.hsCode || null,
       }),
+
       ...(data.defaultUnit !== undefined && {
         defaultUnit: data.defaultUnit,
       }),
+
       ...(data.minOrderQty !== undefined && {
         minOrderQty:
           data.minOrderQty === null
             ? null
             : new Prisma.Decimal(data.minOrderQty),
       }),
+
       ...(data.maxOrderQty !== undefined && {
         maxOrderQty:
           data.maxOrderQty === null
             ? null
             : new Prisma.Decimal(data.maxOrderQty),
       }),
+
       ...(data.status !== undefined && {
         status: data.status,
       }),
+
+      ...(data.featuredImageId !== undefined && {
+        featuredImage: data.featuredImageId
+          ? {
+              connect: {
+                id: data.featuredImageId,
+              },
+            }
+          : {
+              disconnect: true,
+            },
+      }),
+    },
+
+    include: {
+      featuredImage: true,
+      pricing: true,
     },
   });
 }
-
 export async function deleteProduct(id: string) {
   const existing = await prisma.product.findUnique({
     where: {
@@ -290,6 +372,9 @@ export async function deleteProduct(id: string) {
     where: {
       id,
     },
+    include: {
+      featuredImage: true,
+    },
   });
 }
 
@@ -313,3 +398,5 @@ export async function listProductCategories() {
     .map((c) => c.category)
     .filter((c): c is string => Boolean(c));
 }
+
+// END OF FILE
