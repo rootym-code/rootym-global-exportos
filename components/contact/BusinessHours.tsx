@@ -38,25 +38,25 @@ const supportDetails = [
     icon: Clock3,
     title: "Business Hours",
     description:
-      "Monday to Saturday | 9:00 AM to 6:00 PM IST",
+      "Monday to Saturday • 9:00 AM – 6:00 PM (IST) with prompt assistance for international enquiries.",
   },
   {
     icon: MailCheck,
-    title: "Response Time",
+    title: "Fast Response",
     description:
-      "Business enquiries are reviewed and responded to promptly.",
+      "Most export and sourcing enquiries receive an initial response within one business day.",
   },
   {
     icon: Headphones,
-    title: "Export Support",
+    title: "Dedicated Export Team",
     description:
-      "Dedicated assistance for international buyers and partners.",
+      "Specialized assistance for importers, distributors, wholesalers, retailers, and private label partners.",
   },
   {
     icon: ShieldCheck,
-    title: "Trusted Communication",
+    title: "Professional Communication",
     description:
-      "Transparent discussions with professional business practices.",
+      "Transparent quotations, reliable documentation, and long-term business relationships built on trust.",
   },
 ];
 

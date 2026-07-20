@@ -37,30 +37,30 @@ const itemVariants: Variants = {
 const contactHighlights = [
   {
     icon: Mail,
-    value: "24 Hours",
-    label: "Response Target",
-  },
-  {
-    icon: Phone,
-    value: "Global",
-    label: "Buyer Support",
+    value: "< 24 Hrs",
+    label: "Average Response Time",
   },
   {
     icon: Globe2,
     value: "Worldwide",
-    label: "Export Assistance",
+    label: "Export Support",
+  },
+  {
+    icon: Phone,
+    value: "B2B",
+    label: "Dedicated Buyer Assistance",
   },
   {
     icon: MessageCircle,
-    value: "Business",
-    label: "Quick Enquiries",
+    value: "Long-Term",
+    label: "Business Partnerships",
   },
 ];
 
 export default function ContactHero() {
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-green-950 via-green-900 to-emerald-950">
-      {/* Background Effects */}
+      {/* Background */}
 
       <div className="absolute inset-0">
         <div className="absolute left-1/2 top-24 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-green-500/20 blur-3xl" />
@@ -88,7 +88,7 @@ export default function ContactHero() {
             className="mb-8 inline-flex items-center gap-2 rounded-full border border-green-400/30 bg-white/10 px-5 py-2 text-sm font-medium text-green-100 backdrop-blur-md"
           >
             <MessageCircle className="h-4 w-4 text-green-300" />
-            Get in Touch • Export Enquiries • Business Partnerships
+            Global Export Enquiries • Bulk Orders • Strategic Partnerships
           </motion.div>
 
           {/* Heading */}
@@ -97,9 +97,9 @@ export default function ContactHero() {
             variants={itemVariants}
             className="text-4xl font-extrabold leading-tight tracking-tight text-white md:text-6xl lg:text-7xl"
           >
-            Let's Start a
+            Let's Grow Your
             <span className="block bg-gradient-to-r from-green-300 via-emerald-200 to-lime-300 bg-clip-text text-transparent">
-              Global Partnership
+              Global Business Together
             </span>
           </motion.h1>
 
@@ -109,10 +109,11 @@ export default function ContactHero() {
             variants={itemVariants}
             className="mx-auto mt-8 max-w-3xl text-lg leading-8 text-green-100/90 md:text-xl"
           >
-            Whether you're looking for reliable agricultural exports, sourcing
-            partnerships, or product information, our team is here to help.
-            Reach out to ROOTYM and let's build long-term business
-            relationships together.
+            Whether you're an importer, distributor, wholesaler, retailer, or
+            food manufacturer, ROOTYM is ready to become your trusted sourcing
+            partner for premium Indian agricultural products. Our experienced
+            team is committed to providing responsive communication, consistent
+            quality, and reliable export solutions tailored to your business.
           </motion.p>
 
           {/* CTA */}
@@ -137,6 +138,14 @@ export default function ContactHero() {
             </Link>
           </motion.div>
 
+          <motion.p
+            variants={itemVariants}
+            className="mt-5 text-sm text-green-200/80"
+          >
+            We welcome enquiries from importers, distributors, retailers,
+            private label brands, and international sourcing partners.
+          </motion.p>
+
           {/* Highlights */}
 
           <motion.div
@@ -149,7 +158,7 @@ export default function ContactHero() {
               return (
                 <div
                   key={item.label}
-                  className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md"
+                  className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md transition-all duration-300 hover:border-green-400/30 hover:bg-white/10"
                 >
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-white/10">
                     <Icon className="h-6 w-6 text-green-300" />
@@ -159,7 +168,7 @@ export default function ContactHero() {
                     {item.value}
                   </h3>
 
-                  <p className="mt-2 text-sm text-green-100/80">
+                  <p className="mt-2 text-sm leading-6 text-green-100/80">
                     {item.label}
                   </p>
                 </div>

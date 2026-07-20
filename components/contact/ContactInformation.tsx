@@ -42,30 +42,34 @@ const contactDetails = [
     details: [
       "ROOTYM Agro Harvest Private Limited",
       "Pune, Maharashtra, India",
+      "Corporate Headquarters",
     ],
   },
   {
     icon: MapPin,
-    title: "Branch Office",
+    title: "Operations Office",
     details: [
       "Kaimur, Bihar, India",
-      "Agricultural Sourcing & Operations",
+      "Agricultural Sourcing & Procurement",
+      "Farmer Network Operations",
     ],
   },
   {
     icon: Mail,
-    title: "Email",
+    title: "Business Email",
     details: [
       "sales@rootym.com",
-      "Export enquiries & partnerships",
+      "Export Enquiries",
+      "Partnership Opportunities",
     ],
   },
   {
     icon: Phone,
-    title: "Phone",
+    title: "Business Support",
     details: [
       "+91 XXXXX XXXXX",
-      "Business enquiries",
+      "Import & Export Assistance",
+      "Monday - Saturday",
     ],
   },
 ];
@@ -75,19 +79,19 @@ const registrations = [
     icon: ShieldCheck,
     title: "APEDA Registered",
     description:
-      "Authorized for agricultural and processed food exports.",
+      "Registered agricultural exporter committed to international quality standards and responsible export practices.",
   },
   {
     icon: FileCheck2,
-    title: "IEC Registered",
+    title: "IEC Certified",
     description:
-      "Enabled for international import-export operations.",
+      "Authorized Import Export Code (IEC) holder, enabling seamless global trade and international shipments.",
   },
   {
     icon: Globe2,
-    title: "Global Export Focus",
+    title: "Global Trade Partner",
     description:
-      "Serving international buyers and business partners.",
+      "Supporting importers, distributors, wholesalers, retailers, and private label brands across international markets.",
   },
 ];
 
@@ -111,19 +115,18 @@ export default function ContactInformation() {
               Contact Information
             </span>
 
-            <h2
-              className="mt-6 text-4xl font-bold tracking-tight text-gray-900 md:text-5xl"
-            >
-              Connect With
+            <h2 className="mt-6 text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
+              Let's Connect and
               <span className="block text-green-700">
-                ROOTYM
+                Build Long-Term Partnerships
               </span>
             </h2>
 
             <p className="mt-6 text-lg leading-8 text-gray-600">
-              Our team is ready to support international buyers, distributors,
-              wholesalers and strategic partners with reliable agricultural
-              sourcing and export solutions.
+              Whether you are looking for premium agricultural products, bulk
+              sourcing, OEM/private label solutions, or long-term export
+              partnerships, our experienced team is ready to assist you with
+              responsive communication and reliable support.
             </p>
           </motion.div>
 
@@ -152,10 +155,7 @@ export default function ContactInformation() {
 
                   <div className="mt-4 space-y-2">
                     {item.details.map((detail) => (
-                      <p
-                        key={detail}
-                        className="text-gray-600"
-                      >
+                      <p key={detail} className="text-gray-600">
                         {detail}
                       </p>
                     ))}
@@ -165,11 +165,28 @@ export default function ContactInformation() {
             })}
           </motion.div>
 
-          {/* Registration Trust Cards */}
+          {/* Trust Section */}
+
+          <motion.div
+            variants={itemVariants}
+            className="mx-auto mt-20 max-w-3xl text-center"
+          >
+            <h3 className="text-2xl font-bold text-gray-900">
+              Trusted Export Partner
+            </h3>
+
+            <p className="mt-4 leading-8 text-gray-600">
+              ROOTYM is committed to transparency, regulatory compliance, and
+              delivering premium-quality agricultural products that meet the
+              expectations of customers across global markets.
+            </p>
+          </motion.div>
+
+          {/* Registration Cards */}
 
           <motion.div
             variants={containerVariants}
-            className="mt-16 grid gap-6 md:grid-cols-3"
+            className="mt-12 grid gap-6 md:grid-cols-3"
           >
             {registrations.map((item) => {
               const Icon = item.icon;
@@ -178,7 +195,7 @@ export default function ContactInformation() {
                 <motion.div
                   key={item.title}
                   variants={itemVariants}
-                  className="rounded-3xl bg-gradient-to-br from-green-50 to-white p-8"
+                  className="rounded-3xl border border-green-100 bg-gradient-to-br from-green-50 to-white p-8 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
                 >
                   <div className="inline-flex rounded-xl bg-green-100 p-3">
                     <Icon className="h-6 w-6 text-green-700" />

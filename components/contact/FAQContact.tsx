@@ -30,29 +30,34 @@ const itemVariants: Variants = {
 
 const faqs = [
   {
-    question: "How can I start a business enquiry with ROOTYM?",
+    question: "How do I request a quotation from ROOTYM?",
     answer:
-      "You can contact us through the enquiry form, email, or request a quotation directly from our website. Our export team will connect with you regarding your requirements.",
+      "Simply complete the enquiry form on this page with your product requirements, destination country, estimated quantity, and packaging preferences. Our export team will review your enquiry and respond with a suitable quotation and next steps.",
   },
   {
-    question: "Which agricultural products does ROOTYM export?",
+    question: "Which products are available for export?",
     answer:
-      "ROOTYM focuses on premium Indian agricultural products including Makhana, dehydrated onion products, rice, wheat and other export-ready food products.",
+      "ROOTYM supplies premium Indian agricultural products including Makhana (Fox Nuts), dehydrated onion products, rice, wheat, potato products, and other export-ready commodities. Product availability may vary based on season and sourcing.",
   },
   {
-    question: "Do you support bulk export orders?",
+    question: "Do you handle bulk and container-load orders?",
     answer:
-      "Yes. We work with international buyers, wholesalers and distributors for bulk requirements with suitable packaging and export documentation support.",
+      "Yes. We specialize in bulk supply for importers, distributors, wholesalers, retailers, food manufacturers, and private label businesses. Both palletized and container-load shipments can be discussed based on your requirements.",
   },
   {
-    question: "Which countries do you serve?",
+    question: "Which countries does ROOTYM export to?",
     answer:
-      "ROOTYM is building partnerships across UAE, Middle East, Sri Lanka, Europe, Africa and other international markets.",
+      "We are expanding our global network and welcome enquiries from buyers across the UAE, Middle East, Sri Lanka, Europe, Africa, Asia, and other international markets.",
   },
   {
-    question: "Can you provide product specifications and certifications?",
+    question: "Can you provide export documentation and certifications?",
     answer:
-      "Yes. Product specifications, compliance documents and certification details can be shared based on customer requirements.",
+      "Yes. Depending on the destination country and product, we can provide the required export documentation and applicable certifications to support customs clearance and regulatory compliance.",
+  },
+  {
+    question: "Can I request customized packaging or private labeling?",
+    answer:
+      "Yes. We support OEM and private label opportunities for eligible products. Packaging formats, branding requirements, and minimum order quantities can be discussed with our export team.",
   },
 ];
 

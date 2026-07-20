@@ -42,7 +42,7 @@ const products = [
     packaging: "250g • 500g • 1kg • Bulk",
     markets: "UAE • Europe • USA",
     description:
-      "Handpicked premium fox nuts processed with strict quality standards for international markets.",
+      "Premium-grade fox nuts sourced from the renowned Mithilanchal region of Bihar, carefully processed to deliver exceptional taste, consistency, and export-quality standards.",
   },
   {
     name: "Dehydrated Onion Powder",
@@ -51,7 +51,7 @@ const products = [
     packaging: "25kg Export Bags",
     markets: "Middle East • Europe",
     description:
-      "High-quality dehydrated onion powder manufactured using premium export-grade onions.",
+      "Export-grade dehydrated onion powder manufactured from premium Indian onions, ideal for food processing, seasoning, and industrial food applications.",
   },
   {
     name: "Frozen French Fries",
@@ -60,7 +60,7 @@ const products = [
     packaging: "Retail & Bulk",
     markets: "GCC • Africa",
     description:
-      "Crispy frozen fries processed under hygienic conditions with global food safety standards.",
+      "Premium frozen French fries processed under stringent food safety standards for distributors, restaurant chains, and food service businesses.",
   },
   {
     name: "Potato Starch",
@@ -69,7 +69,7 @@ const products = [
     packaging: "25kg Export Bags",
     markets: "Asia • Middle East",
     description:
-      "Food-grade potato starch suitable for food processing and industrial applications.",
+      "High-quality food-grade potato starch suitable for food manufacturing, processing industries, and a wide range of commercial applications.",
   },
   {
     name: "Non-Basmati Rice",
@@ -78,7 +78,7 @@ const products = [
     packaging: "5kg • 25kg • 50kg",
     markets: "Africa • Middle East",
     description:
-      "Premium Indian rice sourced directly from trusted farming communities.",
+      "Premium Indian rice sourced from trusted farming communities, offering excellent quality, consistency, and dependable export supply.",
   },
   {
     name: "Sharbati Wheat",
@@ -87,7 +87,7 @@ const products = [
     packaging: "25kg • 50kg",
     markets: "Global",
     description:
-      "High-protein Sharbati wheat known for excellent taste and milling quality.",
+      "Premium Sharbati wheat valued for its superior milling quality, rich taste, and suitability for flour mills, bakeries, and food manufacturers.",
   },
 ];
 
@@ -108,23 +108,25 @@ export default function ExportProducts() {
             className="mx-auto max-w-3xl text-center"
           >
             <span className="inline-flex rounded-full border border-green-200 bg-green-50 px-4 py-2 text-sm font-semibold text-green-700">
-              Export Portfolio
+              Export Product Portfolio
             </span>
 
             <h2 className="mt-6 text-4xl font-bold tracking-tight text-slate-900 md:text-5xl">
-              Premium Agricultural Products
+              Premium Indian Agricultural Products
+
               <span className="block text-green-700">
-                Ready for Global Markets
+                Trusted by Global Buyers
               </span>
             </h2>
 
             <p className="mt-6 text-lg leading-8 text-slate-600">
-              ROOTYM exports carefully selected agricultural products sourced
-              from trusted farmers and manufacturers across India, ensuring
-              consistent quality, food safety, and international compliance.
+              Discover a carefully curated portfolio of premium Indian
+              agricultural products sourced through trusted farming and
+              manufacturing partners. Every product is selected to meet
+              international quality expectations, export requirements,
+              and long-term supply commitments.
             </p>
           </motion.div>
-
           <div className="mt-16 grid gap-8 md:grid-cols-2 xl:grid-cols-3">
             {products.map((product) => (
               <motion.div
@@ -132,7 +134,7 @@ export default function ExportProducts() {
                 variants={fadeUpVariants}
                 className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
               >
-                <div className="relative h-64 overflow-hidden">
+               <div className="relative h-52 overflow-hidden">
                   <Image
                     src={product.image}
                     alt={product.name}
@@ -160,7 +162,7 @@ export default function ExportProducts() {
 
                       <div>
                         <p className="font-semibold text-slate-900">
-                          Packaging
+                          Packaging Options
                         </p>
 
                         <p className="text-slate-600">
@@ -168,6 +170,7 @@ export default function ExportProducts() {
                         </p>
                       </div>
                     </div>
+
                     <div className="flex items-start gap-3">
                       <Globe2 className="mt-1 h-5 w-5 text-green-600" />
 
@@ -198,9 +201,9 @@ export default function ExportProducts() {
                   </div>
 
                   <Link
-                    href="/request-quote"
-                    className="mt-8 inline-flex items-center gap-2 rounded-xl bg-green-700 px-6 py-3 font-semibold text-white transition-all duration-300 hover:bg-green-800"
-                  >
+                  href="/request-quote"
+  className="mt-8 inline-flex min-h-[48px] items-center gap-2 rounded-xl bg-green-700 px-6 py-3 font-semibold text-white transition-all duration-300 hover:bg-green-800"
+>
                     Request Quote
 
                     <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
@@ -211,27 +214,32 @@ export default function ExportProducts() {
           </div>
 
           {/* Bottom Information */}
-
-          <motion.div
+          {/* Bottom Information */}
+                    <motion.div
             variants={fadeUpVariants}
             className="mt-20 rounded-3xl border border-green-100 bg-gradient-to-r from-green-700 to-green-600 p-10 text-white shadow-xl"
           >
             <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
               <div>
                 <span className="rounded-full bg-white/15 px-4 py-2 text-sm font-semibold">
-                  Global Export Excellence
+                  Your Trusted Export Partner
                 </span>
 
                 <h3 className="mt-6 text-4xl font-bold">
-                  Delivering India's Finest Agricultural Products Worldwide
+                  Reliable Sourcing.
+                  <br />
+                  Reliable Quality.
+                  <br />
+                  Reliable Delivery.
                 </h3>
 
                 <p className="mt-6 text-lg leading-8 text-green-50">
-                  Every shipment is backed by stringent quality control,
-                  reliable sourcing, export documentation support, and
-                  customer-first service. We are committed to building
-                  long-term partnerships with buyers across international
-                  markets.
+                  Every shipment is supported by disciplined sourcing,
+                  quality inspections, export documentation, efficient
+                  logistics coordination, and responsive customer
+                  communication. Our commitment is to provide buyers with
+                  a dependable sourcing experience that builds confidence
+                  and long-term business relationships.
                 </p>
               </div>
 
@@ -248,7 +256,7 @@ export default function ExportProducts() {
                   <h4 className="text-3xl font-bold">Trusted</h4>
 
                   <p className="mt-2 text-green-100">
-                    Farmer & Manufacturer Network
+                    Verified Supply Network
                   </p>
                 </div>
 

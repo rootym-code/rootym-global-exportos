@@ -4,6 +4,7 @@ import { motion, type Variants } from "framer-motion";
 import {
   BadgeCheck,
   Boxes,
+  CheckCircle2,
   FileCheck2,
   Globe2,
   ShieldCheck,
@@ -39,38 +40,47 @@ const assurances = [
     icon: ShieldCheck,
     title: "Quality Assurance",
     description:
-      "Products are sourced from trusted suppliers and undergo quality verification before shipment.",
+      "Every product is sourced from trusted suppliers and undergoes comprehensive quality verification to ensure consistency, freshness, and customer satisfaction before shipment.",
   },
   {
     icon: FileCheck2,
-    title: "Complete Documentation",
+    title: "Complete Export Documentation",
     description:
-      "Accurate export documentation helps ensure efficient customs clearance and international trade compliance.",
+      "We prepare accurate export documentation to facilitate efficient customs clearance, regulatory compliance, and hassle-free international trade operations.",
   },
   {
     icon: Ship,
     title: "Reliable Export Logistics",
     description:
-      "Working with experienced logistics partners to ensure safe and timely international deliveries.",
+      "Working with experienced logistics partners, we coordinate secure, efficient, and timely shipments to customers across international markets.",
   },
   {
     icon: BadgeCheck,
     title: "Regulatory Compliance",
     description:
-      "Business processes are aligned with applicable export regulations and customer-specific requirements.",
+      "Our export processes are aligned with applicable regulations, customer specifications, and international trade requirements to minimize risk and ensure confidence.",
   },
   {
     icon: Globe2,
     title: "Global Market Readiness",
     description:
-      "Prepared to serve buyers across multiple international markets with professionalism and consistency.",
+      "ROOTYM is prepared to serve importers, distributors, wholesalers, retailers, and food manufacturers with dependable products and professional export services.",
   },
   {
     icon: Boxes,
-    title: "Packaging Excellence",
+    title: "Export-Ready Packaging",
     description:
-      "Export-ready packaging solutions designed to protect product quality throughout the supply chain.",
+      "Packaging solutions are designed to protect product quality throughout storage, handling, transportation, and international delivery while meeting buyer requirements.",
   },
+];
+
+const exportProcess = [
+  "Trusted Supplier Selection",
+  "Product Quality Inspection",
+  "Professional Packaging",
+  "Export Documentation",
+  "Customs & Regulatory Compliance",
+  "International Shipping",
 ];
 
 export default function ExportAssurance() {
@@ -83,7 +93,7 @@ export default function ExportAssurance() {
           whileInView="visible"
           viewport={{ once: true, amount: 0.15 }}
         >
-          {/* Heading */}
+          {/* Section Heading */}
 
           <motion.div
             variants={itemVariants}
@@ -96,18 +106,20 @@ export default function ExportAssurance() {
             <h2 className="mt-6 text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
               Delivering Confidence
               <span className="block text-green-700">
-                Beyond Every Shipment
+                With Every Shipment
               </span>
             </h2>
 
             <p className="mt-6 text-lg leading-8 text-gray-600">
-              Every export shipment represents our commitment to quality,
-              compliance, reliability and long-term customer satisfaction. Our
-              processes are designed to minimize risk while maximizing trust.
+              Every export order represents our commitment to quality,
+              compliance, reliability, and customer satisfaction. From sourcing
+              to final delivery, our processes are designed to reduce risk,
+              maintain product integrity, and build long-term partnerships with
+              buyers across the world.
             </p>
           </motion.div>
 
-          {/* Assurance Grid */}
+          {/* Assurance Cards */}
 
           <motion.div
             variants={containerVariants}
@@ -130,12 +142,44 @@ export default function ExportAssurance() {
                     {item.title}
                   </h3>
 
-                  <p className="mt-4 leading-7 text-gray-600">
+                  <p className="mt-5 leading-7 text-gray-600">
                     {item.description}
                   </p>
                 </motion.div>
               );
             })}
+          </motion.div>
+
+          {/* Export Workflow */}
+
+          <motion.div
+            variants={itemVariants}
+            className="mt-20 rounded-3xl border border-green-100 bg-green-50 p-10"
+          >
+            <div className="mx-auto max-w-4xl text-center">
+              <h3 className="text-3xl font-bold text-gray-900">
+                Our Export Assurance Process
+              </h3>
+
+              <p className="mt-5 text-lg leading-8 text-gray-600">
+                Every shipment follows a structured workflow to ensure product
+                quality, regulatory compliance, documentation accuracy, and
+                dependable international delivery.
+              </p>
+            </div>
+
+            <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {exportProcess.map((step) => (
+                <div
+                  key={step}
+                  className="flex items-center gap-3 rounded-2xl border border-green-100 bg-white p-4 shadow-sm"
+                >
+                  <CheckCircle2 className="h-5 w-5 flex-shrink-0 text-green-700" />
+
+                  <span className="font-medium text-gray-800">{step}</span>
+                </div>
+              ))}
+            </div>
           </motion.div>
 
           {/* Export Commitment */}
@@ -146,17 +190,39 @@ export default function ExportAssurance() {
           >
             <div className="mx-auto max-w-5xl text-center">
               <h3 className="text-3xl font-bold text-white">
-                Our Export Commitment
+                Our Commitment to Global Buyers
               </h3>
 
               <p className="mt-6 text-lg leading-8 text-green-100">
-                At ROOTYM, exporting is more than moving products across
-                borders. It is about building trust, maintaining quality,
-                ensuring compliance, and creating lasting relationships with
-                customers around the world. Every shipment reflects our
-                dedication to excellence and our vision of making Indian
-                agricultural products globally respected.
+                At ROOTYM, exporting is more than delivering products across
+                borders—it is about building trust through quality, regulatory
+                compliance, transparent communication, and dependable service.
+                Every shipment reflects our dedication to strengthening
+                long-term partnerships and promoting premium Indian agricultural
+                products in international markets.
               </p>
+
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-3 text-sm font-semibold text-green-100">
+                <span className="rounded-full bg-white/10 px-4 py-2 backdrop-blur-md">
+                  Quality Verified
+                </span>
+
+                <span className="rounded-full bg-white/10 px-4 py-2 backdrop-blur-md">
+                  Export Documentation
+                </span>
+
+                <span className="rounded-full bg-white/10 px-4 py-2 backdrop-blur-md">
+                  Reliable Logistics
+                </span>
+
+                <span className="rounded-full bg-white/10 px-4 py-2 backdrop-blur-md">
+                  Global Compliance
+                </span>
+
+                <span className="rounded-full bg-white/10 px-4 py-2 backdrop-blur-md">
+                  Long-Term Partnership
+                </span>
+              </div>
             </div>
           </motion.div>
         </motion.div>
@@ -164,3 +230,5 @@ export default function ExportAssurance() {
     </section>
   );
 }
+
+// END OF FILE

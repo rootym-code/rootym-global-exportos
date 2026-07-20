@@ -48,7 +48,7 @@ export default function VisionMission() {
             className="mx-auto mb-16 max-w-3xl text-center"
           >
             <span className="inline-flex items-center rounded-full bg-[#2E7D32]/10 px-5 py-2 text-sm font-semibold text-[#2E7D32]">
-              Our Purpose
+              Our Purpose & Commitment
             </span>
 
             <h2 className="mt-6 text-4xl font-black text-slate-900 md:text-5xl">
@@ -56,9 +56,10 @@ export default function VisionMission() {
             </h2>
 
             <p className="mt-6 text-lg leading-8 text-slate-600">
-              Our purpose is to create lasting value for farmers, buyers,
-              partners, and communities through responsible agricultural
-              exports and technology-driven business practices.
+              Our vision and mission guide every decision we make—from
+              partnering with farmers and trusted suppliers to delivering
+              premium Indian agricultural products that help international
+              buyers build reliable, long-term supply chains with confidence.
             </p>
           </motion.div>
 
@@ -77,39 +78,46 @@ export default function VisionMission() {
                 Our Vision
               </h3>
 
-              <p className="mt-6 text-lg leading-8 text-slate-600">
+<p className="mt-6 text-lg leading-8 text-slate-600">
                 To become one of India's most trusted agricultural export
-                companies by delivering premium-quality products, sustainable
-                sourcing practices, and long-term partnerships across global
-                markets.
+                partners, recognized globally for premium-quality products,
+                dependable supply chains, transparent business practices,
+                and long-term relationships built on trust and consistency.
               </p>
 
               <div className="mt-8 space-y-4">
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="mt-1 h-5 w-5 text-[#2E7D32]" />
+
                   <p className="text-slate-600">
-                    Build long-term international business relationships.
+                    Become the preferred sourcing partner for global
+                    importers, distributors, wholesalers, and retailers.
                   </p>
                 </div>
 
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="mt-1 h-5 w-5 text-[#2E7D32]" />
+
                   <p className="text-slate-600">
-                    Promote sustainable and ethical agricultural exports.
+                    Promote responsible sourcing, sustainability, and
+                    ethical agricultural trade.
                   </p>
                 </div>
 
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="mt-1 h-5 w-5 text-[#2E7D32]" />
+
                   <p className="text-slate-600">
-                    Deliver consistent quality that global buyers can trust.
+                    Deliver consistent export-quality products that
+                    international buyers can rely on.
                   </p>
                 </div>
               </div>
             </motion.div>
-                        {/* Mission */}
 
-                        <motion.div
+            {/* Mission */}
+
+            <motion.div
               variants={fadeUpVariants}
               className="rounded-3xl border border-green-100 bg-gradient-to-br from-[#2E7D32] to-[#43A047] p-10 text-white shadow-xl"
             >
@@ -122,10 +130,11 @@ export default function VisionMission() {
               </h3>
 
               <p className="mt-6 text-lg leading-8 text-green-50">
-                To connect Indian farmers and trusted manufacturers with global
-                buyers by delivering premium agricultural products through
-                quality assurance, transparent business practices, innovation,
-                and exceptional customer service.
+                To connect Indian farmers, trusted manufacturers, and
+                global buyers through premium agricultural products,
+                supported by quality assurance, export compliance,
+                transparent communication, efficient logistics, and
+                exceptional customer service.
               </p>
 
               <div className="mt-8 space-y-4">
@@ -133,8 +142,9 @@ export default function VisionMission() {
                   <CheckCircle2 className="mt-1 h-5 w-5 shrink-0 text-green-200" />
 
                   <p>
-                    Deliver export-quality agricultural products that meet
-                    international standards.
+                    Deliver export-quality agricultural products that
+                    consistently meet international quality and food
+                    safety standards.
                   </p>
                 </div>
 
@@ -142,8 +152,8 @@ export default function VisionMission() {
                   <CheckCircle2 className="mt-1 h-5 w-5 shrink-0 text-green-200" />
 
                   <p>
-                    Support farmers through responsible sourcing and sustainable
-                    partnerships.
+                    Build transparent supply chains through responsible
+                    sourcing, documentation, and regulatory compliance.
                   </p>
                 </div>
 
@@ -151,8 +161,9 @@ export default function VisionMission() {
                   <CheckCircle2 className="mt-1 h-5 w-5 shrink-0 text-green-200" />
 
                   <p>
-                    Build long-term relationships based on trust, transparency,
-                    and consistent product quality.
+                    Develop long-term partnerships based on trust,
+                    reliability, consistent communication, and customer
+                    success.
                   </p>
                 </div>
 
@@ -160,29 +171,33 @@ export default function VisionMission() {
                   <CheckCircle2 className="mt-1 h-5 w-5 shrink-0 text-green-200" />
 
                   <p>
-                    Use technology to simplify export operations and enhance
-                    customer experience.
+                    Use technology and process excellence to improve
+                    operational efficiency and deliver a seamless export
+                    experience.
                   </p>
                 </div>
               </div>
             </motion.div>
           </div>
 
-          {/* Bottom Statement */}
-
-          <motion.div
+   
+                    {/* Bottom Statement */}
+                    <motion.div
             variants={fadeUpVariants}
             className="mx-auto mt-20 max-w-5xl rounded-3xl border border-green-100 bg-white p-10 text-center shadow-lg"
           >
             <h3 className="text-3xl font-bold text-slate-900">
-              Our Commitment to Excellence
+              A Partner You Can Rely On
             </h3>
 
             <p className="mx-auto mt-6 max-w-4xl text-lg leading-8 text-slate-600">
-              At ROOTYM, every shipment represents our commitment to quality,
-              compliance, integrity, and customer satisfaction. We strive to
-              create lasting value for our partners while showcasing the
-              excellence of Indian agriculture in international markets.
+              At ROOTYM, every shipment reflects our commitment to
+              quality, compliance, transparency, and dependable service.
+              We understand that successful international trade is built
+              on consistency, clear communication, and trust. Our goal is
+              to become a long-term sourcing partner that helps customers
+              grow their business while proudly delivering the excellence
+              of Indian agriculture to global markets.
             </p>
           </motion.div>
         </motion.div>

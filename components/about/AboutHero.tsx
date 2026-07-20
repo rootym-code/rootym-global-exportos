@@ -33,7 +33,7 @@ const fadeUpVariants: Variants = {
 };
 
 /* -------------------------------------------------------------------------- */
-/*                               About Hero                                   */
+/*                               Why ROOTYM Hero                              */
 /* -------------------------------------------------------------------------- */
 
 export default function AboutHero() {
@@ -95,7 +95,7 @@ export default function AboutHero() {
             <ArrowRight className="h-4 w-4" />
 
             <span className="font-semibold text-[#2E7D32]">
-              About Us
+              Why ROOTYM
             </span>
           </motion.div>
 
@@ -116,35 +116,37 @@ export default function AboutHero() {
             variants={fadeUpVariants}
             className="text-5xl font-black leading-tight tracking-tight text-slate-900 md:text-6xl lg:text-7xl"
           >
-            Building Global Trust
+            Why Global Buyers
 
             <br />
 
             <span className="bg-gradient-to-r from-[#2E7D32] to-[#43A047] bg-clip-text text-transparent">
-              Through Premium Agricultural Exports
+              Choose ROOTYM
             </span>
           </motion.h1>
+                    {/* Description */}
 
-          {/* Description */}
-
-          <motion.p
+                    <motion.p
             variants={fadeUpVariants}
             className="mt-8 max-w-3xl text-lg leading-9 text-slate-600 md:text-xl"
           >
-            ROOTYM Agro Harvest Private Limited is committed to delivering
-            premium-quality Indian agricultural products to international
-            markets with transparency, sustainability, and world-class export
-            standards.
+            ROOTYM Agro Harvest Private Limited partners with global
+            importers, wholesalers, distributors, retailers, and food
+            manufacturers by supplying premium Indian agricultural products
+            backed by quality assurance, reliable sourcing, and export
+            expertise.
 
             <br />
             <br />
 
-            Our mission is to bridge Indian farmers with global buyers through
-            technology, quality assurance, and trusted partnerships.
+            From farm to destination, every shipment is managed with
+            transparency, compliance, and long-term partnerships—helping
+            international buyers source confidently from India.
           </motion.p>
-                    {/* Action Buttons */}
 
-                    <motion.div
+          {/* Action Buttons */}
+
+          <motion.div
             variants={fadeUpVariants}
             className="mt-10 flex flex-wrap gap-4"
           >
@@ -158,10 +160,10 @@ export default function AboutHero() {
             </Link>
 
             <Link
-              href="/contact"
+              href="/products"
               className="inline-flex items-center gap-2 rounded-xl border border-green-200 bg-white/80 px-8 py-4 font-semibold text-[#2E7D32] backdrop-blur transition-all duration-300 hover:border-[#2E7D32] hover:bg-white"
             >
-              Contact Us
+              Explore Products
             </Link>
           </motion.div>
 
@@ -173,11 +175,11 @@ export default function AboutHero() {
           >
             <div className="rounded-2xl border border-white/70 bg-white/70 p-6 shadow-lg backdrop-blur">
               <div className="text-3xl font-black text-[#2E7D32]">
-                100%
+                Premium
               </div>
 
               <p className="mt-2 text-sm font-medium text-slate-600">
-                Quality Focused Export Operations
+                Export-Grade Agricultural Products
               </p>
             </div>
 
@@ -199,7 +201,7 @@ export default function AboutHero() {
               </div>
 
               <p className="mt-2 text-sm font-medium text-slate-600">
-                Connecting Indian Agriculture with International Buyers
+                Serving Importers Across Global Markets
               </p>
             </div>
           </motion.div>

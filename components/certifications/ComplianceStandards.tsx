@@ -39,38 +39,47 @@ const standards = [
     icon: ClipboardCheck,
     title: "Regulatory Compliance",
     description:
-      "Compliance with applicable export regulations, documentation requirements and statutory obligations.",
+      "We comply with applicable export regulations, statutory requirements, and documentation standards to ensure smooth international trade and customs clearance.",
   },
   {
     icon: ShieldCheck,
-    title: "Food Safety",
+    title: "Food Safety & Hygiene",
     description:
-      "Products are sourced and handled following food safety practices to meet customer and regulatory expectations.",
+      "Our products are sourced, handled, and processed with a strong focus on food safety, hygiene, and regulatory compliance, ensuring confidence for global buyers.",
   },
   {
     icon: PackageCheck,
     title: "Quality Inspection",
     description:
-      "Each shipment undergoes quality verification before dispatch to ensure consistency and customer satisfaction.",
+      "Each shipment undergoes thorough quality verification to ensure consistency, product integrity, packaging accuracy, and customer satisfaction before dispatch.",
   },
   {
     icon: Truck,
     title: "Export Documentation",
     description:
-      "Accurate documentation supports smooth customs clearance and international trade operations.",
+      "We prepare complete export documentation to support efficient customs processing, regulatory compliance, and timely international shipments.",
   },
   {
     icon: Globe2,
-    title: "International Standards",
+    title: "International Trade Standards",
     description:
-      "Continuous alignment with internationally accepted quality and export best practices.",
+      "ROOTYM continuously aligns its sourcing, packaging, quality management, and export practices with internationally accepted business and trade standards.",
   },
   {
     icon: CheckCircle2,
     title: "Continuous Improvement",
     description:
-      "Regular review and enhancement of processes to maintain operational excellence and customer confidence.",
+      "We regularly enhance our operational processes, quality systems, and customer service to deliver consistent value and build long-term business relationships.",
   },
+];
+
+const commitments = [
+  "Transparent Business Practices",
+  "Ethical & Responsible Sourcing",
+  "Reliable Documentation",
+  "Consistent Product Quality",
+  "On-Time Export Coordination",
+  "Customer-Centric Service",
 ];
 
 export default function ComplianceStandards() {
@@ -94,16 +103,18 @@ export default function ComplianceStandards() {
             </span>
 
             <h2 className="mt-6 text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
-              Our Commitment To
+              Our Commitment to
               <span className="block text-green-700">
-                Quality & Compliance
+                Quality, Compliance & Trust
               </span>
             </h2>
 
             <p className="mt-6 text-lg leading-8 text-gray-600">
-              Beyond certifications, we follow structured quality processes,
-              documentation standards and responsible business practices that
-              support reliable international trade.
+              Certifications are only one part of our commitment. At ROOTYM, we
+              follow structured quality management, responsible sourcing,
+              documentation excellence, and internationally aligned export
+              practices to build lasting confidence with customers across global
+              markets.
             </p>
           </motion.div>
 
@@ -130,12 +141,46 @@ export default function ComplianceStandards() {
                     {item.title}
                   </h3>
 
-                  <p className="mt-4 leading-7 text-gray-600">
+                  <p className="mt-5 leading-7 text-gray-600">
                     {item.description}
                   </p>
                 </motion.div>
               );
             })}
+          </motion.div>
+
+          {/* Core Commitments */}
+
+          <motion.div
+            variants={itemVariants}
+            className="mt-20 rounded-3xl border border-green-100 bg-white p-10 shadow-lg"
+          >
+            <div className="mx-auto max-w-4xl text-center">
+              <h3 className="text-3xl font-bold text-gray-900">
+                What Every Global Buyer Can Expect
+              </h3>
+
+              <p className="mt-5 text-lg leading-8 text-gray-600">
+                Every export order is managed with a focus on consistency,
+                transparency, quality assurance, and professional execution from
+                enquiry through shipment.
+              </p>
+            </div>
+
+            <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {commitments.map((commitment) => (
+                <div
+                  key={commitment}
+                  className="flex items-center gap-3 rounded-2xl border border-green-100 bg-green-50 p-4"
+                >
+                  <CheckCircle2 className="h-5 w-5 flex-shrink-0 text-green-700" />
+
+                  <span className="font-medium text-gray-800">
+                    {commitment}
+                  </span>
+                </div>
+              ))}
+            </div>
           </motion.div>
 
           {/* Bottom Banner */}
@@ -149,14 +194,40 @@ export default function ComplianceStandards() {
             </h3>
 
             <p className="mx-auto mt-6 max-w-4xl text-lg leading-8 text-green-100">
-              Certifications establish credibility, while consistent execution
-              builds trust. Our focus is to maintain high standards throughout
-              sourcing, quality assurance, documentation, logistics and customer
-              service.
+              While certifications establish credibility, consistent execution
+              builds lasting trust. ROOTYM is committed to maintaining high
+              standards across sourcing, quality assurance, documentation,
+              packaging, logistics, and customer service—ensuring dependable
+              partnerships for importers, distributors, wholesalers, retailers,
+              and food manufacturers worldwide.
             </p>
+
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3 text-sm font-semibold text-green-100">
+              <span className="rounded-full bg-white/10 px-4 py-2 backdrop-blur-md">
+                Export Ready
+              </span>
+
+              <span className="rounded-full bg-white/10 px-4 py-2 backdrop-blur-md">
+                Food Safety Focused
+              </span>
+
+              <span className="rounded-full bg-white/10 px-4 py-2 backdrop-blur-md">
+                Quality Assured
+              </span>
+
+              <span className="rounded-full bg-white/10 px-4 py-2 backdrop-blur-md">
+                Transparent Documentation
+              </span>
+
+              <span className="rounded-full bg-white/10 px-4 py-2 backdrop-blur-md">
+                Global Supply Partner
+              </span>
+            </div>
           </motion.div>
         </motion.div>
       </div>
     </section>
   );
 }
+
+// END OF FILE

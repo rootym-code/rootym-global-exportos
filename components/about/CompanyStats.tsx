@@ -36,30 +36,30 @@ const stats = [
   {
     icon: Building2,
     value: "2025",
-    title: "Established",
+    title: "Founded",
     description:
-      "Founded with a vision to connect Indian agriculture with international markets.",
+      "Established with a clear vision to become a trusted global supplier of premium Indian agricultural products.",
   },
   {
     icon: Globe2,
     value: "Global",
-    title: "Export Focus",
+    title: "Market Reach",
     description:
-      "Serving international buyers with premium agricultural products.",
+      "Supporting importers, wholesalers, distributors, retailers, and food manufacturers across international markets.",
   },
   {
     icon: PackageCheck,
     value: "6+",
-    title: "Export Products",
+    title: "Core Product Categories",
     description:
-      "Curated portfolio of high-quality agricultural and food products.",
+      "A curated portfolio of premium agricultural and food products prepared for global sourcing requirements.",
   },
   {
     icon: Users,
     value: "100%",
-    title: "Customer Commitment",
+    title: "Buyer Commitment",
     description:
-      "Dedicated to building long-term partnerships through trust and transparency.",
+      "Focused on transparency, responsive communication, and long-term partnerships built on trust.",
   },
 ];
 
@@ -80,23 +80,23 @@ export default function CompanyStats() {
             className="mx-auto max-w-3xl text-center"
           >
             <span className="inline-flex rounded-full border border-green-200 bg-green-50 px-4 py-2 text-sm font-semibold text-green-700">
-              ROOTYM at a Glance
+              Buyer Confidence
             </span>
 
             <h2 className="mt-6 text-4xl font-bold tracking-tight text-slate-900 md:text-5xl">
-              Numbers That Reflect
+              Built for
+
               <span className="block text-green-700">
-                Our Commitment
+                Global Trade
               </span>
             </h2>
 
             <p className="mt-6 text-lg leading-8 text-slate-600">
-              Every milestone represents our dedication to quality,
-              transparency, and building strong relationships with buyers,
-              suppliers, and farming communities.
+              ROOTYM combines trusted sourcing, export-ready operations,
+              and customer-focused service to help international buyers
+              build reliable supply partnerships with India.
             </p>
           </motion.div>
-
           <div className="mt-16 grid gap-8 sm:grid-cols-2 xl:grid-cols-4">
             {stats.map((stat) => {
               const Icon = stat.icon;
@@ -115,7 +115,7 @@ export default function CompanyStats() {
                     {stat.value}
                   </h3>
 
-                  <h4 className="mt-4 text-2xl font-bold text-slate-900">
+                  <h4 className="mt-4 min-h-[64px] text-2xl font-bold text-slate-900">
                     {stat.title}
                   </h4>
 
@@ -126,67 +126,73 @@ export default function CompanyStats() {
               );
             })}
           </div>
-                    {/* Bottom Achievement Banner */}
 
-                    <motion.div
+          {/* Bottom Achievement Banner */}
+          <motion.div
             variants={fadeUpVariants}
             className="mt-20 overflow-hidden rounded-3xl border border-green-100 bg-gradient-to-r from-green-700 via-green-600 to-green-700 shadow-xl"
           >
             <div className="grid gap-10 p-10 lg:grid-cols-2 lg:items-center lg:p-14">
               <div className="text-white">
                 <span className="rounded-full bg-white/15 px-4 py-2 text-sm font-semibold backdrop-blur">
-                  Growing with Purpose
+                  Growing with Our Global Partners
                 </span>
 
                 <h3 className="mt-6 text-4xl font-bold leading-tight">
-                  A Strong Foundation for Global Agricultural Trade
+                  Building Confidence.
+                  <br />
+                  Delivering Consistency.
+                  <br />
+                  Growing Together.
                 </h3>
 
                 <p className="mt-6 text-lg leading-8 text-green-50">
-                  ROOTYM continues to expand its network of trusted farmers,
-                  manufacturers, logistics partners, and international buyers.
-                  Our focus is not only on business growth but also on creating
-                  sustainable value across the agricultural supply chain.
+                  ROOTYM continues to strengthen its network of trusted
+                  farmers, manufacturers, logistics partners, and global
+                  buyers. Our focus is to deliver consistent quality,
+                  reliable supply, and transparent export solutions that
+                  create long-term value across the agricultural supply
+                  chain.
                 </p>
               </div>
 
               <div className="grid gap-5 sm:grid-cols-2">
                 <div className="rounded-2xl bg-white/10 p-6 backdrop-blur">
                   <h4 className="text-3xl font-bold text-white">
-                    Trusted
+                    Verified Sourcing
                   </h4>
 
                   <p className="mt-3 text-green-100">
-                    Reliable sourcing through verified suppliers and farming
+                    Reliable sourcing through trusted suppliers and farming
                     communities.
                   </p>
                 </div>
 
                 <div className="rounded-2xl bg-white/10 p-6 backdrop-blur">
                   <h4 className="text-3xl font-bold text-white">
-                    Scalable
+                    Flexible Supply
                   </h4>
 
                   <p className="mt-3 text-green-100">
-                    Flexible supply capabilities to support growing global
-                    demand.
+                    Scalable sourcing capabilities to support growing global
+                    requirements.
                   </p>
                 </div>
 
                 <div className="rounded-2xl bg-white/10 p-6 backdrop-blur">
                   <h4 className="text-3xl font-bold text-white">
-                    Compliant
+                    Export Compliance
                   </h4>
 
                   <p className="mt-3 text-green-100">
-                    Focused on export documentation, quality assurance, and
-                    international standards.
+                    Focused on documentation, quality assurance, and
+                    international trade requirements.
                   </p>
                 </div>
 
                 <div className="rounded-2xl bg-white/10 p-6 backdrop-blur">
                   <h4 className="text-3xl font-bold text-white">
-                    Future Ready
+                    Continuous Improvement
                   </h4>
 
                   <p className="mt-3 text-green-100">

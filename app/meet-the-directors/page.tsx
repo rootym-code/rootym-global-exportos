@@ -16,7 +16,18 @@ import {
 export const metadata: Metadata = {
   title: "Meet The Directors | ROOTYM Agro Harvest Private Limited",
   description:
-    "Meet the leadership team behind ROOTYM Agro Harvest Private Limited. Discover our vision, values, experience, and commitment to delivering premium Indian agricultural products worldwide.",
+    "Meet the founders and directors of ROOTYM Agro Harvest Private Limited. Learn about our leadership, vision, agricultural expertise, global export mission, and commitment to quality, sustainability, and empowering Indian farmers.",
+  keywords: [
+    "ROOTYM Directors",
+    "Prem Chand Singh",
+    "Anjali Singh",
+    "ROOTYM Leadership",
+    "Agricultural Export Company",
+    "Indian Exporters",
+    "Global Food Export",
+    "Agricultural Leadership",
+    "ROOTYM Agro Harvest",
+  ],
 };
 
 export default function MeetTheDirectorsPage() {
@@ -31,54 +42,60 @@ export default function MeetTheDirectorsPage() {
 
         <DirectorProfile
           name="Prem Chand Singh"
-          designation="Director"
+          designation="Founder & Director"
           image="/images/directors/prem-singh.webp"
           location="Pune, Maharashtra, India"
           email="director@rootym.com"
           biography={[
-            "Prem Chand Singh brings more than two decades of professional experience across technology, business leadership and strategic execution. His passion for agriculture and global trade inspired the creation of ROOTYM with a vision of connecting India's agricultural excellence to international markets.",
-            "His leadership focuses on building transparent business relationships, adopting technology-driven solutions and delivering premium-quality agricultural products that meet global expectations.",
+            "Prem Chand Singh is the Founder and Director of ROOTYM Agro Harvest Private Limited. With over two decades of leadership experience in technology, enterprise transformation, and strategic business management, he envisioned ROOTYM as a bridge connecting India's agricultural excellence with global markets.",
+            "After a successful corporate career, he dedicated himself to building a modern export enterprise focused on quality, transparency, innovation, and long-term partnerships. His leadership combines technology-driven processes with ethical sourcing and international quality standards to deliver premium agricultural products worldwide.",
+            "He strongly believes that sustainable exports begin with empowering farmers, improving supply chains, and creating value for customers through consistency, trust, and continuous innovation.",
           ]}
-          vision="Our goal is to build a globally trusted agricultural export company that creates lasting value for customers while empowering Indian farmers through sustainable growth."
+          vision="To establish ROOTYM as one of India's most trusted global agricultural export brands by delivering premium products, embracing innovation, empowering farmers, and building lasting international partnerships."
           expertise={[
             "Business Strategy",
             "Technology Leadership",
-            "Export Management",
-            "International Business",
-            "Operations",
+            "Global Export Management",
+            "International Business Development",
+            "Supply Chain & Operations",
+            "Digital Transformation",
           ]}
           achievements={[
-            "20+ years of professional leadership experience",
-            "Co-founded ROOTYM Agro Harvest Private Limited",
-            "Driving international export expansion",
-            "Committed to innovation and sustainable growth",
+            "20+ years of leadership and technology experience",
+            "Founder & Director of ROOTYM Agro Harvest Private Limited",
+            "Leading ROOTYM's global expansion strategy",
+            "Building technology-enabled export operations",
+            "Promoting sustainable agricultural growth and farmer empowerment",
           ]}
         />
 
         <DirectorProfile
           reverse
           name="Anjali Singh"
-          designation="Director"
+          designation="Co-Founder & Director"
           image="/images/directors/anjali-singh.webp"
           location="Pune, Maharashtra, India"
           email="director@rootym.com"
           biography={[
-            "Anjali Singh plays a key role in strengthening ROOTYM's organizational foundation through operational excellence, customer relationships and strategic planning.",
-            "She believes that sustainable business growth comes from strong ethics, consistent quality and building long-term partnerships with customers across global markets.",
+            "Anjali Singh serves as the Co-Founder and Director of ROOTYM Agro Harvest Private Limited. She plays a pivotal role in strengthening the company's operational excellence, organizational development, customer engagement, and strategic planning.",
+            "Her leadership philosophy is centered around trust, integrity, quality assurance, and creating meaningful relationships with customers and business partners across international markets.",
+            "She continuously works toward building efficient business processes that enable sustainable growth while ensuring ROOTYM consistently delivers exceptional service and premium-quality agricultural products.",
           ]}
-          vision="Strong businesses are built on trust, quality, collaboration and a genuine commitment to customer success."
+          vision="To create a globally respected organization built on integrity, operational excellence, customer satisfaction, and sustainable business practices that benefit every stakeholder."
           expertise={[
             "Business Operations",
-            "Customer Relations",
             "Strategic Planning",
+            "Customer Relationship Management",
             "Administration",
             "Business Development",
+            "Organizational Excellence",
           ]}
           achievements={[
-            "Co-founded ROOTYM Agro Harvest Private Limited",
-            "Driving organizational excellence",
-            "Supporting global business partnerships",
-            "Focused on long-term sustainable growth",
+            "Co-Founder & Director of ROOTYM Agro Harvest Private Limited",
+            "Driving operational excellence across the organization",
+            "Strengthening international customer relationships",
+            "Supporting sustainable and ethical business growth",
+            "Building long-term strategic partnerships",
           ]}
         />
 

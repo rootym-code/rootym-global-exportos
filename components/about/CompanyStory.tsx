@@ -55,17 +55,22 @@ export default function CompanyStory() {
           >
             <div className="inline-flex items-center gap-2 rounded-full bg-[#2E7D32]/10 px-5 py-2 text-sm font-semibold text-[#2E7D32]">
               <Building2 className="h-4 w-4" />
-              Our Story
+
+              Why Buyers Trust Us
             </div>
 
             <h2 className="mt-6 text-4xl font-black text-slate-900 md:text-5xl">
-              ROOTYM's Journey
+              Built on Trust.
+              <br />
+              Driven by Quality.
             </h2>
 
             <p className="mx-auto mt-6 max-w-3xl text-lg leading-8 text-slate-600">
-              ROOTYM Agro Harvest Private Limited was founded with a clear
-              purpose—to connect the richness of Indian agriculture with buyers
-              across the globe through trust, quality, and innovation.
+              Choosing the right export partner is just as important as
+              choosing the right product. ROOTYM combines disciplined
+              processes, quality assurance, and transparent business
+              practices to help international buyers source premium
+              Indian agricultural products with confidence.
             </p>
           </motion.div>
 
@@ -79,48 +84,14 @@ export default function CompanyStory() {
               <h3 className="text-3xl font-bold text-slate-900">
                 From Technology Leadership to Global Agriculture
               </h3>
-
-              <p className="text-lg leading-8 text-slate-600">
-                ROOTYM was established after more than two decades of experience
-                in enterprise technology and quality management. That background
-                shaped our commitment to structured processes, operational
-                excellence, and customer satisfaction.
-              </p>
-
-              <p className="text-lg leading-8 text-slate-600">
-                Today, we apply the same discipline to agricultural exports by
-                working closely with farmers, processors, logistics partners,
-                and international buyers to deliver products that consistently
-                meet global expectations.
-              </p>
-
-              <p className="text-lg leading-8 text-slate-600">
-                Every shipment reflects our core values of transparency,
-                traceability, food safety, and long-term relationships.
-              </p>
-
-              <div className="flex items-center gap-3 rounded-2xl border border-green-100 bg-green-50 p-5">
-                <Leaf className="h-8 w-8 text-[#2E7D32]" />
-
-                <div>
-                  <h4 className="font-semibold text-slate-900">
-                    Rooted in Indian Agriculture
-                  </h4>
-
-                  <p className="mt-1 text-sm text-slate-600">
-                    Delivering authentic Indian agricultural products while
-                    supporting farmers and sustainable sourcing practices.
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-                        {/* Right Content */}
-
-                        <motion.div
-              variants={fadeUpVariants}
-              className="grid gap-6"
-            >
-              <div className="rounded-3xl border border-green-100 bg-gradient-to-br from-green-50 to-white p-8 shadow-lg transition-shadow duration-300 hover:shadow-xl">
+              <h3 className="text-3xl font-bold text-slate-900">
+  From Technology Leadership to Global Agriculture
+</h3>
+<motion.div
+  variants={fadeUpVariants}
+  className="grid gap-6"
+></motion.div>
+<div className="rounded-3xl border border-green-100 bg-gradient-to-br from-green-50 to-white p-8 shadow-lg transition-shadow duration-300 hover:shadow-xl">
                 <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#2E7D32] text-white">
                   <Sprout className="h-7 w-7" />
                 </div>
@@ -130,10 +101,11 @@ export default function CompanyStory() {
                 </h3>
 
                 <p className="mt-4 leading-8 text-slate-600">
-                  We believe that strong global trade begins with strong
-                  partnerships at the source. By working closely with farmers
-                  and trusted suppliers, we promote responsible sourcing,
-                  consistent quality, and sustainable agricultural practices.
+                  Strong global supply chains begin at the source. We
+                  collaborate with farmers, producer groups, and trusted
+                  suppliers to encourage responsible sourcing,
+                  consistent quality, sustainable agricultural
+                  practices, and long-term value creation.
                 </p>
               </div>
 
@@ -147,10 +119,11 @@ export default function CompanyStory() {
                 </h3>
 
                 <p className="mt-4 leading-8 text-slate-600">
-                  Our objective is to become a trusted export partner for
-                  distributors, wholesalers, retailers, and food manufacturers
-                  by delivering premium Indian agricultural products with
-                  reliability, compliance, and transparency.
+                  We aim to become the preferred sourcing partner for
+                  importers, distributors, wholesalers, retailers, and
+                  food manufacturers by delivering premium Indian
+                  agricultural products with reliability, compliance,
+                  transparency, and responsive customer service.
                 </p>
               </div>
 
@@ -158,13 +131,16 @@ export default function CompanyStory() {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <h3 className="text-2xl font-bold">
-                      Our Commitment
+                      Our Promise
                     </h3>
 
                     <p className="mt-4 leading-8 text-green-100">
-                      Every order represents our commitment to quality,
-                      compliance, ethical sourcing, customer satisfaction,
-                      and long-term international business relationships.
+                      Every shipment is handled with the same commitment
+                      to quality, compliance, ethical sourcing, and
+                      customer satisfaction that we would expect from our
+                      own global supply partners. Our success is measured
+                      by the long-term relationships we build with buyers
+                      around the world.
                     </p>
                   </div>
 

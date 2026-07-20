@@ -37,15 +37,15 @@ const itemVariants: Variants = {
 const features = [
   {
     icon: Globe2,
-    title: "Global Export Partner",
+    title: "Worldwide Export Network",
   },
   {
     icon: Mail,
-    title: "Fast Business Response",
+    title: "24-Hour Business Response",
   },
   {
     icon: Phone,
-    title: "Dedicated Support",
+    title: "Dedicated Export Specialists",
   },
 ];
 
@@ -73,7 +73,7 @@ export default function ContactCTA() {
           <motion.div variants={itemVariants}>
             <span className="inline-flex items-center gap-2 rounded-full border border-green-400/30 bg-white/10 px-5 py-2 text-sm font-semibold text-green-100 backdrop-blur-md">
               <MessageCircle className="h-4 w-4 text-green-300" />
-              Let's Build Long-Term Partnerships
+              Trusted by Global Buyers • Built for Long-Term Partnerships
             </span>
           </motion.div>
 
@@ -81,9 +81,9 @@ export default function ContactCTA() {
             variants={itemVariants}
             className="mt-8 text-4xl font-bold tracking-tight text-white md:text-6xl"
           >
-            Ready to Source Premium
+            Ready to Import Premium 
             <span className="block bg-gradient-to-r from-green-300 via-emerald-200 to-lime-300 bg-clip-text text-transparent">
-              Agricultural Products?
+            Indian Agricultural Products?
             </span>
           </motion.h2>
 
@@ -91,9 +91,7 @@ export default function ContactCTA() {
             variants={itemVariants}
             className="mx-auto mt-8 max-w-3xl text-lg leading-8 text-green-100/90"
           >
-            Whether you're an importer, distributor, wholesaler or food
-            manufacturer, ROOTYM is committed to providing reliable sourcing,
-            export expertise and long-term business partnerships.
+            From premium Makhana and dehydrated onion products to rice, wheat, potato products, and customized sourcing solutions, ROOTYM helps importers, distributors, wholesalers, retailers, and food manufacturers build reliable long-term supply partnerships backed by quality, transparency, and export expertise.
           </motion.p>
 
           {/* CTA Buttons */}
@@ -111,7 +109,7 @@ export default function ContactCTA() {
             </Link>
 
             <Link
-              href="/products"
+          href="/request-quote"
               className="inline-flex items-center rounded-xl border border-white/20 bg-white/10 px-8 py-4 font-semibold text-white backdrop-blur-md transition-all duration-300 hover:bg-white/20"
             >
               Explore Products

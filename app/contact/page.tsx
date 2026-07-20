@@ -16,7 +16,21 @@ import {
 export const metadata: Metadata = {
   title: "Contact Us | ROOTYM Agro Harvest Private Limited",
   description:
-    "Contact ROOTYM Agro Harvest Private Limited for agricultural exports, bulk sourcing, international partnerships and business enquiries.",
+    "Get in touch with ROOTYM Agro Harvest Private Limited for agricultural exports, bulk sourcing, OEM/private label opportunities, international partnerships, distributor enquiries, and global trade collaborations. Our team is ready to assist businesses worldwide.",
+  keywords: [
+    "Contact ROOTYM",
+    "Agricultural Exporter India",
+    "Bulk Food Supplier",
+    "Export Enquiry",
+    "International Trade",
+    "Fox Nuts Export",
+    "Makhana Exporter",
+    "Onion Export",
+    "Rice Export",
+    "Potato Products Export",
+    "Indian Agricultural Products",
+    "ROOTYM Agro Harvest",
+  ],
 };
 
 export default function ContactPage() {

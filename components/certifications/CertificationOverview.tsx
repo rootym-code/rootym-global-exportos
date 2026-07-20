@@ -38,44 +38,46 @@ const certifications = [
   {
     icon: Globe2,
     title: "APEDA Registration",
-    subtitle: "Agricultural & Processed Food Products Export Development Authority",
+    subtitle:
+      "Agricultural & Processed Food Products Export Development Authority",
     description:
-      "Registered exporter enabling international trade of agricultural and processed food products in compliance with Indian export regulations.",
+      "ROOTYM is registered with APEDA, enabling the export of agricultural and processed food products while complying with India's export regulations and international trade requirements.",
   },
   {
     icon: BadgeCheck,
     title: "Import Export Code (IEC)",
-    subtitle: "Director General of Foreign Trade",
+    subtitle: "Director General of Foreign Trade (DGFT)",
     description:
-      "Official authorization to conduct import and export business, enabling seamless international trade operations.",
+      "Our Import Export Code authorizes us to conduct international trade, facilitating seamless import and export operations with buyers across global markets.",
   },
   {
     icon: ShieldCheck,
     title: "FSSAI License",
     subtitle: "Food Safety & Standards Authority of India",
     description:
-      "Ensures compliance with food safety regulations and reinforces our commitment to delivering safe and quality food products.",
+      "Our FSSAI license demonstrates compliance with India's food safety regulations and reinforces our commitment to delivering safe, hygienic, and high-quality agricultural products.",
   },
   {
     icon: Building2,
     title: "MSME Registration",
     subtitle: "Ministry of Micro, Small & Medium Enterprises",
     description:
-      "Recognized as a registered MSME, strengthening our commitment to innovation, quality and sustainable business growth.",
+      "As a registered MSME, ROOTYM is committed to innovation, sustainable growth, operational excellence, and delivering long-term value to customers and business partners.",
   },
   {
     icon: Award,
     title: "Startup India Recognition",
-    subtitle: "Department for Promotion of Industry & Internal Trade",
+    subtitle:
+      "Department for Promotion of Industry & Internal Trade (DPIIT)",
     description:
-      "Recognized as an innovative startup committed to technology-driven agricultural exports and business excellence.",
+      "Recognized under the Startup India initiative, ROOTYM leverages innovation, technology, and modern business practices to strengthen India's agricultural export ecosystem.",
   },
   {
     icon: FileCheck2,
-    title: "Quality Commitment",
-    subtitle: "Internal Quality Assurance",
+    title: "Quality Assurance",
+    subtitle: "Inspection, Documentation & Export Readiness",
     description:
-      "Every shipment follows rigorous quality checks, documentation standards and customer-specific compliance requirements.",
+      "Every shipment undergoes quality verification, documentation review, and customer-specific compliance checks to ensure consistent product quality and smooth international deliveries.",
   },
 ];
 
@@ -89,32 +91,33 @@ export default function CertificationOverview() {
           whileInView="visible"
           viewport={{ once: true, amount: 0.15 }}
         >
-          {/* Heading */}
+          {/* Section Heading */}
 
           <motion.div
             variants={itemVariants}
             className="mx-auto max-w-3xl text-center"
           >
             <span className="inline-flex rounded-full bg-green-100 px-4 py-1 text-sm font-semibold text-green-700">
-              Our Certifications
+              Certifications & Registrations
             </span>
 
             <h2 className="mt-6 text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
               Building Trust Through
               <span className="block text-green-700">
-                Compliance & Quality
+                Compliance, Quality & Transparency
               </span>
             </h2>
 
             <p className="mt-6 text-lg leading-8 text-gray-600">
-              Our registrations, certifications and regulatory compliance
-              demonstrate our commitment to quality, transparency and global
-              export standards. These credentials strengthen customer
-              confidence and support smooth international trade.
+              At ROOTYM, regulatory compliance is an integral part of our
+              business. Our registrations, certifications, and quality
+              management practices demonstrate our commitment to responsible
+              sourcing, food safety, transparent documentation, and reliable
+              global agricultural exports.
             </p>
           </motion.div>
 
-          {/* Cards */}
+          {/* Certification Cards */}
 
           <motion.div
             variants={containerVariants}
@@ -137,7 +140,7 @@ export default function CertificationOverview() {
                     {item.title}
                   </h3>
 
-                  <p className="mt-2 text-sm font-medium text-green-700">
+                  <p className="mt-2 text-sm font-semibold text-green-700">
                     {item.subtitle}
                   </p>
 
@@ -149,7 +152,7 @@ export default function CertificationOverview() {
             })}
           </motion.div>
 
-          {/* Bottom Statement */}
+          {/* Trust Banner */}
 
           <motion.div
             variants={itemVariants}
@@ -160,14 +163,39 @@ export default function CertificationOverview() {
             </h3>
 
             <p className="mx-auto mt-6 max-w-4xl text-lg leading-8 text-green-100">
-              Every certification reflects our dedication to responsible
-              business practices, regulatory compliance, quality assurance and
-              building long-term confidence with customers across international
-              markets.
+              Every certification reflects our commitment to quality assurance,
+              regulatory compliance, ethical sourcing, and transparent business
+              practices. These standards help us build long-term partnerships
+              with importers, distributors, retailers, food manufacturers, and
+              wholesale buyers across international markets.
             </p>
+
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3 text-sm font-semibold text-green-100">
+              <span className="rounded-full bg-white/10 px-4 py-2 backdrop-blur-md">
+                APEDA Registered
+              </span>
+
+              <span className="rounded-full bg-white/10 px-4 py-2 backdrop-blur-md">
+                IEC Certified
+              </span>
+
+              <span className="rounded-full bg-white/10 px-4 py-2 backdrop-blur-md">
+                FSSAI Licensed
+              </span>
+
+              <span className="rounded-full bg-white/10 px-4 py-2 backdrop-blur-md">
+                MSME Registered
+              </span>
+
+              <span className="rounded-full bg-white/10 px-4 py-2 backdrop-blur-md">
+                Startup India Recognized
+              </span>
+            </div>
           </motion.div>
         </motion.div>
       </div>
     </section>
   );
 }
+
+// END OF FILE

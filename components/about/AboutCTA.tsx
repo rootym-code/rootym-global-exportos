@@ -31,10 +31,7 @@ const fadeUpVariants: Variants = {
 export default function AboutCTA() {
   return (
     <section className="relative overflow-hidden bg-slate-900 py-24">
-      {/* Background Effects */}
-
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.18),transparent_45%)]" />
-
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,rgba(34,197,94,0.12),transparent_40%)]" />
 
       <div className="relative mx-auto max-w-7xl px-6 lg:px-8">
@@ -49,20 +46,25 @@ export default function AboutCTA() {
             className="overflow-hidden rounded-[36px] bg-gradient-to-r from-green-700 via-green-600 to-green-700 p-10 shadow-2xl lg:p-16"
           >
             <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
+
+              {/* Left Content */}
+
               <div className="text-white">
                 <span className="rounded-full bg-white/15 px-4 py-2 text-sm font-semibold backdrop-blur">
-                  Let's Build Together
+                  Start Your Partnership
                 </span>
 
                 <h2 className="mt-6 text-4xl font-bold leading-tight md:text-5xl">
-                  Ready to Source Premium Agricultural Products from India?
+                  Ready to Build a Reliable
+                  <br />
+                  Supply Partnership with India?
                 </h2>
 
                 <p className="mt-6 max-w-xl text-lg leading-8 text-green-50">
-                  Whether you're looking for reliable export partners,
-                  customized sourcing solutions, or long-term business
-                  relationships, ROOTYM is ready to support your global
-                  procurement needs.
+                  Whether you are an importer, distributor, wholesaler,
+                  retailer, or food manufacturer, ROOTYM helps you source
+                  premium Indian agricultural products with reliable supply,
+                  transparent communication, and dependable export support.
                 </p>
 
                 <div className="mt-10 flex flex-wrap gap-4">
@@ -71,7 +73,6 @@ export default function AboutCTA() {
                     className="inline-flex items-center gap-2 rounded-xl bg-white px-7 py-4 font-semibold text-green-700 transition hover:scale-105"
                   >
                     Request a Quote
-
                     <ArrowRight className="h-5 w-5" />
                   </Link>
 
@@ -84,7 +85,11 @@ export default function AboutCTA() {
                 </div>
               </div>
 
+
+              {/* Right Content */}
+
               <div className="grid gap-6">
+
                 <div className="rounded-3xl bg-white/10 p-8 backdrop-blur">
                   <div className="flex items-center gap-4">
                     <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15">
@@ -103,6 +108,7 @@ export default function AboutCTA() {
                   </div>
                 </div>
 
+
                 <div className="rounded-3xl bg-white/10 p-8 backdrop-blur">
                   <div className="flex items-center gap-4">
                     <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15">
@@ -115,39 +121,53 @@ export default function AboutCTA() {
                       </p>
 
                       <h3 className="mt-1 text-xl font-semibold text-white">
-                        Available Monday – Saturday
+                        Export Enquiries & Buyer Support
                       </h3>
                     </div>
                   </div>
                 </div>
+
+
                 <div className="rounded-3xl bg-white/10 p-8 backdrop-blur">
                   <h3 className="text-2xl font-bold text-white">
                     Why Partner with ROOTYM?
                   </h3>
 
                   <ul className="mt-6 space-y-4 text-green-50">
+
                     <li className="flex items-start gap-3">
                       <span className="mt-2 h-2 w-2 rounded-full bg-white" />
-                      <span>Premium export-quality agricultural products.</span>
+                      <span>
+                        Premium Indian agricultural products prepared for global markets.
+                      </span>
                     </li>
 
                     <li className="flex items-start gap-3">
                       <span className="mt-2 h-2 w-2 rounded-full bg-white" />
-                      <span>Transparent communication throughout the export process.</span>
+                      <span>
+                        Clear communication and documentation support at every stage.
+                      </span>
                     </li>
 
                     <li className="flex items-start gap-3">
                       <span className="mt-2 h-2 w-2 rounded-full bg-white" />
-                      <span>Reliable sourcing backed by trusted farmers and manufacturers.</span>
+                      <span>
+                        Trusted sourcing network with dependable supply partnerships.
+                      </span>
                     </li>
 
                     <li className="flex items-start gap-3">
                       <span className="mt-2 h-2 w-2 rounded-full bg-white" />
-                      <span>Commitment to long-term business partnerships.</span>
+                      <span>
+                        A long-term approach focused on buyer success and trust.
+                      </span>
                     </li>
+
                   </ul>
                 </div>
+
               </div>
+
             </div>
           </motion.div>
         </motion.div>

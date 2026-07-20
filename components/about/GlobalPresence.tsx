@@ -35,7 +35,7 @@ const fadeUpVariants: Variants = {
 
 const markets = [
   "United Arab Emirates",
-  "Middle East",
+  "Saudi Arabia",
   "Sri Lanka",
   "Europe",
   "Africa",
@@ -59,23 +59,24 @@ export default function GlobalPresence() {
             className="mx-auto max-w-3xl text-center"
           >
             <span className="inline-flex rounded-full border border-green-200 bg-green-50 px-4 py-2 text-sm font-semibold text-green-700">
-              Global Presence
+              Global Markets
             </span>
 
             <h2 className="mt-6 text-4xl font-bold tracking-tight text-slate-900 md:text-5xl">
-              Connecting India with
+              Connecting Indian Agriculture
+
               <span className="block text-green-700">
-                Global Markets
+                to Global Markets
               </span>
             </h2>
 
             <p className="mt-6 text-lg leading-8 text-slate-600">
-              ROOTYM is committed to delivering premium agricultural products
-              from India to international buyers through trusted sourcing,
-              quality assurance and dependable export operations.
+              ROOTYM works with international buyers by delivering premium
+              Indian agricultural products through trusted sourcing,
+              export-ready processes, quality assurance, and dependable
+              logistics support.
             </p>
           </motion.div>
-
           <div className="mt-16 grid gap-12 lg:grid-cols-2 lg:items-center">
             {/* Left */}
 
@@ -90,11 +91,12 @@ export default function GlobalPresence() {
 
                 <div>
                   <h3 className="text-3xl font-bold text-slate-900">
-                    International Reach
+                    Target Export Markets
                   </h3>
 
                   <p className="mt-2 text-slate-600">
-                    Expanding trusted export partnerships worldwide.
+                    Building long-term partnerships across key international
+                    markets.
                   </p>
                 </div>
               </div>
@@ -115,10 +117,10 @@ export default function GlobalPresence() {
               </div>
 
               <Link
-                href="/contact"
+                href="/request-quote"
                 className="mt-10 inline-flex items-center gap-2 rounded-xl bg-green-700 px-6 py-4 font-semibold text-white transition hover:bg-green-800"
               >
-                Connect With Us
+                Request an Export Quote
 
                 <ArrowRight className="h-5 w-5" />
               </Link>
@@ -150,9 +152,9 @@ export default function GlobalPresence() {
                         </h4>
 
                         <p className="mt-2 leading-7 text-slate-300">
-                          Coordinated logistics support for smooth international
-                          shipments through trusted freight and supply chain
-                          partners.
+                          Coordinated export logistics supported by trusted
+                          freight, documentation, and supply chain partners
+                          for reliable international deliveries.
                         </p>
                       </div>
                     </div>
@@ -164,13 +166,13 @@ export default function GlobalPresence() {
 
                       <div>
                         <h4 className="text-xl font-semibold">
-                          Global Network
+                          Buyer Partnerships
                         </h4>
 
                         <p className="mt-2 leading-7 text-slate-300">
-                          Building long-term relationships with international
-                          buyers while expanding ROOTYM's presence in key export
-                          destinations around the world.
+                          Building lasting relationships with importers,
+                          wholesalers, distributors, retailers, and food
+                          manufacturers across international markets.
                         </p>
                       </div>
                     </div>
@@ -186,9 +188,9 @@ export default function GlobalPresence() {
                         </h4>
 
                         <p className="mt-2 leading-7 text-slate-300">
-                          Every shipment represents our commitment to quality,
-                          transparency, and showcasing the best of Indian
-                          agriculture on the global stage.
+                          Delivering premium Indian agricultural products with
+                          a strong focus on quality, transparency, compliance,
+                          and customer satisfaction.
                         </p>
                       </div>
                     </div>
@@ -201,9 +203,10 @@ export default function GlobalPresence() {
                   </h4>
 
                   <p className="mt-3 leading-7 text-green-100">
-                    We are continuously expanding our international footprint
-                    while maintaining the highest standards of quality,
-                    compliance, and customer satisfaction.
+                    We continue to expand our international footprint by
+                    delivering dependable sourcing, export-quality products,
+                    and responsive customer support for buyers around the
+                    world.
                   </p>
                 </div>
               </div>

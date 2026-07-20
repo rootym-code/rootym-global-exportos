@@ -35,14 +35,14 @@ const directors = [
     designation: "Founder & Director",
     image: "/images/directors/prem-singh.webp",
     description:
-      "With extensive leadership experience in technology and business, Prem founded ROOTYM with the vision of bringing premium Indian agricultural products to international markets while empowering farmers and building trusted global partnerships.",
+      "Prem Chand Singh founded ROOTYM with the vision of connecting premium Indian agricultural products with global buyers. Drawing on extensive leadership experience in technology and business, he focuses on building trusted sourcing networks, export excellence, and long-term international partnerships.",
   },
   {
     name: "Anjali Singh",
     designation: "Co-Founder & Director",
     image: "/images/directors/anjali-singh.webp",
     description:
-      "Anjali plays a key role in strategic planning, operations, compliance, and customer relationships, ensuring that ROOTYM delivers exceptional quality and service across every export engagement.",
+      "Anjali Singh oversees strategic planning, operations, compliance, and customer relationships, ensuring every export engagement reflects ROOTYM's commitment to quality, transparency, and dependable service.",
   },
 ];
 
@@ -63,23 +63,23 @@ export default function LeadershipPreview() {
             className="mx-auto max-w-3xl text-center"
           >
             <span className="inline-flex rounded-full border border-green-200 bg-green-50 px-4 py-2 text-sm font-semibold text-green-700">
-              Leadership
+              Leadership Team
             </span>
 
             <h2 className="mt-6 text-4xl font-bold tracking-tight text-slate-900 md:text-5xl">
-              Meet the People
+              Leadership Built on
+
               <span className="block text-green-700">
-                Driving ROOTYM Forward
+                Trust & Commitment
               </span>
             </h2>
 
             <p className="mt-6 text-lg leading-8 text-slate-600">
-              Our leadership team combines business experience, technology,
-              operational excellence, and a shared commitment to promoting
-              India's agricultural strength across global markets.
+              ROOTYM's leadership combines business experience, technology
+              expertise, operational excellence, and a shared commitment to
+              delivering reliable export solutions for customers worldwide.
             </p>
           </motion.div>
-
           <div className="mt-16 grid gap-10 lg:grid-cols-2">
             {directors.map((director) => (
               <motion.div
@@ -111,43 +111,42 @@ export default function LeadershipPreview() {
                     {director.description}
                   </p>
 
-
                   <div className="mt-8">
-  <Link
-    href="/meet-the-directors"
-    className="inline-flex items-center gap-2 font-semibold text-green-700 transition hover:text-green-800"
-  >
-    Read Full Profile
-    <ArrowRight className="h-5 w-5" />
-  </Link>
-</div>
-
-
+                    <Link
+                      href="/meet-the-directors"
+                      className="inline-flex items-center gap-2 font-semibold text-green-700 transition hover:text-green-800"
+                    >
+                      View Full Profile
+                      <ArrowRight className="h-5 w-5" />
+                    </Link>
+                  </div>
                 </div>
               </motion.div>
             ))}
           </div>
-                    {/* Bottom CTA */}
 
-                    <motion.div
+          {/* Bottom CTA */}
+          <motion.div
             variants={fadeUpVariants}
             className="mt-20 overflow-hidden rounded-3xl border border-green-100 bg-gradient-to-r from-green-700 via-green-600 to-green-700 shadow-xl"
           >
             <div className="grid gap-10 p-10 lg:grid-cols-2 lg:items-center lg:p-14">
               <div className="text-white">
                 <span className="rounded-full bg-white/15 px-4 py-2 text-sm font-semibold backdrop-blur">
-                  Leadership Excellence
+                  Committed Leadership
                 </span>
 
                 <h3 className="mt-6 text-4xl font-bold leading-tight">
-                  Experienced Leadership with a Global Vision
+                  Leading with Integrity.
+                  <br />
+                  Growing with Purpose.
                 </h3>
 
                 <p className="mt-6 text-lg leading-8 text-green-50">
-                  ROOTYM is guided by leaders committed to quality,
-                  innovation, transparency, and long-term partnerships.
-                  Learn more about our journey, experience, and vision for
-                  transforming Indian agricultural exports.
+                  ROOTYM is led by professionals committed to responsible
+                  sourcing, export excellence, transparent business practices,
+                  and long-term relationships with customers, suppliers, and
+                  farming communities.
                 </p>
 
                 <Link
@@ -163,12 +162,12 @@ export default function LeadershipPreview() {
               <div className="grid gap-5 sm:grid-cols-2">
                 <div className="rounded-2xl bg-white/10 p-6 backdrop-blur">
                   <h4 className="text-3xl font-bold text-white">
-                    Leadership
+                    Strategic Leadership
                   </h4>
 
                   <p className="mt-3 text-green-100">
-                    Experienced professionals focused on sustainable growth and
-                    global business excellence.
+                    Guiding ROOTYM with long-term vision, responsible
+                    decisions, and customer-first thinking.
                   </p>
                 </div>
 
@@ -178,8 +177,8 @@ export default function LeadershipPreview() {
                   </h4>
 
                   <p className="mt-3 text-green-100">
-                    Combining technology and agriculture to create smarter
-                    export solutions.
+                    Leveraging technology and modern processes to improve
+                    sourcing, quality, and export operations.
                   </p>
                 </div>
 
@@ -189,19 +188,19 @@ export default function LeadershipPreview() {
                   </h4>
 
                   <p className="mt-3 text-green-100">
-                    Building trust through transparency, ethical business
-                    practices, and consistent quality.
+                    Building lasting relationships through transparency,
+                    ethical practices, and dependable execution.
                   </p>
                 </div>
 
                 <div className="rounded-2xl bg-white/10 p-6 backdrop-blur">
                   <h4 className="text-3xl font-bold text-white">
-                    Global Vision
+                    Global Partnerships
                   </h4>
 
                   <p className="mt-3 text-green-100">
-                    Expanding ROOTYM's presence while creating lasting value
-                    for customers, farmers, and partners worldwide.
+                    Expanding ROOTYM's international presence while creating
+                    lasting value for buyers, suppliers, and communities.
                   </p>
                 </div>
               </div>
