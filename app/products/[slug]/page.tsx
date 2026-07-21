@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
-import { products } from "@/data/products";
+import { getProductBySlug } from "@/lib/services/product.service";
 
 type PageProps = {
   params: Promise<{
@@ -18,21 +18,38 @@ type PageProps = {
   }>;
 };
 
-export default async function ProductPage({ params }: PageProps) {
+export default async function ProductPage({
+  params,
+}: PageProps) {
   const { slug } = await params;
 
-  const product = products.find((p) => p.slug === slug);
+  const product = await getProductBySlug(slug);
 
   if (!product) {
     notFound();
   }
+
+  const imageUrl =
+    product.featuredImage?.fileUrl ??
+    "/images/products/placeholder.png";
+
+  const description =
+    product.description ??
+    "Premium export-quality agricultural product sourced directly from trusted farms across India and prepared for international markets with strict quality control.";
+
+  const packaging =
+    product.defaultUnit
+      ? `Available in ${product.defaultUnit} units`
+      : "Export packaging available";
+
+  const availability = "Available for Export";
 
   return (
     <main className="min-h-screen bg-gray-50">
       <section className="mx-auto max-w-7xl px-6 py-14">
 
         <Link
-          href="/"
+          href="/products"
           className="mb-10 inline-flex items-center gap-2 text-[#2E7D32] hover:underline"
         >
           <ArrowLeft className="h-5 w-5" />
@@ -48,7 +65,7 @@ export default async function ProductPage({ params }: PageProps) {
             <div className="relative aspect-square">
 
               <Image
-                src={product.image}
+                src={imageUrl}
                 alt={product.name}
                 fill
                 className="object-contain"
@@ -64,7 +81,7 @@ export default async function ProductPage({ params }: PageProps) {
           <div>
 
             <span className="rounded-full bg-green-100 px-4 py-2 text-sm font-semibold text-[#2E7D32]">
-              {product.category}
+              {product.category ?? "Agricultural Product"}
             </span>
 
             <h1 className="mt-6 text-5xl font-bold text-gray-900">
@@ -72,9 +89,7 @@ export default async function ProductPage({ params }: PageProps) {
             </h1>
 
             <p className="mt-4 text-lg leading-8 text-gray-600">
-              Premium export-quality agricultural product sourced directly
-              from trusted farms across India and prepared for international
-              markets with strict quality control.
+              {description}
             </p>
 
             <div className="mt-10 space-y-5">
@@ -82,120 +97,127 @@ export default async function ProductPage({ params }: PageProps) {
               <InfoRow
                 icon={<MapPin className="h-5 w-5" />}
                 title="Origin"
-                value={product.origin}
+                value={product.origin ?? "India"}
               />
 
               <InfoRow
                 icon={<Package className="h-5 w-5" />}
                 title="Packaging"
-                value={product.packaging}
+                value={packaging}
               />
 
               <InfoRow
                 icon={<Ship className="h-5 w-5" />}
                 title="Availability"
-                value={product.availability}
+                value={availability}
               />
+                          </div>
 
-            </div>
+<div className="mt-10 flex flex-wrap gap-3">
 
-            <div className="mt-10 flex flex-wrap gap-3">
+  <Badge text="APEDA Registered" />
 
-              <Badge text="APEDA Registered" />
+  <Badge text="Export Ready" />
 
-              <Badge text="Export Ready" />
+  <Badge text="Premium Quality" />
 
-              <Badge text="Premium Quality" />
+  <Badge text="Global Logistics" />
 
-              <Badge text="Global Logistics" />
+  {product.hsCode && (
+    <Badge text={`HS Code: ${product.hsCode}`} />
+  )}
 
-            </div>
+</div>
 
-            <div className="mt-12 flex flex-col gap-4 sm:flex-row">
+<div className="mt-12 flex flex-col gap-4 sm:flex-row">
 
-              <Button>
-                Request Quotation
-              </Button>
+  <Link href="/request-quote">
+    <Button>
+      Request Quotation
+    </Button>
+  </Link>
 
-              <Button variant="secondary">
-                Download Specification
-              </Button>
+  <Button variant="secondary">
+    Download Specification
+  </Button>
 
-            </div>
+</div>
 
-            <div className="mt-12 rounded-2xl bg-white p-6 shadow">
+<div className="mt-12 rounded-2xl bg-white p-6 shadow">
 
-              <div className="flex items-center gap-3">
+  <div className="flex items-center gap-3">
 
-                <BadgeCheck className="h-6 w-6 text-[#2E7D32]" />
+    <BadgeCheck className="h-6 w-6 text-[#2E7D32]" />
 
-                <h3 className="text-lg font-semibold">
-                  Why Buy From ROOTYM?
-                </h3>
+    <h3 className="text-lg font-semibold">
+      Why Buy From ROOTYM?
+    </h3>
 
-              </div>
+  </div>
 
-              <ul className="mt-5 space-y-3 text-gray-600">
+  <ul className="mt-5 space-y-3 text-gray-600">
 
-                <li>✓ Direct sourcing from trusted farmers</li>
+    <li>✓ Direct sourcing from trusted farmers</li>
 
-                <li>✓ Export documentation assistance</li>
+    <li>✓ Export documentation assistance</li>
 
-                <li>✓ Quality inspection before shipment</li>
+    <li>✓ Quality inspection before shipment</li>
 
-                <li>✓ Worldwide logistics support</li>
+    <li>✓ Worldwide logistics support</li>
 
-                <li>✓ Dedicated importer assistance</li>
+    <li>✓ Dedicated importer assistance</li>
 
-              </ul>
+  </ul>
 
-            </div>
+</div>
 
-          </div>
+</div>
 
-        </div>
+</div>
 
-      </section>
-    </main>
-  );
+</section>
+</main>
+);
 }
 
 function InfoRow({
-  icon,
-  title,
-  value,
+icon,
+title,
+value,
 }: {
-  icon: React.ReactNode;
-  title: string;
-  value: string;
+icon: React.ReactNode;
+title: string;
+value: string;
 }) {
-  return (
-    <div className="flex items-center gap-4 rounded-2xl bg-white p-5 shadow-sm">
+return (
+<div className="flex items-center gap-4 rounded-2xl bg-white p-5 shadow-sm">
 
-      <div className="text-[#2E7D32]">
-        {icon}
-      </div>
+<div className="text-[#2E7D32]">
+{icon}
+</div>
 
-      <div>
+<div>
 
-        <p className="text-sm text-gray-500">
-          {title}
-        </p>
+<p className="text-sm text-gray-500">
+{title}
+</p>
 
-        <p className="font-semibold text-gray-900">
-          {value}
-        </p>
+<p className="font-semibold text-gray-900">
+{value}
+</p>
 
-      </div>
+</div>
 
-    </div>
-  );
+</div>
+);
 }
 
 function Badge({ text }: { text: string }) {
-  return (
-    <span className="rounded-full bg-green-100 px-4 py-2 text-sm font-semibold text-[#2E7D32]">
-      {text}
-    </span>
-  );
+return (
+<span className="rounded-full bg-green-100 px-4 py-2 text-sm font-semibold text-[#2E7D32]">
+{text}
+</span>
+);
 }
+
+// END OF FILE

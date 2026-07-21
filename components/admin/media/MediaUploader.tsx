@@ -12,23 +12,14 @@ import {
 import Card from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 
-interface UploadedMedia {
-  id: string;
-  filename: string;
-  originalName: string;
-  mimeType: string;
-  url: string;
-  altText: string | null;
-}
-
-interface UploadResponse {
-  success: boolean;
-  item: UploadedMedia;
-}
+import type {
+  MediaDto,
+  MediaUploadResponse,
+} from "@/lib/types/media";
 
 interface MediaUploaderProps {
-  value?: UploadedMedia | null;
-  onChange: (media: UploadedMedia) => void;
+  value?: MediaDto | null;
+  onChange: (media: MediaDto) => void;
   onRemove?: () => void;
   accept?: string;
   maxSizeMB?: number;
@@ -76,7 +67,7 @@ export default function MediaUploader({
         formData.append("file", file);
 
         const response = await fetch(
-          "/api/admin/media",
+          "/api/admin/cms/media",
           {
             method: "POST",
             credentials: "include",
@@ -84,16 +75,16 @@ export default function MediaUploader({
           }
         );
 
-        const result: UploadResponse =
+        const result: MediaUploadResponse =
           await response.json();
 
         if (!response.ok || !result.success) {
           throw new Error(
-            "Upload failed."
+            result.message ?? "Upload failed."
           );
         }
 
-        onChange(result.item);
+        onChange(result.data);
       } catch (err) {
         setError(
           err instanceof Error
@@ -122,7 +113,7 @@ export default function MediaUploader({
       hover={false}
       className="overflow-hidden"
     >
-              <div
+      <div
         className={`relative flex min-h-[320px] flex-col items-center justify-center border-2 border-dashed transition ${
           dragging
             ? "border-green-600 bg-green-50"
@@ -170,10 +161,11 @@ export default function MediaUploader({
           <div className="w-full p-6">
             <div className="relative mx-auto aspect-square max-w-sm overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
               <Image
-                src={value.url}
+                src={value.fileUrl}
                 alt={
                   value.altText ??
-                  value.originalName
+                  value.title ??
+                  value.fileName
                 }
                 fill
                 className="object-cover"
@@ -182,11 +174,11 @@ export default function MediaUploader({
 
             <div className="mt-6 text-center">
               <p className="font-semibold text-slate-900">
-                {value.originalName}
+                {value.title ?? value.fileName}
               </p>
 
               <p className="mt-1 text-sm text-slate-500">
-                {value.mimeType}
+                {value.mimeType ?? "-"}
               </p>
             </div>
 
@@ -242,7 +234,8 @@ export default function MediaUploader({
             </Button>
 
             <p className="mt-4 text-xs text-slate-400">
-              Supported formats: JPG, PNG, WEBP • Maximum {maxSizeMB} MB
+              Supported formats: JPG, PNG, WEBP • Maximum{" "}
+              {maxSizeMB} MB
             </p>
           </div>
         )}
@@ -253,8 +246,7 @@ export default function MediaUploader({
           {error}
         </div>
       )}
-
-</Card>
+    </Card>
   );
 }
 

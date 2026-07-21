@@ -13,34 +13,16 @@ import {
 import Card from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 
-interface MediaItem {
-  id: string;
-  filename: string;
-  originalName: string;
-  mimeType: string;
-  url: string;
-  altText: string | null;
-  createdAt: string;
-}
-
-interface Pagination {
-  page: number;
-  pageSize: number;
-  total: number;
-  totalPages: number;
-}
-
-interface MediaResponse {
-  success: boolean;
-  items: MediaItem[];
-  pagination: Pagination;
-}
+import type {
+  MediaDto,
+  MediaListResponse,
+} from "@/lib/types/media";
 
 interface MediaPickerProps {
   open: boolean;
   selectedId?: string | null;
   onClose: () => void;
-  onSelect: (media: MediaItem) => void;
+  onSelect: (media: MediaDto) => void;
 }
 
 export default function MediaPicker({
@@ -49,7 +31,7 @@ export default function MediaPicker({
   onClose,
   onSelect,
 }: MediaPickerProps) {
-  const [media, setMedia] = useState<MediaItem[]>([]);
+  const [media, setMedia] = useState<MediaDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
@@ -65,7 +47,7 @@ export default function MediaPicker({
     }
 
     params.set("page", "1");
-    params.set("pageSize", "50");
+    params.set("limit", "50");
 
     return params.toString();
   }, [search]);
@@ -76,23 +58,24 @@ export default function MediaPicker({
       setError("");
 
       const response = await fetch(
-        `/api/admin/media?${queryString}`,
+        `/api/admin/cms/media?${queryString}`,
         {
           credentials: "include",
           cache: "no-store",
         }
       );
 
-      const result: MediaResponse =
+      const result: MediaListResponse =
         await response.json();
 
       if (!response.ok || !result.success) {
         throw new Error(
-          "Unable to load media library."
+          result.message ??
+            "Unable to load media library."
         );
       }
 
-      setMedia(result.items);
+      setMedia(result.data);
     } catch (err) {
       setError(
         err instanceof Error
@@ -157,7 +140,7 @@ export default function MediaPicker({
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">
-        {loading ? (
+          {loading ? (
             <div className="flex h-full items-center justify-center">
               <Loader2 className="h-10 w-10 animate-spin text-green-700" />
             </div>
@@ -205,10 +188,11 @@ export default function MediaPicker({
                   >
                     <div className="relative aspect-square overflow-hidden bg-slate-100">
                       <Image
-                        src={item.url}
+                        src={item.fileUrl}
                         alt={
                           item.altText ??
-                          item.originalName
+                          item.title ??
+                          item.fileName
                         }
                         fill
                         className="object-cover transition duration-300 group-hover:scale-105"
@@ -223,11 +207,11 @@ export default function MediaPicker({
 
                     <div className="p-3">
                       <p className="truncate text-sm font-medium text-slate-900">
-                        {item.originalName}
+                        {item.title ?? item.fileName}
                       </p>
 
                       <p className="mt-1 truncate text-xs text-slate-500">
-                        {item.mimeType}
+                        {item.mimeType ?? "-"}
                       </p>
                     </div>
                   </button>
@@ -235,48 +219,48 @@ export default function MediaPicker({
               })}
             </div>
           )}
-                  </div>
+        </div>
 
-<div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-6 py-4">
-  <div className="text-sm text-slate-500">
-    {selected
-      ? "1 image selected"
-      : "No image selected"}
-  </div>
+        <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-6 py-4">
+          <div className="text-sm text-slate-500">
+            {selected
+              ? "1 image selected"
+              : "No image selected"}
+          </div>
 
-  <div className="flex items-center gap-3">
-    <Button
-      type="button"
-      variant="outline"
-      onClick={onClose}
-    >
-      Cancel
-    </Button>
+          <div className="flex items-center gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+            >
+              Cancel
+            </Button>
 
-    <Button
-      type="button"
-      variant="primary"
-      disabled={!selected}
-      onClick={() => {
-        const selectedMedia = media.find(
-          (item) => item.id === selected
-        );
+            <Button
+              type="button"
+              variant="primary"
+              disabled={!selected}
+              onClick={() => {
+                const selectedMedia = media.find(
+                  (item) => item.id === selected
+                );
 
-        if (!selectedMedia) {
-          return;
-        }
+                if (!selectedMedia) {
+                  return;
+                }
 
-        onSelect(selectedMedia);
-        onClose();
-      }}
-    >
-      Select Image
-    </Button>
-  </div>
-</div>
-</div>
-</div>
-);
+                onSelect(selectedMedia);
+                onClose();
+              }}
+            >
+              Select Image
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // END OF FILE

@@ -840,7 +840,7 @@ model Media {
   mediaType MediaType
 
   /// File size in bytes
-  fileSize BigInt?
+ fileSize Int?
 
   /// Image dimensions
   width  Int?

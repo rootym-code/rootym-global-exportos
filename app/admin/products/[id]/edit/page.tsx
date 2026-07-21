@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+
 import {
   ArrowLeft,
   Loader2,
@@ -15,19 +16,12 @@ import { Button } from "@/components/ui/Button";
 import MediaPicker from "@/components/admin/media/MediaPicker";
 import MediaUploader from "@/components/admin/media/MediaUploader";
 
+import type { MediaDto } from "@/lib/types/media";
+
 type ProductStatus =
   | "PUBLISHED"
   | "DRAFT"
   | "ARCHIVED";
-
-interface UploadedMedia {
-  id: string;
-  filename: string;
-  originalName: string;
-  mimeType: string;
-  url: string;
-  altText: string | null;
-}
 
 interface ProductFormData {
   sku: string;
@@ -59,7 +53,7 @@ interface ProductResponse {
     maxOrderQty: number | null;
     status: ProductStatus;
 
-    featuredImage: UploadedMedia | null;
+    featuredImage: MediaDto | null;
   };
 }
 
@@ -87,7 +81,7 @@ export default function EditProductPage() {
     useState<ProductFormData>(emptyForm);
 
   const [featuredImage, setFeaturedImage] =
-    useState<UploadedMedia | null>(null);
+    useState<MediaDto | null>(null);
 
   const [pickerOpen, setPickerOpen] =
     useState(false);
@@ -110,7 +104,6 @@ export default function EditProductPage() {
       [field]: value,
     }));
   };
-
   useEffect(() => {
     async function loadProduct() {
       try {
@@ -305,9 +298,9 @@ export default function EditProductPage() {
           {error}
         </Card>
       )}
+            {/* Product Information */}
 
-      {/* Product Information */}
-      <Card
+            <Card
         hover={false}
         className="p-6"
       >
@@ -461,10 +454,9 @@ export default function EditProductPage() {
           setFeaturedImage(media);
         }}
       />
+            {/* Export Information */}
 
-      {/* Export Information */}
-
-      <Card
+            <Card
         hover={false}
         className="p-6"
       >
@@ -529,9 +521,9 @@ export default function EditProductPage() {
         </div>
       </Card>
 
-            {/* Order Configuration */}
+      {/* Order Configuration */}
 
-            <Card
+      <Card
         hover={false}
         className="p-6"
       >

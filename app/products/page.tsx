@@ -14,7 +14,8 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
-import { products } from "@/data/products";
+import { ProductStatus } from "@/lib/generated/prisma";
+import { listProducts } from "@/lib/services/product.service";
 
 export const metadata = {
   title: "Products | ROOTYM Global Export Platform",
@@ -22,7 +23,12 @@ export const metadata = {
     "Discover premium Indian agricultural products sourced responsibly and prepared for international markets with ROOTYM.",
 };
 
-export default function ProductsPage() {
+export default async function ProductsPage() {
+  const { items: products } = await listProducts({
+    status: ProductStatus.PUBLISHED,
+    page: 1,
+    pageSize: 100,
+  });
     return (
         <>
           <Navbar />
@@ -131,7 +137,7 @@ export default function ProductsPage() {
               <article className="overflow-hidden rounded-3xl border border-green-100 bg-white shadow-sm transition-all duration-300 group-hover:-translate-y-2 group-hover:shadow-xl">
                 <div className="relative aspect-[4/3] bg-[#F8FBF8]">
                   <Image
-                    src={product.image}
+                    src={product.featuredImage?.fileUrl ?? "/images/products/placeholder.png"}
                     alt={product.name}
                     fill
                     className="object-contain p-8 transition-transform duration-500 group-hover:scale-105"
@@ -471,3 +477,6 @@ function AIBox({
     </div>
   );
 }
+
+
+// END OF FILE

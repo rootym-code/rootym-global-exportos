@@ -110,8 +110,8 @@ export default function RCaptainChat() {
   }
 
   return (
-    <div className="flex w-full flex-col gap-4">
-            <div className="min-h-[420px] space-y-5 overflow-y-auto rounded-2xl border border-green-100 bg-white p-6 shadow-inner">
+    <div className="flex h-full min-h-0 w-full flex-col gap-4">
+            <div className="flex-1 min-h-0 overflow-y-auto rounded-2xl border border-green-100 bg-white p-6 shadow-inner">
 
 {messages.length === 0 && (
   <div className="space-y-6">

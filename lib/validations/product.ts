@@ -85,10 +85,10 @@ export const createProductSchema = z.object({
   ),
 
   featuredImageId: z
-    .string()
-    .uuid()
-    .nullable()
-    .optional(),
+  .string()
+  .cuid()
+  .nullable()
+  .optional(),
   });
 
   export const updateProductSchema =

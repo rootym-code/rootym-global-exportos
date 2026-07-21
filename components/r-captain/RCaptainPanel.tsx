@@ -18,12 +18,16 @@ export default function RCaptainPanel({
     <div
       className={[
         "fixed bottom-24 right-6 z-50",
-        "w-[420px] max-w-[calc(100vw-2rem)]",
+
+        // Fixed panel layout
+        "flex h-[700px] max-h-[80vh] w-[420px] max-w-[calc(100vw-2rem)] flex-col",
+
         "overflow-hidden rounded-3xl",
         "border border-green-100",
         "bg-white/95 backdrop-blur-xl",
         "shadow-[0_20px_60px_rgba(0,0,0,0.18)]",
         "transition-all duration-300",
+
         open
           ? "translate-y-0 scale-100 opacity-100"
           : "pointer-events-none translate-y-8 scale-95 opacity-0",
@@ -63,9 +67,7 @@ export default function RCaptainPanel({
             <X className="h-5 w-5" />
           </button>
         </div>
-      </div>
-
-      <div className="max-h-[65vh] overflow-y-auto bg-gradient-to-b from-white to-green-50 p-5">
+      </div>      <div className="flex-1 overflow-hidden bg-gradient-to-b from-white to-green-50 p-5">
         <RCaptainChat />
       </div>
     </div>

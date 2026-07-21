@@ -16,19 +16,12 @@ import { Button } from "@/components/ui/Button";
 import MediaUploader from "@/components/admin/media/MediaUploader";
 import MediaPicker from "@/components/admin/media/MediaPicker";
 
+import type { MediaDto } from "@/lib/types/media";
+
 type ProductStatus =
   | "PUBLISHED"
   | "DRAFT"
   | "ARCHIVED";
-
-interface UploadedMedia {
-  id: string;
-  filename: string;
-  originalName: string;
-  mimeType: string;
-  url: string;
-  altText: string | null;
-}
 
 interface ProductFormData {
   sku: string;
@@ -65,7 +58,7 @@ export default function NewProductPage() {
     useState<ProductFormData>(initialForm);
 
   const [featuredImage, setFeaturedImage] =
-    useState<UploadedMedia | null>(null);
+    useState<MediaDto | null>(null);
 
   const [pickerOpen, setPickerOpen] =
     useState(false);
@@ -85,7 +78,6 @@ export default function NewProductPage() {
       [field]: value,
     }));
   };
-
   const handleSubmit = async (
     event: React.FormEvent<HTMLFormElement>
   ) => {
@@ -95,32 +87,43 @@ export default function NewProductPage() {
       setLoading(true);
       setError("");
 
-      const response = await fetch(
-        "/api/admin/products",
-        {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            ...form,
 
-            featuredImageId:
-              featuredImage?.id ?? null,
 
-            minOrderQty:
-              form.minOrderQty
-                ? Number(form.minOrderQty)
-                : null,
+const payload = {
+  ...form,
 
-            maxOrderQty:
-              form.maxOrderQty
-                ? Number(form.maxOrderQty)
-                : null,
-          }),
-        }
-      );
+  featuredImageId:
+    featuredImage?.id ?? null,
+
+  minOrderQty: form.minOrderQty
+    ? Number(form.minOrderQty)
+    : null,
+
+  maxOrderQty: form.maxOrderQty
+    ? Number(form.maxOrderQty)
+    : null,
+};
+
+console.log("========== PRODUCT PAYLOAD ==========");
+console.log(payload);
+
+console.log("========== FEATURED IMAGE ==========");
+console.log(featuredImage);
+
+const response = await fetch(
+  "/api/admin/products",
+  {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type":
+        "application/json",
+    },
+    body: JSON.stringify(payload),
+  }
+);
+
+
 
       const result =
         await response.json();
@@ -155,9 +158,7 @@ export default function NewProductPage() {
     >
       {/* Header */}
 
-            {/* Header */}
-
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-4">
           <Link href="/admin/products">
             <Button variant="outline">
@@ -172,8 +173,8 @@ export default function NewProductPage() {
             </h1>
 
             <p className="mt-2 text-slate-600">
-              Add a new export product to your global
-              catalogue.
+              Add a new export product to your
+              global catalogue.
             </p>
           </div>
         </div>
@@ -197,7 +198,6 @@ export default function NewProductPage() {
         </Button>
       </div>
 
-
       {error && (
         <Card
           hover={false}
@@ -206,11 +206,9 @@ export default function NewProductPage() {
           {error}
         </Card>
       )}
+            {/* Product Information */}
 
-
-      {/* Product Information */}
-
-      <Card
+            <Card
         hover={false}
         className="p-6"
       >
@@ -219,7 +217,6 @@ export default function NewProductPage() {
         </h2>
 
         <div className="grid gap-6 md:grid-cols-2">
-
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">
               Product Name *
@@ -240,7 +237,6 @@ export default function NewProductPage() {
             />
           </div>
 
-
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">
               SKU *
@@ -260,7 +256,6 @@ export default function NewProductPage() {
               placeholder="PFN-001"
             />
           </div>
-
 
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">
@@ -284,7 +279,6 @@ export default function NewProductPage() {
             />
           </div>
 
-
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">
               Category
@@ -303,9 +297,7 @@ export default function NewProductPage() {
               placeholder="Makhana"
             />
           </div>
-
         </div>
-
 
         <div className="mt-6">
           <label className="mb-2 block text-sm font-medium text-slate-700">
@@ -325,9 +317,7 @@ export default function NewProductPage() {
             placeholder="Describe the product, quality, export specifications and highlights..."
           />
         </div>
-
       </Card>
-
 
       {/* Featured Image */}
 
@@ -357,7 +347,6 @@ export default function NewProductPage() {
           </Button>
         </div>
 
-
         <MediaUploader
           value={featuredImage}
           onChange={setFeaturedImage}
@@ -365,7 +354,6 @@ export default function NewProductPage() {
             setFeaturedImage(null)
           }
         />
-
 
         <MediaPicker
           open={pickerOpen}
@@ -380,7 +368,6 @@ export default function NewProductPage() {
             setPickerOpen(false);
           }}
         />
-
       </Card>
             {/* Export Information */}
 
@@ -393,7 +380,6 @@ export default function NewProductPage() {
         </h2>
 
         <div className="grid gap-6 md:grid-cols-3">
-
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">
               Country of Origin
@@ -412,7 +398,6 @@ export default function NewProductPage() {
               placeholder="India"
             />
           </div>
-
 
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">
@@ -433,7 +418,6 @@ export default function NewProductPage() {
             />
           </div>
 
-
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">
               Default Unit
@@ -452,11 +436,8 @@ export default function NewProductPage() {
               placeholder="KG"
             />
           </div>
-
         </div>
-
       </Card>
-
 
       {/* Order Configuration */}
 
@@ -469,7 +450,6 @@ export default function NewProductPage() {
         </h2>
 
         <div className="grid gap-6 md:grid-cols-2">
-
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">
               Minimum Order Quantity
@@ -490,7 +470,6 @@ export default function NewProductPage() {
             />
           </div>
 
-
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">
               Maximum Order Quantity
@@ -510,11 +489,8 @@ export default function NewProductPage() {
               placeholder="10000"
             />
           </div>
-
         </div>
-
       </Card>
-
 
       {/* Publication */}
 
@@ -527,7 +503,6 @@ export default function NewProductPage() {
         </h2>
 
         <div className="max-w-sm">
-
           <label className="mb-2 block text-sm font-medium text-slate-700">
             Status
           </label>
@@ -553,16 +528,11 @@ export default function NewProductPage() {
             <option value="ARCHIVED">
               Archived
             </option>
-
           </select>
-
         </div>
-
       </Card>
 
-
       <div className="flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:justify-end">
-
         <Link href="/admin/products">
           <Button
             type="button"
@@ -571,7 +541,6 @@ export default function NewProductPage() {
             Cancel
           </Button>
         </Link>
-
 
         <Button
           type="submit"
@@ -590,9 +559,7 @@ export default function NewProductPage() {
             </>
           )}
         </Button>
-
       </div>
-
     </form>
   );
 }

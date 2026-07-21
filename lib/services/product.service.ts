@@ -170,6 +170,14 @@ export async function getProductBySlug(slug: string) {
     where: {
       slug,
     },
+    include: {
+      featuredImage: true,
+      pricing: {
+        orderBy: {
+          createdAt: "desc",
+        },
+      },
+    },
   });
 }
 export async function createProduct(data: CreateProductInput) {
