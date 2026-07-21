@@ -64,7 +64,7 @@ export default function RCaptainChat() {
 
     try {
       const response = await fetch(
-        "/api/r-captain",
+        "/api/r-captain/chat",
         {
           method: "POST",
           headers: {

@@ -8,9 +8,452 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ============================================================
-// CORE ENUMS
-// ============================================================
+model Inquiry {
+  id            String                 @id @default(cuid())
+  companyName   String
+  contactPerson String
+  email         String
+  phone         String?
+  country       String
+  /// Product name submitted by customer
+  product       String
+  quantity      String?
+  message       String
+  status        InquiryStatus          @default(NEW)
+  priority      InquiryPriority        @default(MEDIUM)
+  /// Source of inquiry
+  source        String?                @default("Website")
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  /// Human-readable inquiry number
+  inquiryNumber String                 @unique
+  /// Request metadata
+  ipAddress     String?
+  unit          String?
+  userAgent     String?
+  salesStage    SalesStage             @default(NEW)
+  notes         InquiryNote[]
+  statusHistory InquiryStatusHistory[]
+  quotes        Quote[]
+
+  @@index([inquiryNumber])
+  @@index([email])
+  @@index([status])
+  @@index([salesStage])
+  @@index([country])
+  @@index([product])
+  @@index([createdAt])
+}
+
+model InquiryStatusHistory {
+  id          String         @id @default(cuid())
+  inquiryId   String
+  oldStatus   InquiryStatus?
+  newStatus   InquiryStatus
+  changedById String?
+  createdAt   DateTime       @default(now())
+  changedBy   Admin?         @relation(fields: [changedById], references: [id])
+  inquiry     Inquiry        @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+
+  @@index([inquiryId])
+  @@index([createdAt])
+}
+
+model InquiryNote {
+  id          String   @id @default(cuid())
+  inquiryId   String
+  note        String
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   Admin?   @relation(fields: [createdById], references: [id])
+  inquiry     Inquiry  @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+
+  @@index([inquiryId])
+  @@index([createdAt])
+}
+
+model Admin {
+  id            String                 @id @default(cuid())
+  name          String
+  email         String                 @unique
+  password      String
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  isActive      Boolean                @default(true)
+  lastLogin     DateTime?
+  role          AdminRole              @default(SUPER_ADMIN)
+  activities    Activity[]             @relation("ActivityPerformedBy")
+  inquiryNotes  InquiryNote[]
+  statusChanges InquiryStatusHistory[]
+  createdQuotes Quote[]                @relation("QuoteCreatedBy")
+  updatedQuotes Quote[]                @relation("QuoteUpdatedBy")
+}
+
+model Product {
+  id               String           @id @default(cuid())
+  sku              String           @unique
+  name             String
+  slug             String           @unique
+  shortDescription String?
+  description      String?
+  category         String?
+  origin           String?
+  hsCode           String?
+  defaultUnit      String
+  minOrderQty      Decimal?         @db.Decimal(18, 3)
+  maxOrderQty      Decimal?         @db.Decimal(18, 3)
+  status           ProductStatus    @default(DRAFT)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  featuredImageId  String?
+  featuredImage    Media?           @relation("ProductFeaturedImage", fields: [featuredImageId], references: [id])
+  pricing          ProductPricing[]
+  quoteItems       QuoteItem[]
+
+  @@index([status])
+  @@index([category])
+  @@index([name])
+  @@index([featuredImageId])
+}
+
+model ProductPricing {
+  id          String      @id @default(cuid())
+  productId   String
+  pricingType PricingType @default(FIXED)
+  currency    String
+  price       Decimal     @db.Decimal(18, 2)
+  validFrom   DateTime?
+  validTo     DateTime?
+  isActive    Boolean     @default(true)
+  remarks     String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  product     Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([isActive])
+}
+
+model Quote {
+  id            String      @id @default(cuid())
+  quoteNumber   String      @unique
+  inquiryId     String?
+  companyName   String
+  contactPerson String
+  email         String
+  phone         String?
+  country       String
+  currency      String
+  subtotal      Decimal     @default(0) @db.Decimal(18, 2)
+  discount      Decimal     @default(0) @db.Decimal(18, 2)
+  freight       Decimal     @default(0) @db.Decimal(18, 2)
+  insurance     Decimal     @default(0) @db.Decimal(18, 2)
+  tax           Decimal     @default(0) @db.Decimal(18, 2)
+  grandTotal    Decimal     @default(0) @db.Decimal(18, 2)
+  validityDays  Int         @default(15)
+  status        QuoteStatus @default(DRAFT)
+  notes         String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  createdById   String?
+  updatedById   String?
+  parentQuoteId String?
+  validUntil    DateTime?
+  version       Int         @default(1)
+  createdBy     Admin?      @relation("QuoteCreatedBy", fields: [createdById], references: [id])
+  inquiry       Inquiry?    @relation(fields: [inquiryId], references: [id])
+  parentQuote   Quote?      @relation("QuoteRevisions", fields: [parentQuoteId], references: [id])
+  revisions     Quote[]     @relation("QuoteRevisions")
+  updatedBy     Admin?      @relation("QuoteUpdatedBy", fields: [updatedById], references: [id])
+  items         QuoteItem[]
+
+  @@index([quoteNumber])
+  @@index([status])
+  @@index([companyName])
+  @@index([country])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([parentQuoteId])
+}
+
+model QuoteItem {
+  id          String   @id @default(cuid())
+  quoteId     String
+  productId   String
+  description String?
+  quantity    Decimal  @db.Decimal(18, 3)
+  unit        String
+  unitPrice   Decimal  @db.Decimal(18, 2)
+  lineTotal   Decimal  @db.Decimal(18, 2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  product     Product  @relation(fields: [productId], references: [id])
+  quote       Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  @@index([quoteId])
+  @@index([productId])
+}
+
+model Activity {
+  id            String             @id @default(cuid())
+  /// Business entity type
+  entityType    ActivityEntityType
+  /// Entity primary key
+  entityId      String
+  /// Human-readable reference
+  /// Examples:
+  /// INQ-2026-000001
+  /// QT-2026-000001
+  entityNumber  String?
+  /// Machine readable event
+  action        String
+  /// UI friendly title
+  title         String
+  /// Detailed description
+  description   String?
+  /// Additional event metadata
+  metadata      Json?
+  /// Who performed the action
+  actorType     ActivityActorType  @default(ADMIN)
+  /// Admin user (nullable for System / AI / Customer)
+  performedById String?
+  createdAt     DateTime           @default(now())
+  performedBy   Admin?             @relation("ActivityPerformedBy", fields: [performedById], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([entityNumber])
+  @@index([action])
+  @@index([actorType])
+  @@index([performedById])
+  @@index([createdAt])
+}
+
+model NumberSequence {
+  id        String             @id @default(cuid())
+  type      NumberSequenceType
+  year      Int
+  lastValue Int                @default(0)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  @@unique([type, year])
+  @@index([type])
+  @@index([year])
+}
+
+model Language {
+  id               String               @id @default(cuid())
+  /// ISO language code (en, hi, ar, fr)
+  code             String               @unique
+  /// Display name
+  name             String
+  /// Native language name
+  nativeName       String?
+  /// Default language
+  isDefault        Boolean              @default(false)
+  /// Active language
+  isActive         Boolean              @default(true)
+  /// Display order
+  sortOrder        Int                  @default(0)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  pageTranslations CmsPageTranslation[]
+
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+model CmsPage {
+  id              String               @id @default(cuid())
+  /// Internal page title
+  title           String
+  /// URL slug
+  slug            String               @unique
+  /// Page status
+  status          CmsPageStatus        @default(DRAFT)
+  /// Homepage flag
+  isHomePage      Boolean              @default(false)
+  /// Navigation visibility
+  showInMenu      Boolean              @default(true)
+  /// SEO
+  metaTitle       String?
+  metaDescription String?
+  metaKeywords    String?
+  canonicalUrl    String?
+  /// Publishing
+  publishedAt     DateTime?
+  /// Audit
+  createdById     String?
+  updatedById     String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  translations    CmsPageTranslation[]
+  menuItems       MenuItem[]
+
+  @@index([status])
+  @@index([slug])
+  @@index([publishedAt])
+  @@index([showInMenu])
+}
+
+model CmsPageTranslation {
+  id              String   @id @default(cuid())
+  pageId          String
+  languageId      String
+  /// Localized page content
+  title           String
+  slug            String
+  excerpt         String?
+  content         String?
+  /// SEO
+  metaTitle       String?
+  metaDescription String?
+  metaKeywords    String?
+  /// Publishing
+  isPublished     Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  language        Language @relation(fields: [languageId], references: [id], onDelete: Cascade)
+  page            CmsPage  @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@unique([pageId, languageId])
+  @@unique([languageId, slug])
+  @@index([pageId])
+  @@index([languageId])
+  @@index([slug])
+  @@index([isPublished])
+}
+
+model Media {
+  id                 String    @id @default(cuid())
+  /// Original filename
+  fileName           String
+  /// Stored filename
+  storedFileName     String
+  /// Public URL or relative path
+  fileUrl            String
+  /// Storage provider (local, s3, cloudinary, etc.)
+  storageProvider    String?   @default("local")
+  /// MIME type
+  mimeType           String?
+  /// IMAGE / VIDEO / DOCUMENT / AUDIO / OTHER
+  mediaType          MediaType
+  /// File size in bytes
+  fileSize           Int?
+  /// Image dimensions
+  width              Int?
+  height             Int?
+  /// Optional alt text
+  altText            String?
+  /// Optional title
+  title              String?
+  /// Optional description
+  description        String?
+  /// Folder/category
+  folder             String?
+  /// Soft delete
+  isDeleted          Boolean   @default(false)
+  /// Audit
+  uploadedById       String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  featuredInProducts Product[] @relation("ProductFeaturedImage")
+
+  @@index([mediaType])
+  @@index([folder])
+  @@index([isDeleted])
+  @@index([createdAt])
+}
+
+model Menu {
+  id          String     @id @default(cuid())
+  /// Internal menu name
+  name        String
+  /// Unique menu identifier
+  code        String     @unique
+  /// Description
+  description String?
+  /// Active menu
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  items       MenuItem[]
+
+  @@index([isActive])
+}
+
+model MenuItem {
+  id           String     @id @default(cuid())
+  menuId       String
+  /// Parent item for dropdowns
+  parentId     String?
+  /// Display label
+  label        String
+  /// URL
+  url          String
+  /// Optional linked CMS page
+  pageId       String?
+  /// Display order
+  sortOrder    Int        @default(0)
+  /// Open in new tab
+  openInNewTab Boolean    @default(false)
+  /// Visibility
+  isVisible    Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  menu         Menu       @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  page         CmsPage?   @relation(fields: [pageId], references: [id])
+  parent       MenuItem?  @relation("MenuHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children     MenuItem[] @relation("MenuHierarchy")
+
+  @@index([menuId])
+  @@index([parentId])
+  @@index([pageId])
+  @@index([sortOrder])
+  @@index([isVisible])
+}
+
+model SiteSetting {
+  id          String   @id @default(cuid())
+  /// Unique configuration key
+  key         String   @unique
+  /// Configuration value
+  value       String?
+  /// Category (General, SEO, Contact, Social, etc.)
+  category    String?
+  /// Description for administrators
+  description String?
+  /// Data type
+  /// text, number, boolean, json
+  valueType   String   @default("text")
+  /// Publicly accessible setting
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@index([isPublic])
+}
+
+model Redirect {
+  id           String       @id @default(cuid())
+  /// Old URL
+  fromPath     String       @unique
+  /// New URL
+  toPath       String
+  /// Permanent or Temporary
+  redirectType RedirectType @default(PERMANENT)
+  /// Active redirect
+  isActive     Boolean      @default(true)
+  /// Optional remarks
+  notes        String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([isActive])
+  @@index([redirectType])
+}
 
 enum InquiryStatus {
   NEW
@@ -45,10 +488,6 @@ enum AdminRole {
   ADMIN
 }
 
-// ============================================================
-// SPRINT 8 ENUMS
-// ============================================================
-
 enum ProductStatus {
   DRAFT
   PUBLISHED
@@ -69,10 +508,6 @@ enum QuoteStatus {
   CANCELLED
 }
 
-// ============================================================
-// SPRINT 9 ENUMS
-// ============================================================
-
 enum ActivityEntityType {
   INQUIRY
   QUOTE
@@ -82,10 +517,6 @@ enum ActivityEntityType {
   CUSTOMER
   DOCUMENT
 }
-
-// ============================================================
-// PLATFORM ENUMS
-// ============================================================
 
 enum ActivityActorType {
   ADMIN
@@ -103,570 +534,6 @@ enum NumberSequenceType {
   CUSTOMER
   SUPPLIER
 }
-
-// ============================================================
-// INQUIRY
-// ============================================================
-
-model Inquiry {
-  id String @id @default(cuid())
-
-  /// Human-readable inquiry number
-  inquiryNumber String @unique
-
-  companyName   String
-  contactPerson String
-
-  email String
-  phone String?
-
-  country String
-
-  /// Product name submitted by customer
-  product String
-
-  quantity String?
-  unit     String?
-
-  message String
-
-  status     InquiryStatus   @default(NEW)
-  priority   InquiryPriority @default(MEDIUM)
-  salesStage SalesStage      @default(NEW)
-
-  /// Source of inquiry
-  source String? @default("Website")
-
-  /// Request metadata
-  ipAddress String?
-  userAgent String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  statusHistory InquiryStatusHistory[]
-  notes         InquiryNote[]
-  quotes        Quote[]
-
-  @@index([inquiryNumber])
-  @@index([email])
-  @@index([status])
-  @@index([salesStage])
-  @@index([country])
-  @@index([product])
-  @@index([createdAt])
-}
-
-model InquiryStatusHistory {
-  id String @id @default(cuid())
-
-  inquiryId String
-
-  inquiry Inquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
-
-  oldStatus InquiryStatus?
-
-  newStatus InquiryStatus
-
-  changedById String?
-
-  changedBy Admin? @relation(fields: [changedById], references: [id], onDelete: SetNull)
-
-  createdAt DateTime @default(now())
-
-  @@index([inquiryId])
-  @@index([createdAt])
-}
-
-model InquiryNote {
-  id String @id @default(cuid())
-
-  inquiryId String
-
-  inquiry Inquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
-
-  note String @db.Text
-
-  createdById String?
-
-  createdBy Admin? @relation(fields: [createdById], references: [id], onDelete: SetNull)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([inquiryId])
-  @@index([createdAt])
-}
-
-// ============================================================
-// ADMIN
-// ============================================================
-
-model Admin {
-  id String @id @default(cuid())
-
-  name String
-
-  email String @unique
-
-  password String
-
-  role AdminRole @default(SUPER_ADMIN)
-
-  isActive Boolean @default(true)
-
-  lastLogin DateTime?
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  inquiryNotes  InquiryNote[]
-  statusChanges InquiryStatusHistory[]
-
-  // Quote Audit
-  createdQuotes Quote[] @relation("QuoteCreatedBy")
-  updatedQuotes Quote[] @relation("QuoteUpdatedBy")
-
-  // Activity Audit
-  activities Activity[] @relation("ActivityPerformedBy")
-}
-
-// ============================================================
-// PRODUCT MASTER
-// ============================================================
-
-model Product {
-  id String @id @default(cuid())
-
-  sku String @unique
-
-  name String
-
-  slug String @unique
-
-  shortDescription String?
-
-  description String? @db.Text
-
-  category String?
-
-  origin String?
-
-  hsCode String?
-
-  defaultUnit String
-
-  minOrderQty Decimal? @db.Decimal(18, 3)
-
-  maxOrderQty Decimal? @db.Decimal(18, 3)
-
-  status ProductStatus @default(DRAFT)
-
-  featuredImageId String?
-
-  featuredImage Media? @relation("ProductFeaturedImage", fields: [featuredImageId], references: [id], onDelete: SetNull)
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  pricing    ProductPricing[]
-  quoteItems QuoteItem[]
-
-  @@index([status])
-  @@index([category])
-  @@index([name])
-  @@index([featuredImageId])
-}
-
-// ============================================================
-// PRODUCT PRICE HISTORY
-// ============================================================
-
-model ProductPricing {
-  id String @id @default(cuid())
-
-  productId String
-
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  pricingType PricingType @default(FIXED)
-
-  currency String
-
-  price Decimal @db.Decimal(18, 2)
-
-  validFrom DateTime?
-
-  validTo DateTime?
-
-  isActive Boolean @default(true)
-
-  remarks String?
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
-  @@index([productId])
-  @@index([isActive])
-}
-
-// ============================================================
-// QUOTE HEADER
-// ============================================================
-
-model Quote {
-  id String @id @default(cuid())
-
-  quoteNumber String @unique
-
-  inquiryId String?
-
-  inquiry Inquiry? @relation(fields: [inquiryId], references: [id], onDelete: SetNull)
-
-  // ========================================================
-  // Sprint 9 - Quote Versioning
-  // ========================================================
-
-  version Int @default(1)
-
-  parentQuoteId String?
-
-  parentQuote Quote? @relation("QuoteRevisions", fields: [parentQuoteId], references: [id], onDelete: SetNull)
-
-  revisions Quote[] @relation("QuoteRevisions")
-
-  // ========================================================
-
-  companyName String
-
-  contactPerson String
-
-  email String
-
-  phone String?
-
-  country String
-
-  currency String
-
-  subtotal Decimal @default(0) @db.Decimal(18, 2)
-
-  discount Decimal @default(0) @db.Decimal(18, 2)
-
-  freight Decimal @default(0) @db.Decimal(18, 2)
-
-  insurance Decimal @default(0) @db.Decimal(18, 2)
-
-  tax Decimal @default(0) @db.Decimal(18, 2)
-
-  grandTotal Decimal @default(0) @db.Decimal(18, 2)
-
-  validityDays Int @default(15)
-
-  validUntil DateTime?
-
-  status QuoteStatus @default(DRAFT)
-
-  notes String? @db.Text
-
-  // ========================================================
-  // Audit
-  // ========================================================
-
-  createdById String?
-
-  createdBy Admin? @relation("QuoteCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-
-  updatedById String?
-
-  updatedBy Admin? @relation("QuoteUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
-  // ========================================================
-  // Relations
-  // ========================================================
-
-  items QuoteItem[]
-
-  @@index([quoteNumber])
-  @@index([status])
-  @@index([companyName])
-  @@index([country])
-  @@index([createdById])
-  @@index([updatedById])
-  // Sprint 9
-  @@index([parentQuoteId])
-}
-
-// ============================================================
-// QUOTE LINE ITEMS
-// ============================================================
-
-model QuoteItem {
-  id String @id @default(cuid())
-
-  quoteId String
-
-  quote Quote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
-
-  productId String
-
-  product Product @relation(fields: [productId], references: [id])
-
-  description String?
-
-  quantity Decimal @db.Decimal(18, 3)
-
-  unit String
-
-  unitPrice Decimal @db.Decimal(18, 2)
-
-  lineTotal Decimal @db.Decimal(18, 2)
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
-  @@index([quoteId])
-  @@index([productId])
-}
-
-// ============================================================
-// ACTIVITY TIMELINE (Sprint 9)
-// ============================================================
-
-model Activity {
-  id String @id @default(cuid())
-
-  /// Business entity type
-  entityType ActivityEntityType
-
-  /// Entity primary key
-  entityId String
-
-  /// Human-readable reference
-  /// Examples:
-  /// INQ-2026-000001
-  /// QT-2026-000001
-  entityNumber String?
-
-  /// Machine readable event
-  action String
-
-  /// UI friendly title
-  title String
-
-  /// Detailed description
-  description String? @db.Text
-
-  /// Additional event metadata
-  metadata Json?
-
-  /// Who performed the action
-  actorType ActivityActorType @default(ADMIN)
-
-  /// Admin user (nullable for System / AI / Customer)
-  performedById String?
-
-  performedBy Admin? @relation("ActivityPerformedBy", fields: [performedById], references: [id], onDelete: SetNull)
-
-  createdAt DateTime @default(now())
-
-  @@index([entityType, entityId])
-  @@index([entityNumber])
-  @@index([action])
-  @@index([actorType])
-  @@index([performedById])
-  @@index([createdAt])
-}
-
-// ============================================================
-// PLATFORM NUMBER SEQUENCE
-// ============================================================
-//
-// Centralized sequence generator used by:
-//
-// • Inquiry
-// • Quote
-// • Order
-// • Shipment
-// • Invoice
-// • Customer
-// • Supplier
-//
-// Example:
-//
-// QT-2026-000001
-// QT-2026-000002
-// ORD-2026-000001
-//
-// ============================================================
-
-model NumberSequence {
-  id String @id @default(cuid())
-
-  type NumberSequenceType
-
-  year Int
-
-  lastValue Int @default(0)
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
-  @@unique([type, year])
-  @@index([type])
-  @@index([year])
-}
-
-// ============================================================
-// END OF SCHEMA
-// ============================================================
-
-// Sprint 9 Notes
-//
-// 1. SalesStage
-//    Operational pipeline independent of InquiryStatus.
-//
-// 2. Quote Versioning
-//    Every revision creates a new Quote record linked using
-//    parentQuoteId.
-//
-// 3. validUntil
-//    Calculated from validityDays.
-//
-// 4. Activity Timeline
-//    Generic activity engine for the complete platform.
-//
-//    Supported Entity Types
-//
-//      INQUIRY
-//      QUOTE
-//      ORDER
-//      SHIPMENT
-//      PRODUCT
-//      CUSTOMER
-//      DOCUMENT
-//
-//    Supported Actor Types
-//
-//      ADMIN
-//      CUSTOMER
-//      SYSTEM
-//      AI
-//
-//    Example Actions
-//
-//      INQUIRY_CREATED
-//      INQUIRY_UPDATED
-//      INQUIRY_STATUS_CHANGED
-//
-//      QUOTE_CREATED
-//      QUOTE_UPDATED
-//      QUOTE_REVISED
-//      QUOTE_SENT
-//      QUOTE_ACCEPTED
-//      QUOTE_REJECTED
-//
-//      ORDER_CREATED
-//      SHIPMENT_CREATED
-//
-//      EMAIL_SENT
-//      DOCUMENT_UPLOADED
-//
-// 5. Number Sequence
-//
-//    Generates:
-//
-//      INQ-2026-000001
-//      QT-2026-000001
-//      ORD-2026-000001
-//      SHP-2026-000001
-//      INV-2026-000001
-//
-//    One independent sequence per:
-//
-//      Type
-//      +
-//      Year
-//
-//    This guarantees:
-//
-//      ✔ Human readable IDs
-//      ✔ No duplicate business numbers
-//      ✔ Fast lookup
-//      ✔ AI-friendly references
-//      ✔ Future ERP compatibility
-
-// ============================================================
-// INDEX REVIEW
-// ============================================================
-//
-// Inquiry
-// --------
-// inquiryNumber ✔
-// email ✔
-// status ✔
-// salesStage ✔
-// country ✔
-// product ✔
-// createdAt ✔
-//
-// Quote
-// -----
-// quoteNumber ✔
-// status ✔
-// companyName ✔
-// country ✔
-// createdById ✔
-// updatedById ✔
-// parentQuoteId ✔
-//
-// Product
-// -------
-// status ✔
-// category ✔
-// name ✔
-//
-// ProductPricing
-// --------------
-// productId ✔
-// isActive ✔
-//
-// QuoteItem
-// ---------
-// quoteId ✔
-// productId ✔
-//
-// Activity
-// --------
-// entityType + entityId ✔
-// entityNumber ✔
-// action ✔
-// actorType ✔
-// performedById ✔
-// createdAt ✔
-//
-// NumberSequence
-// --------------
-// type + year ✔
-// type ✔
-// year ✔
-//
-
-// ============================================================
-// SPRINT 10 CMS FOUNDATION
-// ============================================================
 
 enum CmsPageStatus {
   DRAFT
@@ -686,345 +553,3 @@ enum RedirectType {
   PERMANENT
   TEMPORARY
 }
-
-// ============================================================
-// LANGUAGE
-// ============================================================
-
-model Language {
-  id String @id @default(cuid())
-
-  /// ISO language code (en, hi, ar, fr)
-  code String @unique
-
-  /// Display name
-  name String
-
-  /// Native language name
-  nativeName String?
-
-  /// Default language
-  isDefault Boolean @default(false)
-
-  /// Active language
-  isActive Boolean @default(true)
-
-  /// Display order
-  sortOrder Int @default(0)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  pageTranslations CmsPageTranslation[]
-
-  @@index([isActive])
-  @@index([sortOrder])
-}
-
-// ============================================================
-// CMS PAGE
-// ============================================================
-
-model CmsPage {
-  id String @id @default(cuid())
-
-  /// Internal page title
-  title String
-
-  /// URL slug
-  slug String @unique
-
-  /// Page status
-  status CmsPageStatus @default(DRAFT)
-
-  /// Homepage flag
-  isHomePage Boolean @default(false)
-
-  /// Navigation visibility
-  showInMenu Boolean @default(true)
-
-  /// SEO
-  metaTitle       String?
-  metaDescription String? @db.Text
-  metaKeywords    String?
-  canonicalUrl    String?
-
-  /// Publishing
-  publishedAt DateTime?
-
-  /// Audit
-  createdById String?
-  updatedById String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  translations CmsPageTranslation[]
-  menuItems    MenuItem[]
-
-  @@index([status])
-  @@index([slug])
-  @@index([publishedAt])
-  @@index([showInMenu])
-}
-
-// ============================================================
-// CMS PAGE TRANSLATIONS
-// ============================================================
-
-model CmsPageTranslation {
-  id String @id @default(cuid())
-
-  pageId String
-
-  languageId String
-
-  /// Localized page content
-  title String
-
-  slug String
-
-  excerpt String?
-
-  content String? @db.Text
-
-  /// SEO
-  metaTitle       String?
-  metaDescription String? @db.Text
-  metaKeywords    String?
-
-  /// Publishing
-  isPublished Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  page CmsPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
-
-  language Language @relation(fields: [languageId], references: [id], onDelete: Cascade)
-
-  @@unique([pageId, languageId])
-  @@unique([languageId, slug])
-  @@index([pageId])
-  @@index([languageId])
-  @@index([slug])
-  @@index([isPublished])
-}
-
-// ============================================================
-// MEDIA LIBRARY
-// ============================================================
-
-model Media {
-  id String @id @default(cuid())
-
-  /// Original filename
-  fileName String
-
-  /// Stored filename
-  storedFileName String
-
-  /// Public URL or relative path
-  fileUrl String
-
-  /// Storage provider (local, s3, cloudinary, etc.)
-  storageProvider String? @default("local")
-
-  /// MIME type
-  mimeType String?
-
-  /// IMAGE / VIDEO / DOCUMENT / AUDIO / OTHER
-  mediaType MediaType
-
-  /// File size in bytes
- fileSize Int?
-
-  /// Image dimensions
-  width  Int?
-  height Int?
-
-  /// Optional alt text
-  altText String?
-
-  /// Optional title
-  title String?
-
-  /// Optional description
-  description String? @db.Text
-
-  /// Folder/category
-  folder String?
-
-  /// Soft delete
-  isDeleted Boolean @default(false)
-
-  /// Audit
-  uploadedById       String?
-  featuredInProducts Product[] @relation("ProductFeaturedImage")
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([mediaType])
-  @@index([folder])
-  @@index([isDeleted])
-  @@index([createdAt])
-}
-
-// ============================================================
-// MENU
-// ============================================================
-
-model Menu {
-  id String @id @default(cuid())
-
-  /// Internal menu name
-  name String
-
-  /// Unique menu identifier
-  code String @unique
-
-  /// Description
-  description String?
-
-  /// Active menu
-  isActive Boolean @default(true)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  items MenuItem[]
-
-  @@index([isActive])
-}
-
-// ============================================================
-// MENU ITEM
-// ============================================================
-
-model MenuItem {
-  id String @id @default(cuid())
-
-  menuId String
-
-  /// Parent item for dropdowns
-  parentId String?
-
-  /// Display label
-  label String
-
-  /// URL
-  url String
-
-  /// Optional linked CMS page
-  pageId String?
-
-  /// Display order
-  sortOrder Int @default(0)
-
-  /// Open in new tab
-  openInNewTab Boolean @default(false)
-
-  /// Visibility
-  isVisible Boolean @default(true)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  menu Menu @relation(fields: [menuId], references: [id], onDelete: Cascade)
-
-  parent MenuItem? @relation("MenuHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
-
-  children MenuItem[] @relation("MenuHierarchy")
-
-  page CmsPage? @relation(fields: [pageId], references: [id], onDelete: SetNull)
-
-  @@index([menuId])
-  @@index([parentId])
-  @@index([pageId])
-  @@index([sortOrder])
-  @@index([isVisible])
-}
-
-// ============================================================
-// SITE SETTINGS
-// ============================================================
-
-model SiteSetting {
-  id String @id @default(cuid())
-
-  /// Unique configuration key
-  key String @unique
-
-  /// Configuration value
-  value String? @db.Text
-
-  /// Category (General, SEO, Contact, Social, etc.)
-  category String?
-
-  /// Description for administrators
-  description String?
-
-  /// Data type
-  /// text, number, boolean, json
-  valueType String @default("text")
-
-  /// Publicly accessible setting
-  isPublic Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([category])
-  @@index([isPublic])
-}
-
-// ============================================================
-// URL REDIRECTS
-// ============================================================
-
-model Redirect {
-  id String @id @default(cuid())
-
-  /// Old URL
-  fromPath String @unique
-
-  /// New URL
-  toPath String
-
-  /// Permanent or Temporary
-  redirectType RedirectType @default(PERMANENT)
-
-  /// Active redirect
-  isActive Boolean @default(true)
-
-  /// Optional remarks
-  notes String? @db.Text
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([isActive])
-  @@index([redirectType])
-}
-
-// ============================================================
-//
-// Schema Review Status
-//
-// ✓ Prisma Relation Validation
-// ✓ PostgreSQL Compatible
-// ✓ Enterprise Number Generator Ready
-// ✓ Activity Timeline Ready
-// ✓ Quote Versioning Ready
-// ✓ AI Ready
-// ✓ Migration Safe
-// ✓ Sprint 10 Ready
-// ✓ ERP Foundation Ready
-//
-// ============================================================

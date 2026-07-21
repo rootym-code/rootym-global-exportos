@@ -1,86 +1,293 @@
-import { GoogleGenAI } from "@google/genai";
+/**
+ * ============================================================
+ * Project         : ROOTYM Global Export Platform
+ * Organization    : ROOTYM Agro Harvest Pvt. Ltd.
+ *
+ * Module          : AI Services
+ * Component       : GeminiModelResolver
+ *
+ * Description
+ * ------------------------------------------------------------
+ * Discovers available Gemini models,
+ * filters supported models,
+ * ranks them,
+ * and caches results.
+ *
+ * Responsibilities:
+ * • Discover Gemini models
+ * • Filter generateContent models
+ * • Rank according to ROOTYM priority
+ * • Cache available models
+ * ============================================================
+ */
 
-import { AI_CONFIG } from "@/lib/config/ai";
+import { AI_CONFIG } from "@/lib/ai/config/ai";
 
-export type ModelResolution = {
+import modelCache from "@/lib/ai/cache/ModelCache";
+
+import {
+  rankGeminiModels,
+} from "@/lib/ai/config/GeminiRanking";
+
+
+export interface ModelResolution {
   models: string[];
-  source: "discovery" | "fallback";
+  source: "cache" | "api";
+}
+
+
+type GoogleModel = {
+  name: string;
+
+  displayName?: string;
+
+  supportedGenerationMethods?: string[];
 };
 
+
+type GoogleModelsResponse = {
+  models?: GoogleModel[];
+};
+
+
 export default class GeminiModelResolver {
-  private ai: GoogleGenAI;
-
-  private apiKey: string;
-
 
   constructor(
-    apiKey: string,
-  ) {
+    private readonly apiKey: string
+  ) {}
 
-    this.apiKey = apiKey;
 
-    this.ai = new GoogleGenAI({
-      apiKey,
-    });
+  /**
+   * Timestamp helper
+   */
+  private timestamp(): string {
+
+    return new Date().toLocaleString(
+      "en-IN",
+      {
+        timeZone: "Asia/Kolkata",
+        dateStyle: "medium",
+        timeStyle: "medium",
+      }
+    );
 
   }
 
 
-  async getAvailableModels(): Promise<ModelResolution> {
+  /**
+   * Returns available Gemini models.
+   *
+   * Uses cache when available.
+   */
+  async getAvailableModels():
+    Promise<ModelResolution> {
 
-    try {
 
-      const models = await this.ai.models.list();
+    console.log(
+      "===================================="
+    );
 
-      const availableModels: string[] = [];
+    console.log(
+      `[${this.timestamp()}] Gemini Model Resolver`
+    );
 
 
-      for await (const model of models) {
+    if (modelCache.isValid()) {
 
-        if (
-          model.name &&
-          model.name.includes("gemini")
-        ) {
 
-          availableModels.push(
-            model.name.replace(
-              "models/",
-              "",
-            ),
-          );
+      console.log(
+        "Model Cache : HIT"
+      );
+
+
+      console.log(
+        `Cache Age   : ${modelCache.getAgeMinutes()} minutes`
+      );
+
+
+      console.log(
+        "===================================="
+      );
+
+
+      return {
+
+        models:
+          modelCache.getModels(),
+
+        source: "cache",
+
+      };
+
+    }
+
+
+    console.log(
+      "Model Cache : MISS"
+    );
+
+
+    console.log(
+      "Discovering Gemini models..."
+    );
+
+
+    console.log(
+      "===================================="
+    );
+
+
+    const models =
+      await this.discoverModels();
+
+
+    modelCache.setModels(
+      models
+    );
+
+
+    return {
+
+      models,
+
+      source: "api",
+
+    };
+
+  }
+
+
+  /**
+   * Calls Google's model discovery API.
+   */
+  private async discoverModels():
+    Promise<string[]> {
+
+
+    const endpoint =
+      AI_CONFIG.gemini.discoveryEndpoint;
+
+
+    const response =
+      await fetch(
+
+        `${endpoint}?key=${this.apiKey}`,
+
+        {
+          method: "GET",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
 
         }
 
-      }
+      );
 
 
-      if (availableModels.length > 0) {
+    if (!response.ok) {
 
-        return {
-          models: availableModels,
-          source: "discovery",
-        };
-
-      }
-
-
-    } catch (error) {
-
-      console.warn(
-        "Gemini model discovery failed:",
-        error,
+      throw new Error(
+        `Gemini model discovery failed (${response.status})`
       );
 
     }
 
 
-    return {
-      models:
-        AI_CONFIG.gemini.preferredModels,
+    const data:
+      GoogleModelsResponse =
+        await response.json();
 
-      source: "fallback",
 
-    };
+    const models =
+      data.models ?? [];
+
+
+      const availableModels =
+
+      models
+  
+      .filter(
+        (model: GoogleModel) => {
+  
+          const name =
+            model.name.replace(
+              "models/",
+              ""
+            );
+  
+  
+          const supportsGenerateContent =
+            model.supportedGenerationMethods?.includes(
+              "generateContent"
+            );
+  
+  
+          const excludedModels = [
+            "image",
+            "tts",
+            "robotics",
+            "computer",
+            "embedding",
+          ];
+  
+  
+          const isExcluded =
+            excludedModels.some(
+              (keyword) =>
+                name.includes(keyword)
+            );
+  
+  
+          return (
+            name.startsWith("gemini")
+            &&
+            supportsGenerateContent
+            &&
+            !isExcluded
+          );
+  
+        }
+  
+      )
+
+
+        .map(
+          (model: GoogleModel) =>
+            model.name.replace(
+              "models/",
+              ""
+            )
+        );
+
+
+    const rankedModels =
+      rankGeminiModels(
+        availableModels
+      );
+
+
+    console.log(
+      `Discovered Models : ${rankedModels.length}`
+    );
+
+
+    rankedModels.forEach(
+      (model: string) => {
+        console.log(
+          `✓ ${model}`
+        );
+      }
+    );
+
+
+    console.log(
+      "===================================="
+    );
+
+
+    return rankedModels;
 
   }
 
