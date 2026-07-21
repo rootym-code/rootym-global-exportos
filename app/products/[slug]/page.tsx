@@ -18,6 +18,18 @@ type PageProps = {
   }>;
 };
 
+function getProductImageUrl(fileUrl?: string | null) {
+  if (!fileUrl) {
+    return "/images/products/placeholder.png";
+  }
+
+  if (fileUrl.startsWith("http")) {
+    return fileUrl;
+  }
+
+  return `${process.env.NEXT_PUBLIC_SITE_URL}${fileUrl}`;
+}
+
 export default async function ProductPage({
   params,
 }: PageProps) {
@@ -29,9 +41,9 @@ export default async function ProductPage({
     notFound();
   }
 
-  const imageUrl =
-    product.featuredImage?.fileUrl ??
-    "/images/products/placeholder.png";
+  const imageUrl = getProductImageUrl(
+    product.featuredImage?.fileUrl
+  );
 
   const description =
     product.description ??
@@ -64,13 +76,14 @@ export default async function ProductPage({
 
             <div className="relative aspect-square">
 
-              <Image
-                src={imageUrl}
-                alt={product.name}
-                fill
-                className="object-contain"
-                priority
-              />
+            <Image
+  src={imageUrl}
+  alt={product.name}
+  fill
+  sizes="(max-width: 768px) 100vw, 50vw"
+  className="object-contain"
+  priority
+/>
 
             </div>
 

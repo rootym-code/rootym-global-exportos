@@ -17,8 +17,12 @@ const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
 
+
+
 function buildWhere(filters: ProductFilters): Prisma.ProductWhereInput {
   const where: Prisma.ProductWhereInput = {};
+
+
 
   if (filters.status) {
     where.status = filters.status;
