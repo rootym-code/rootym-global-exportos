@@ -28,12 +28,61 @@ class CmsPageService extends BaseCmsService {
         "A page with this slug already exists."
       );
 
-      return prisma.cmsPage.create({
-        data: validated,
+      const defaultLanguage =
+        await prisma.language.findFirst({
+          where: {
+            isDefault: true,
+            isActive: true,
+          },
+        });
+
+      if (!defaultLanguage) {
+        throw new Error(
+          "No default language configured. Please configure a default language before creating CMS pages."
+        );
+      }
+
+      return prisma.$transaction(async (tx) => {
+        const page = await tx.cmsPage.create({
+          data: validated,
+        });
+
+        await tx.cmsPageTranslation.create({
+          data: {
+            pageId: page.id,
+            languageId: defaultLanguage.id,
+
+            title: page.title,
+            slug: page.slug,
+
+            excerpt: null,
+            content: null,
+
+            metaTitle: page.metaTitle,
+            metaDescription: page.metaDescription,
+            metaKeywords: page.metaKeywords,
+
+            isPublished:
+              page.status ===
+              CmsPageStatus.PUBLISHED,
+          },
+        });
+
+        return tx.cmsPage.findUnique({
+          where: {
+            id: page.id,
+          },
+          include: {
+            translations: {
+              include: {
+                language: true,
+              },
+            },
+          },
+        });
       });
     });
   }
-
   async update(
     id: string,
     data: UpdateCmsPageInput
@@ -42,14 +91,15 @@ class CmsPageService extends BaseCmsService {
       const validated = updateCmsPageSchema.parse(data);
 
       if (validated.slug) {
-        const duplicate = await prisma.cmsPage.findFirst({
-          where: {
-            slug: validated.slug,
-            NOT: {
-              id,
+        const duplicate =
+          await prisma.cmsPage.findFirst({
+            where: {
+              slug: validated.slug,
+              NOT: {
+                id,
+              },
             },
-          },
-        });
+          });
 
         this.ensureUnique(
           !!duplicate,
@@ -57,24 +107,108 @@ class CmsPageService extends BaseCmsService {
         );
       }
 
-      return prisma.cmsPage.update({
-        where: {
-          id,
-        },
-        data: validated,
+      return prisma.$transaction(async (tx) => {
+        const page = this.ensureExists(
+          await tx.cmsPage.findUnique({
+            where: {
+              id,
+            },
+            include: {
+              translations: {
+                include: {
+                  language: true,
+                },
+              },
+            },
+          }),
+          "CMS page not found."
+        );
+
+        const updatedPage =
+          await tx.cmsPage.update({
+            where: {
+              id,
+            },
+            data: validated,
+          });
+
+        const defaultTranslation =
+          page.translations.find(
+            (translation) =>
+              translation.language.isDefault
+          );
+
+        if (defaultTranslation) {
+          await tx.cmsPageTranslation.update({
+            where: {
+              id: defaultTranslation.id,
+            },
+            data: {
+              ...(validated.title !== undefined && {
+                title: validated.title,
+              }),
+
+              ...(validated.slug !== undefined && {
+                slug: validated.slug,
+              }),
+
+              ...(validated.metaTitle !==
+                undefined && {
+                metaTitle:
+                  validated.metaTitle,
+              }),
+
+              ...(validated.metaDescription !==
+                undefined && {
+                metaDescription:
+                  validated.metaDescription,
+              }),
+
+              ...(validated.metaKeywords !==
+                undefined && {
+                metaKeywords:
+                  validated.metaKeywords,
+              }),
+
+              ...(validated.status !==
+                undefined && {
+                isPublished:
+                  validated.status ===
+                  CmsPageStatus.PUBLISHED,
+              }),
+            },
+          });
+        }
+
+        return tx.cmsPage.findUnique({
+          where: {
+            id: updatedPage.id,
+          },
+          include: {
+            translations: {
+              include: {
+                language: true,
+              },
+            },
+          },
+        });
       });
     });
   }
 
   async delete(id: string) {
     return this.execute(async () => {
-      const page = await prisma.cmsPage.findUnique({
-        where: {
-          id,
-        },
-      });
+      const page =
+        await prisma.cmsPage.findUnique({
+          where: {
+            id,
+          },
+        });
 
-      this.ensureExists(page, "CMS page not found.");
+      this.ensureExists(
+        page,
+        "CMS page not found."
+      );
 
       return prisma.cmsPage.delete({
         where: {
@@ -86,18 +220,19 @@ class CmsPageService extends BaseCmsService {
 
   async getById(id: string) {
     return this.execute(async () => {
-      const page = await prisma.cmsPage.findUnique({
-        where: {
-          id,
-        },
-        include: {
-          translations: {
-            include: {
-              language: true,
+      const page =
+        await prisma.cmsPage.findUnique({
+          where: {
+            id,
+          },
+          include: {
+            translations: {
+              include: {
+                language: true,
+              },
             },
           },
-        },
-      });
+        });
 
       return this.ensureExists(
         page,
@@ -120,7 +255,6 @@ class CmsPageService extends BaseCmsService {
       },
     });
   }
-
   async publish(id: string) {
     return this.execute(async () => {
       await this.getById(id);
@@ -207,7 +341,9 @@ class CmsPageService extends BaseCmsService {
               updatedAt: "desc",
             },
           }),
-        () => prisma.cmsPage.count({ where }),
+        () => prisma.cmsPage.count({
+          where,
+        }),
         pagination
       );
     });
@@ -215,3 +351,5 @@ class CmsPageService extends BaseCmsService {
 }
 
 export default new CmsPageService();
+
+// END OF FILE

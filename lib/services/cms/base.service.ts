@@ -47,16 +47,18 @@ export abstract class BaseCmsService {
     };
   }
 
+
   protected ensureExists<T>(
-    entity: T | null,
+    entity: T | null | undefined,
     message = "Resource not found."
   ): T {
     if (!entity) {
       throw AppError.notFound(message);
     }
-
+  
     return entity;
   }
+
 
   protected ensureUnique(
     exists: boolean,
