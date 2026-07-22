@@ -113,18 +113,12 @@ import {
   
   
           include: {
-  
-            attachments: {
-  
-              include: {
-  
-                media: true,
-  
-              },
-  
+            whatsAppAttachments: {
+                include: {
+                    media: true,
+                },
             },
-  
-          },
+        }
   
         });
   
@@ -295,7 +289,9 @@ import {
   
   
             status:
-              WhatsAppMessageStatus.PENDING_APPROVAL,
+           //  WhatsAppMessageStatus.PENDING_APPROVAL,
+             WhatsAppMessageStatus.DRAFT,
+        
   
   
           },

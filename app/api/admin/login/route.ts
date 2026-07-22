@@ -27,7 +27,10 @@ export async function POST(request: NextRequest) {
     }
 
     const admin = await authenticateAdmin(validation.data);
+    console.log("LOGIN ADMIN:", admin);
 
+
+    
     const token = await createAdminToken({
       adminId: admin.id,
       email: admin.email,
@@ -35,6 +38,8 @@ export async function POST(request: NextRequest) {
       role: admin.role,
     });
 
+    console.log("TOKEN CREATED FOR:", admin.email);
+    
     const response = NextResponse.json(
       {
         success: true,

@@ -3,6 +3,56 @@ generator client {
   output   = "../lib/generated/prisma"
 }
 
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum WhatsAppMessageStatus {
+  DRAFT
+  APPROVED
+  QUEUED
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  REJECTED
+}
+
+model WhatsAppMessage {
+  id String @id @default(cuid())
+
+  inquiryId String
+  inquiry   Inquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+
+  direction MessageDirection @default(OUTBOUND)
+
+  message String @db.Text
+
+  status WhatsAppMessageStatus @default(DRAFT)
+
+  externalId String?
+  approvedBy String?
+  approvedAt DateTime?
+
+  queuedAt    DateTime?
+  sentAt      DateTime?
+  deliveredAt DateTime?
+  readAt      DateTime?
+
+  failedAt     DateTime?
+  errorMessage String?   @db.Text
+
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  whatsAppAttachments WhatsAppAttachment[]
+
+  @@index([inquiryId])
+  @@index([status])
+  @@index([direction])
+  @@index([externalId])
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -74,39 +124,6 @@ model InquiryNote {
   @@index([createdAt])
 }
 
-model WhatsAppMessage {
-  id String @id @default(cuid())
-
-  inquiryId String
-
-  inquiry Inquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
-
-  message String
-
-  status WhatsAppMessageStatus @default(PENDING_APPROVAL)
-
-  approvedById String?
-
-  approvedBy Admin? @relation("WhatsAppApprovedMessages", fields: [approvedById], references: [id])
-
-  approvedAt DateTime?
-
-  sentAt DateTime?
-
-  whatsappMessageId String?
-
-  deliveryStatus String?
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
-  attachments WhatsAppAttachment[]
-
-  @@index([inquiryId])
-  @@index([status])
-}
-
 model WhatsAppAttachment {
   id String @id @default(cuid())
 
@@ -125,21 +142,20 @@ model WhatsAppAttachment {
 }
 
 model Admin {
-  id               String                 @id @default(cuid())
-  name             String
-  email            String                 @unique
-  password         String
-  createdAt        DateTime               @default(now())
-  updatedAt        DateTime               @updatedAt
-  isActive         Boolean                @default(true)
-  lastLogin        DateTime?
-  role             AdminRole              @default(SUPER_ADMIN)
-  activities       Activity[]             @relation("ActivityPerformedBy")
-  inquiryNotes     InquiryNote[]
-  statusChanges    InquiryStatusHistory[]
-  createdQuotes    Quote[]                @relation("QuoteCreatedBy")
-  updatedQuotes    Quote[]                @relation("QuoteUpdatedBy")
-  whatsappMessages WhatsAppMessage[]      @relation("WhatsAppApprovedMessages")
+  id            String                 @id @default(cuid())
+  name          String
+  email         String                 @unique
+  password      String
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  isActive      Boolean                @default(true)
+  lastLogin     DateTime?
+  role          AdminRole              @default(SUPER_ADMIN)
+  activities    Activity[]             @relation("ActivityPerformedBy")
+  inquiryNotes  InquiryNote[]
+  statusChanges InquiryStatusHistory[]
+  createdQuotes Quote[]                @relation("QuoteCreatedBy")
+  updatedQuotes Quote[]                @relation("QuoteUpdatedBy")
 }
 
 model Product {
@@ -515,22 +531,6 @@ enum InquiryStatus {
   NEGOTIATION
   CONFIRMED
   REJECTED
-}
-
-enum WhatsAppMessageStatus {
-  PENDING_APPROVAL
-
-  APPROVED
-
-  SENT
-
-  FAILED
-
-  REJECTED
-
-  DELIVERED
-
-  READ
 }
 
 enum InquiryPriority {

@@ -9,6 +9,9 @@ import {
 
 
 import InquiryStatusBadge from "@/components/admin/InquiryStatusBadge";
+import WhatsAppApprovalCard, {
+  WhatsAppDraft,
+} from "@/components/admin/whatsapp/WhatsAppApprovalCard";
 
 
 import {
@@ -149,7 +152,11 @@ export default function InquiryDetailsPage({
   const [savingNote, setSavingNote] =
     useState(false);
 
-
+    const [loadingWhatsApp, setLoadingWhatsApp] =
+    useState(false);
+  
+  const [drafts, setDrafts] =
+    useState<WhatsAppDraft[]>([]);
 
   const [note, setNote] =
     useState("");
@@ -176,11 +183,10 @@ export default function InquiryDetailsPage({
 
 
 
-  useEffect(() => {
-
-    loadInquiry();
-
-  }, []);
+    useEffect(() => {
+      loadInquiry();
+      loadWhatsAppDrafts();
+    }, []);
 
 
 
@@ -240,8 +246,105 @@ export default function InquiryDetailsPage({
 
 
 
+  async function loadWhatsAppDrafts() {
+    try {
+      setLoadingWhatsApp(true);
+  
+      const res = await fetch(
+        `/api/admin/inquiries/${id}/whatsapp`
+      );
+  
+      const data = await res.json();
+  
+      if (!data.success) {
+        setDrafts([]);
+        return;
+      }
+  
+
+      console.log("WhatsApp API Response:", data);
+      console.log("Messages:", data.messages);
+      console.log(
+        "Statuses:",
+        data.messages?.map((m: any) => m.status)
+      );
 
 
+      setDrafts(
+        (data.messages ?? []).map((item: any) => ({
+          id: item.id,
+          message: item.message,
+          status: item.status,
+          generatedBy: "R-CAPTAIN",
+          generatedAt: item.createdAt,
+          approvedAt: item.approvedAt,
+          approvedBy: item.approvedBy?.name,
+          attachments:
+            item.attachments?.map((attachment: any) => ({
+              id: attachment.id,
+              fileName:
+                attachment.media?.fileName ??
+                "Attachment",
+              fileType:
+                attachment.media?.mimeType ?? "",
+              url:
+                attachment.media?.url ?? "",
+              size:
+                attachment.media?.size,
+            })) ?? [],
+        }))
+      );
+    } catch (error) {
+      console.error(
+        "Failed to load WhatsApp drafts",
+        error
+      );
+      setDrafts([]);
+    } finally {
+      setLoadingWhatsApp(false);
+    }
+  }
+
+  async function approveDraft(messageId: string) {
+    await fetch(
+      `/api/admin/inquiries/${id}/whatsapp/${messageId}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "APPROVE",
+        }),
+      }
+    );
+  
+    await loadWhatsAppDrafts();
+  }
+  
+  async function rejectDraft(messageId: string) {
+    await fetch(
+      `/api/admin/inquiries/${id}/whatsapp/${messageId}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "REJECT",
+        }),
+      }
+    );
+  
+    await loadWhatsAppDrafts();
+  }
+  
+  async function regenerateDraft(
+    _messageId: string
+  ) {
+    // Placeholder until regenerate API is implemented.
+    await loadWhatsAppDrafts();
+  }
 
   async function updateStatus() {
 
@@ -828,7 +931,29 @@ export default function InquiryDetailsPage({
 
 
       </div>
-            {/* Customer Message */}
+                  {/* WhatsApp Approval Center */}
+
+      <div className="rounded-lg border bg-white p-6">
+
+        <h2 className="mb-3 text-lg font-semibold">
+          WhatsApp Follow-up
+        </h2>
+
+        <p className="mb-4 text-gray-600">
+          WhatsApp approval workflow is enabled.
+        </p>
+
+        <WhatsAppApprovalCard
+  drafts={drafts}
+  loading={loadingWhatsApp}
+  onApprove={approveDraft}
+  onReject={rejectDraft}
+  onRegenerate={regenerateDraft}
+/>
+
+      </div>
+
+      {/* Customer Message */}
 
             <div className="rounded-lg border bg-white p-6">
 
