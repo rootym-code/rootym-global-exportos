@@ -9,32 +9,33 @@ datasource db {
 }
 
 model Inquiry {
-  id            String                 @id @default(cuid())
-  companyName   String
-  contactPerson String
-  email         String
-  phone         String?
-  country       String
+  id               String                 @id @default(cuid())
+  companyName      String
+  contactPerson    String
+  email            String
+  phone            String?
+  country          String
   /// Product name submitted by customer
-  product       String
-  quantity      String?
-  message       String
-  status        InquiryStatus          @default(NEW)
-  priority      InquiryPriority        @default(MEDIUM)
+  product          String
+  quantity         String?
+  message          String
+  status           InquiryStatus          @default(NEW)
+  priority         InquiryPriority        @default(MEDIUM)
   /// Source of inquiry
-  source        String?                @default("Website")
-  createdAt     DateTime               @default(now())
-  updatedAt     DateTime               @updatedAt
+  source           String?                @default("Website")
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
   /// Human-readable inquiry number
-  inquiryNumber String                 @unique
+  inquiryNumber    String                 @unique
   /// Request metadata
-  ipAddress     String?
-  unit          String?
-  userAgent     String?
-  salesStage    SalesStage             @default(NEW)
-  notes         InquiryNote[]
-  statusHistory InquiryStatusHistory[]
-  quotes        Quote[]
+  ipAddress        String?
+  unit             String?
+  userAgent        String?
+  salesStage       SalesStage             @default(NEW)
+  notes            InquiryNote[]
+  statusHistory    InquiryStatusHistory[]
+  quotes           Quote[]
+  whatsappMessages WhatsAppMessage[]
 
   @@index([inquiryNumber])
   @@index([email])
@@ -73,21 +74,72 @@ model InquiryNote {
   @@index([createdAt])
 }
 
+model WhatsAppMessage {
+  id String @id @default(cuid())
+
+  inquiryId String
+
+  inquiry Inquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+
+  message String
+
+  status WhatsAppMessageStatus @default(PENDING_APPROVAL)
+
+  approvedById String?
+
+  approvedBy Admin? @relation("WhatsAppApprovedMessages", fields: [approvedById], references: [id])
+
+  approvedAt DateTime?
+
+  sentAt DateTime?
+
+  whatsappMessageId String?
+
+  deliveryStatus String?
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  attachments WhatsAppAttachment[]
+
+  @@index([inquiryId])
+  @@index([status])
+}
+
+model WhatsAppAttachment {
+  id String @id @default(cuid())
+
+  whatsappMessageId String
+
+  whatsappMessage WhatsAppMessage @relation(fields: [whatsappMessageId], references: [id], onDelete: Cascade)
+
+  mediaId String
+
+  media Media @relation(fields: [mediaId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([whatsappMessageId])
+  @@index([mediaId])
+}
+
 model Admin {
-  id            String                 @id @default(cuid())
-  name          String
-  email         String                 @unique
-  password      String
-  createdAt     DateTime               @default(now())
-  updatedAt     DateTime               @updatedAt
-  isActive      Boolean                @default(true)
-  lastLogin     DateTime?
-  role          AdminRole              @default(SUPER_ADMIN)
-  activities    Activity[]             @relation("ActivityPerformedBy")
-  inquiryNotes  InquiryNote[]
-  statusChanges InquiryStatusHistory[]
-  createdQuotes Quote[]                @relation("QuoteCreatedBy")
-  updatedQuotes Quote[]                @relation("QuoteUpdatedBy")
+  id               String                 @id @default(cuid())
+  name             String
+  email            String                 @unique
+  password         String
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  isActive         Boolean                @default(true)
+  lastLogin        DateTime?
+  role             AdminRole              @default(SUPER_ADMIN)
+  activities       Activity[]             @relation("ActivityPerformedBy")
+  inquiryNotes     InquiryNote[]
+  statusChanges    InquiryStatusHistory[]
+  createdQuotes    Quote[]                @relation("QuoteCreatedBy")
+  updatedQuotes    Quote[]                @relation("QuoteUpdatedBy")
+  whatsappMessages WhatsAppMessage[]      @relation("WhatsAppApprovedMessages")
 }
 
 model Product {
@@ -326,39 +378,40 @@ model CmsPageTranslation {
 }
 
 model Media {
-  id                 String    @id @default(cuid())
+  id                  String               @id @default(cuid())
   /// Original filename
-  fileName           String
+  fileName            String
   /// Stored filename
-  storedFileName     String
+  storedFileName      String
   /// Public URL or relative path
-  fileUrl            String
+  fileUrl             String
   /// Storage provider (local, s3, cloudinary, etc.)
-  storageProvider    String?   @default("local")
+  storageProvider     String?              @default("local")
   /// MIME type
-  mimeType           String?
+  mimeType            String?
   /// IMAGE / VIDEO / DOCUMENT / AUDIO / OTHER
-  mediaType          MediaType
+  mediaType           MediaType
   /// File size in bytes
-  fileSize           Int?
+  fileSize            Int?
   /// Image dimensions
-  width              Int?
-  height             Int?
+  width               Int?
+  height              Int?
   /// Optional alt text
-  altText            String?
+  altText             String?
   /// Optional title
-  title              String?
+  title               String?
   /// Optional description
-  description        String?
+  description         String?
   /// Folder/category
-  folder             String?
+  folder              String?
   /// Soft delete
-  isDeleted          Boolean   @default(false)
+  isDeleted           Boolean              @default(false)
   /// Audit
-  uploadedById       String?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-  featuredInProducts Product[] @relation("ProductFeaturedImage")
+  uploadedById        String?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  featuredInProducts  Product[]            @relation("ProductFeaturedImage")
+  whatsAppAttachments WhatsAppAttachment[]
 
   @@index([mediaType])
   @@index([folder])
@@ -462,6 +515,22 @@ enum InquiryStatus {
   NEGOTIATION
   CONFIRMED
   REJECTED
+}
+
+enum WhatsAppMessageStatus {
+  PENDING_APPROVAL
+
+  APPROVED
+
+  SENT
+
+  FAILED
+
+  REJECTED
+
+  DELIVERED
+
+  READ
 }
 
 enum InquiryPriority {
