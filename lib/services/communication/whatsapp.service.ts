@@ -12,6 +12,8 @@
  * Responsibilities:
  * - Retrieve WhatsApp messages for an inquiry
  * - Create message drafts
+ * - Update drafts
+ * - Delete drafts
  * - Approve drafts
  * - Reject drafts
  *
@@ -102,6 +104,104 @@ export class WhatsAppService {
         status: WhatsAppMessageStatus.DRAFT,
       },
     });
+  }
+
+  /**
+   * Updates an existing WhatsApp draft.
+   *
+   * @param messageId WhatsApp message identifier
+   * @param message Updated message body
+   * @returns Updated draft
+   */
+
+
+
+/**
+ * Updates an existing WhatsApp draft.
+ *
+ * @param messageId WhatsApp message identifier
+ * @param message Updated message body
+ * @returns Updated draft
+ */
+async updateDraft(messageId: string, message: string) {
+  if (!messageId?.trim()) {
+    throw new Error("Message ID is required.");
+  }
+
+  if (!message?.trim()) {
+    throw new Error("Message content is required.");
+  }
+
+  const draft = await prisma.whatsAppMessage.findUnique({
+    where: {
+      id: messageId,
+    },
+  });
+
+  if (!draft) {
+    throw new Error("WhatsApp message not found.");
+  }
+
+  // ------------------------------------------------------------------
+  // TEMPORARY DEBUG LOG
+  // ------------------------------------------------------------------
+  console.log("========================================");
+  console.log("WhatsApp Draft Debug");
+  console.log("Message ID :", draft.id);
+  console.log("Status     :", draft.status);
+  console.log("Inquiry ID :", draft.inquiryId);
+  console.log("========================================");
+  // ------------------------------------------------------------------
+
+  if (draft.status !== WhatsAppMessageStatus.DRAFT) {
+    throw new Error("Only draft messages can be edited.");
+  }
+
+  return prisma.whatsAppMessage.update({
+    where: {
+      id: messageId,
+    },
+    data: {
+      message: message.trim(),
+    },
+  });
+}
+
+
+
+  /**
+   * Deletes an existing WhatsApp draft.
+   *
+   * @param messageId WhatsApp message identifier
+   */
+  async deleteDraft(messageId: string) {
+    if (!messageId?.trim()) {
+      throw new Error("Message ID is required.");
+    }
+
+    const draft = await prisma.whatsAppMessage.findUnique({
+      where: {
+        id: messageId,
+      },
+    });
+
+    if (!draft) {
+      throw new Error("WhatsApp message not found.");
+    }
+
+    if (draft.status !== WhatsAppMessageStatus.DRAFT) {
+      throw new Error("Only draft messages can be deleted.");
+    }
+
+    await prisma.whatsAppMessage.delete({
+      where: {
+        id: messageId,
+      },
+    });
+
+    return {
+      success: true,
+    };
   }
 
   /**

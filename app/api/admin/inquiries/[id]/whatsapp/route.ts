@@ -32,7 +32,8 @@ import {
   
   import prisma from "@/lib/prisma";
   
-  
+  import whatsappService from "@/lib/services/communication/whatsapp.service";
+
   import {
     authenticateAdmin,
   } from "@/lib/auth";
@@ -95,32 +96,8 @@ import {
   
   
   
-      const messages =
-        await prisma.whatsAppMessage.findMany({
-  
-          where: {
-  
-            inquiryId: id,
-  
-          },
-  
-  
-          orderBy: {
-  
-            createdAt: "desc",
-  
-          },
-  
-  
-          include: {
-            whatsAppAttachments: {
-                include: {
-                    media: true,
-                },
-            },
-        }
-  
-        });
+const messages =
+  await whatsappService.getMessages(id);
   
   
   
@@ -241,62 +218,11 @@ import {
   
   
   
-  
-      const inquiry =
-        await prisma.inquiry.findUnique({
-  
-          where:{
-            id,
-          },
-  
-        });
-  
-  
-  
-      if(!inquiry){
-  
-  
-        return NextResponse.json(
-          {
-            success:false,
-            message:
-              "Inquiry not found.",
-          },
-          {
-            status:404,
-          }
-        );
-  
-  
-      }
-  
-  
-  
-  
-  
       const whatsappMessage =
-        await prisma.whatsAppMessage.create({
-  
-          data:{
-  
-  
-            inquiryId:
-              inquiry.id,
-  
-  
-            message:
-              body.message,
-  
-  
-            status:
-           //  WhatsAppMessageStatus.PENDING_APPROVAL,
-             WhatsAppMessageStatus.DRAFT,
-        
-  
-  
-          },
-  
-        });
+      await whatsappService.createDraft(
+        id,
+        body.message
+      );
   
   
   

@@ -141,7 +141,7 @@ export default function InquiryDetailsPage({
       setLoading(false);
     }
   }
-
+//----------------
   async function loadWhatsAppConversation() {
     try {
       setLoadingWhatsApp(true);
@@ -156,9 +156,8 @@ export default function InquiryDetailsPage({
         setDraft(null);
         return;
       }
-
       const latest =
-        data.messages?.[0];
+      data.messages?.[data.messages.length - 1];
 
       if (!latest) {
         setDraft(null);
@@ -184,7 +183,7 @@ setDraft(null);
 setLoadingWhatsApp(false);
 }
 }
-
+///------------------------
 async function handleGenerate() {
 try {
 setGenerating(true);
@@ -207,13 +206,43 @@ await loadWhatsAppConversation();
 setGenerating(false);
 }
 }
-//------------
-async function handleEdit() {
-  return;
+//------------ Prem
+//async function handleEdit() {
+//  return;
+//}
+//------------Prem
+//async function handleEdit(message: string) {
+ // console.log(message);
+//}
+async function handleEdit(message: string) {
+  if (!draft) return;
+
+  try {
+    const response = await fetch(
+      `/api/admin/communication/whatsapp/${draft.id}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to update WhatsApp draft.");
+    }
+
+    await loadInquiry();
+    await loadWhatsAppConversation();
+
+  } catch (error) {
+    console.error("Failed to update draft:", error);
+  }
 }
-//------------
-
-
+//----------------
 async function handleRegenerate() {
 if (!draft) {
 await handleGenerate();
@@ -251,6 +280,10 @@ await fetch(
 await loadWhatsAppConversation();
 }
 
+
+
+
+///----------------
 async function updateStatus() {
 try {
 setSavingStatus(true);
@@ -498,15 +531,15 @@ return (
         </p>
 
         <WhatsAppConversationCard
-          inquiryId={id}
-          loading={loadingWhatsApp}
-          generating={generating}
-          draft={draft}
-          onGenerate={handleGenerate}
-          onEdit={handleEdit}
-          onRegenerate={handleRegenerate}
-          onSend={handleSend}
-        />
+  inquiryId={id}
+  loading={loadingWhatsApp}
+  generating={generating}
+  draft={draft}
+  onGenerate={handleGenerate}
+  onSaveEdit={handleEdit}
+  onRegenerate={handleRegenerate}
+  onSend={handleSend}
+/>
       </div>
 
       {/* Customer Message */}
