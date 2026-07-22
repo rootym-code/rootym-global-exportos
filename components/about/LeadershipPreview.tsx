@@ -33,7 +33,7 @@ const directors = [
   {
     name: "Prem Chand Singh",
     designation: "Founder & Director",
-    image: "/images/directors/prem-singh.webp",
+    image: "/images/leadership/founder-prem-chand-singh.webp",
     description:
       "Prem Chand Singh founded ROOTYM with the vision of connecting premium Indian agricultural products with global buyers. Drawing on extensive leadership experience in technology and business, he focuses on building trusted sourcing networks, export excellence, and long-term international partnerships.",
   },

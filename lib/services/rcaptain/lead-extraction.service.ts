@@ -8,12 +8,22 @@
  * Description
  * ------------------------------------------------------------
  * Extracts buyer information from R-CAPTAIN conversation.
+ *
+ * Responsibilities:
+ * • Detect buyer requirement
+ * • Extract buyer/company/contact details
+ * • Capture WhatsApp/contact number
+ * • Prepare structured inquiry data
+ * • No database persistence
+ *
  * ============================================================
  */
+
 
 import type {
   AIMessage,
 } from "@/lib/ai/types";
+
 
 
 export interface ExtractedLead {
@@ -28,6 +38,8 @@ export interface ExtractedLead {
 
   phone?: string;
 
+  whatsappNumber?: string;
+
   country?: string;
 
   product?: string;
@@ -39,6 +51,8 @@ export interface ExtractedLead {
 }
 
 
+
+
 export class LeadExtractionService {
 
 
@@ -47,8 +61,22 @@ export class LeadExtractionService {
   ): ExtractedLead {
 
 
-    const conversation =
-      messages
+    /**
+     * USER messages only
+     *
+     * Prevent R-CAPTAIN questions
+     * from entering extraction.
+     */
+
+    const userMessages =
+      messages.filter(
+        message =>
+          message.role === "user"
+      );
+
+
+    const fullConversation =
+      userMessages
         .map(
           message =>
             message.content
@@ -56,16 +84,34 @@ export class LeadExtractionService {
         .join("\n");
 
 
+    const latestUserMessage =
+      userMessages.length > 0
+        ? userMessages[
+            userMessages.length - 1
+          ].content.trim()
+        : "";
+
+
     const normalizedConversation =
-      conversation.toLowerCase();
+      fullConversation.toLowerCase();
+
 
 
     const lead: ExtractedLead = {
+
       hasRequirement: false,
+
     };
 
 
+
+
+    /**
+     * Product Detection
+     */
+
     const products = [
+
       "makhana",
       "fox nuts",
       "rice",
@@ -74,6 +120,7 @@ export class LeadExtractionService {
       "onion",
       "potato starch",
       "french fries",
+
     ];
 
 
@@ -85,33 +132,64 @@ export class LeadExtractionService {
 
 
     if (matchedProduct) {
+
       lead.product =
         matchedProduct;
+
     }
 
 
+
+
+    /**
+     * Quantity Detection
+     */
+
     const quantityMatch =
-      conversation.match(
+      fullConversation.match(
         /(\d+)\s*(kg|kgs|ton|tons|mt|metric ton)/i
       );
 
 
     if (quantityMatch) {
+
       lead.quantity =
         quantityMatch[0];
+
     }
 
 
+
+
+    /**
+     * Country Detection
+     */
+
     const countries = [
+
       "uae",
       "dubai",
+      "united arab emirates",
+
       "usa",
+      "united states",
+
       "uk",
+      "united kingdom",
+
+      "sri lanka",
+      "srilanka",
+      "sri lnak",
+
+      "malaysia",
+      "singapore",
+
       "saudi arabia",
       "qatar",
       "oman",
-      "singapore",
+
     ];
+
 
 
     const matchedCountry =
@@ -122,63 +200,130 @@ export class LeadExtractionService {
 
 
     if (matchedCountry) {
+
       lead.country =
         matchedCountry;
+
     }
 
 
+
+
+
+    /**
+     * Email Detection
+     */
+
     const emailMatch =
-      conversation.match(
+      latestUserMessage.match(
         /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-z]{2,}/
       );
 
 
     if (emailMatch) {
+
       lead.email =
         emailMatch[0];
+
     }
 
 
-    const phoneMatch =
-      conversation.match(
-        /\+?\d[\d\s-]{8,}/
+
+
+
+    /**
+     * WhatsApp Number Detection
+     *
+     * Captures international
+     * and local mobile numbers.
+     *
+     * Example:
+     * +94 77 1234567
+     * +91 9876543210
+     * 9876543210
+     */
+
+    const whatsappMatch =
+      latestUserMessage.match(
+        /(\+?\d[\d\s\-]{8,14}\d)/
       );
 
 
-    if (phoneMatch) {
-      lead.phone =
-        phoneMatch[0];
-    }
 
+    if (whatsappMatch) {
 
-    const companyMatch =
-      conversation.match(
-        /(?:my company name is|company name is|company is)\s+(.+)/i
-      );
-
-
-    if (companyMatch) {
-
-      lead.companyName =
-        companyMatch[1]
+      const number =
+        whatsappMatch[1]
           .trim();
 
-    } else {
 
-      const companyKeywords = [
-        "trading",
-        "llc",
-        "limited",
-      ];
+      lead.whatsappNumber =
+        number;
 
-      if (
-        companyKeywords.some(
-          word =>
-            normalizedConversation.includes(word)
-        )
-      ) {
+
+      /**
+       * Backward compatibility
+       * Existing inquiry table
+       * uses phone field.
+       */
+
+      lead.phone =
+        number;
+
+    }
+
+
+
+
+
+    /**
+     * Company Detection
+     */
+
+    const companyPatterns = [
+
+      /(.+\s+pvt\.?\s*ltd\.?)/i,
+
+      /(.+\s+private\s+limited)/i,
+
+      /(.+\s+llc)/i,
+
+      /(.+\s+ltd\.?)/i,
+
+      /(.+\s+trading)/i,
+
+      /(.+\s+foods?)/i,
+
+      /(.+\s+enterprises?)/i,
+
+      /(.+\s+impex)/i,
+
+      /(.+\s+exports?)/i,
+
+      /(.+\s+imports?)/i,
+
+    ];
+
+
+
+    for (
+      const pattern of companyPatterns
+    ) {
+
+      const match =
+        latestUserMessage.match(
+          pattern
+        );
+
+
+      if (match) {
+
         lead.companyName =
-          "Detected from conversation";
+          match[1]
+            .trim();
+
+        break;
+
       }
 
     }
@@ -186,32 +331,88 @@ export class LeadExtractionService {
 
 
 
+    /**
+     * Explicit company phrases
+     */
+
+    if (!lead.companyName) {
+
+      const explicitCompany =
+        latestUserMessage.match(
+          /(?:my company name is|company name is|company is)\s+(.+)/i
+        );
+
+
+      if (explicitCompany) {
+
+        lead.companyName =
+          explicitCompany[1]
+            .trim();
+
+      }
+
+    }
+
+
+
+
+    /**
+     * Contact Person Detection
+     */
+
     const contactMatch =
-    conversation.match(
-      /(?:my name is|contact person is|contact name is)\s+([A-Za-z]+(?:\s+[A-Za-z]+)?)/i
-    );
-  
-  
-  if (contactMatch) {
-  
-    lead.contactPerson =
-      contactMatch[1]
-        .trim();
-  
-  }
+      latestUserMessage.match(
+        /(?:my name is|contact person is|contact name is)\s+([A-Za-z]+(?:\s+[A-Za-z]+){0,2})/i
+      );
+
+
+    if (contactMatch) {
+
+      lead.contactPerson =
+        contactMatch[1]
+          .trim();
+
+    }
 
 
 
+
+    /**
+     * Simple name fallback
+     */
 
     if (
+      !lead.contactPerson &&
+      /^[A-Za-z]+(?:\s+[A-Za-z]+){1,2}$/.test(
+        latestUserMessage
+      )
+    ) {
+
+      lead.contactPerson =
+        latestUserMessage;
+
+    }
+
+
+
+
+
+    /**
+     * Requirement readiness
+     */
+
+    if (
+
       lead.product &&
       lead.quantity &&
       lead.country
+
     ) {
 
       lead.hasRequirement = true;
 
     }
+
 
 
     return lead;

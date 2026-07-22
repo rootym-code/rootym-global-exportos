@@ -84,8 +84,12 @@ export async function POST(
       detectRCaptainIntent(message);
 
 
-    console.log("R-CAPTAIN Intent Detection");
+    console.log(
+      "R-CAPTAIN Intent Detection"
+    );
+
     console.log(intent);
+
 
 
     const conversationMessages: AIMessage[] =
@@ -98,8 +102,65 @@ export async function POST(
     ];
 
 
+
     const leadExtractor =
       new LeadExtractionService();
+
+
+
+    /**
+     * =====================================================
+     * Rebuild Complete Lead State
+     *
+     * Extract information from complete conversation
+     * history instead of only latest message.
+     *
+     * This allows R-CAPTAIN to remember:
+     *
+     * Product
+     * Quantity
+     * Country
+     * Company
+     * Contact Person
+     * Email
+     * Phone
+     *
+     * =====================================================
+     */
+
+
+    const conversationStateService =
+      new ConversationStateService();
+
+
+
+    let leadState:
+      ConversationLeadState = {};
+
+
+
+    for (
+      const conversationMessage
+      of conversationMessages
+    ) {
+
+
+      const extracted =
+        leadExtractor.extractLead(
+          [
+            conversationMessage,
+          ]
+        );
+
+
+      leadState =
+        conversationStateService.mergeState(
+          leadState,
+          extracted
+        );
+
+    }
+
 
 
     const extractedLead =
@@ -108,34 +169,50 @@ export async function POST(
       );
 
 
-    console.log("R-CAPTAIN Lead Extraction");
-    console.log(extractedLead);
 
-
-    const conversationStateService =
-      new ConversationStateService();
-
-
-    const leadState:
-      ConversationLeadState =
+    leadState =
       conversationStateService.mergeState(
-        {},
+        leadState,
         extractedLead
       );
+
+
+
+    console.log(
+      "R-CAPTAIN Lead Extraction"
+    );
+
+    console.log(leadState);
+
+
 
 
     const qualificationService =
       new LeadQualificationService();
 
 
+
+    /**
+     * IMPORTANT:
+     *
+     * Qualification should happen
+     * on complete buyer profile.
+     *
+     * Not only latest message.
+     *
+     */
+
+
     const qualification =
       qualificationService.qualify(
-        extractedLead,
+        leadState,
         conversationMessages
       );
 
 
-    const shouldAskQualificationQuestion =
+
+
+      const shouldAskQualificationQuestion =
       extractedLead.hasRequirement &&
       !qualification.readyForInquiry &&
       Boolean(
@@ -143,32 +220,47 @@ export async function POST(
       );
 
 
+
     const productContext =
       await getRCaptainProductContext();
+
+
 
 
     const aiService =
       new AIService(apiKey);
 
 
+
     let reply = "";
 
 
-    if (shouldAskQualificationQuestion) {
+
+
+    if (
+      shouldAskQualificationQuestion
+    ) {
+
 
       reply =
         qualification.nextQuestion!;
 
-    } else if (qualification.readyForInquiry) {
+
+    } else if (
+      qualification.readyForInquiry
+    ) {
+
 
       const inquiryService =
         new InquiryCreationService();
+
 
 
       const inquiry =
         await inquiryService.createInquiry(
           leadState
         );
+
 
 
       console.log(
@@ -180,25 +272,36 @@ export async function POST(
       );
 
 
+
       reply =
         "Thank you for sharing your requirement. Our export team will contact you shortly.";
 
+
+
     } else {
+
 
       const response =
         await aiService.generateResponse(
           {
             message,
+
             messages,
+
             image: null,
+
             context: productContext,
+
           }
         );
 
 
+
       reply =
         response.reply;
+
     }
+
 
 
     return NextResponse.json(
@@ -209,7 +312,9 @@ export async function POST(
     );
 
 
+
   } catch (error) {
+
 
     console.error(
       "R-CAPTAIN chat error:",
@@ -220,11 +325,13 @@ export async function POST(
     return NextResponse.json(
       {
         success: false,
-        message: "Unable to process request.",
+        message:
+          "Unable to process request.",
       },
       {
         status: 500,
       }
     );
+
   }
 }
