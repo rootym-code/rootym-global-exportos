@@ -19,7 +19,7 @@ export type AIMessage = {
   role: "user" | "assistant";
   content: string;
 };
-//Prem
+ 
 export type RCaptainIntent = {
   intent:
     | "GENERAL_QUERY"
@@ -31,7 +31,7 @@ export type RCaptainIntent = {
 
   country?: string;
 };
-//prem
+ 
 export type AIRequest = {
   message: string;
   messages: AIMessage[];

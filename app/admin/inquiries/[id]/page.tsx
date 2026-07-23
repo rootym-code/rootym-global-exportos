@@ -38,14 +38,33 @@ interface WhatsAppDraft {
   id: string;
   message: string;
   status:
-    | "DRAFT"
-    | "QUEUED"
-    | "SENT"
-    | "DELIVERED"
-    | "READ";
+  | "DRAFT"
+  | "APPROVED"
+  | "QUEUED"
+  | "SENT"
+  | "DELIVERED"
+  | "READ";
   createdAt?: string;
   updatedAt?: string;
 }
+
+interface WhatsAppMessage {
+  id: string;
+  message: string;
+  status:
+  | "DRAFT"
+  | "APPROVED"
+  | "QUEUED"
+  | "SENT"
+  | "DELIVERED"
+  | "READ"
+  | "FAILED"
+  | "REJECTED";
+
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 
 interface Inquiry {
   id: string;
@@ -97,6 +116,9 @@ export default function InquiryDetailsPage({
   const [draft, setDraft] =
     useState<WhatsAppDraft | null>(null);
 
+  const [messages, setMessages] =
+    useState<WhatsAppMessage[]>([]);
+
   const [note, setNote] =
     useState("");
 
@@ -141,333 +163,445 @@ export default function InquiryDetailsPage({
       setLoading(false);
     }
   }
-//----------------
+
   async function loadWhatsAppConversation() {
     try {
       setLoadingWhatsApp(true);
 
+
+
+
+
+
       const res = await fetch(
         `/api/admin/inquiries/${id}/whatsapp`
       );
+      if (!res.ok) {
+        throw new Error("Failed to load WhatsApp conversation.");
+      }
 
       const data = await res.json();
 
       if (!data.success) {
         setDraft(null);
+        setMessages([]);
         return;
       }
+      const conversation =
+        data.messages ?? [];
+
+      setMessages(conversation);
+
       const latest =
-      data.messages?.[data.messages.length - 1];
+        conversation[conversation.length - 1];
 
       if (!latest) {
         setDraft(null);
         return;
       }
 
-// ===== END OF PART 1 =====
-setDraft({
-  id: latest.id,
-  message: latest.message,
-  status: latest.status,
-  createdAt: latest.createdAt,
-  updatedAt: latest.updatedAt,
-});
-} catch (error) {
-console.error(
-  "Failed to load WhatsApp conversation",
-  error
-);
 
-setDraft(null);
-} finally {
-setLoadingWhatsApp(false);
-}
-}
-///------------------------
-async function handleGenerate() {
-try {
-setGenerating(true);
 
-const res = await fetch(
-  `/api/admin/inquiries/${id}/whatsapp/generate`,
-  {
-    method: "POST",
+
+      setDraft({
+        id: latest.id,
+        message: latest.message,
+        status: latest.status,
+        createdAt: latest.createdAt,
+        updatedAt: latest.updatedAt,
+      });
+
+
+
+
+    } catch (error) {
+      console.error(
+        "Failed to load WhatsApp conversation",
+        error
+      );
+
+      setDraft(null);
+    } finally {
+      setLoadingWhatsApp(false);
+    }
   }
-);
 
-const data = await res.json();
 
-if (!data.success) {
-  return;
-}
 
-await loadWhatsAppConversation();
-} finally {
-setGenerating(false);
-}
-}
-//------------ Prem
-//async function handleEdit() {
-//  return;
-//}
-//------------Prem
-//async function handleEdit(message: string) {
- // console.log(message);
-//}
-async function handleEdit(message: string) {
-  if (!draft) return;
 
-  try {
-    const response = await fetch(
-      `/api/admin/communication/whatsapp/${draft.id}`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message,
-        }),
+
+
+
+
+  async function handleGenerate() {
+    try {
+      setGenerating(true);
+
+      const res = await fetch(
+        `/api/admin/inquiries/${id}/whatsapp/generate`,
+        {
+          method: "POST",
+        }
+      )
+      if (!res.ok) {
+        throw new Error("Failed to generate WhatsApp draft.");
       }
-    );
+      ;
 
-    if (!response.ok) {
-      throw new Error("Failed to update WhatsApp draft.");
+      const data = await res.json();
+
+      if (!data.success) {
+        return;
+      }
+
+      await loadWhatsAppConversation();
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+
+  async function handleEdit(message: string) {
+    if (!draft) return;
+
+    try {
+      const response = await fetch(
+        `/api/admin/communication/whatsapp/${draft.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            message,
+          }),
+        }
+      )
+
+        ;
+
+
+      if (!response.ok) {
+        throw new Error("Failed to update WhatsApp draft.");
+      }
+
+      await loadInquiry();
+      await loadWhatsAppConversation();
+
+    } catch (error) {
+      console.error("Failed to update draft:", error);
+    }
+  }
+
+  async function handleRegenerate() {
+    if (!draft) {
+
+
+
+      await handleGenerate();
+      return;
     }
 
-    await loadInquiry();
-    await loadWhatsAppConversation();
-
-  } catch (error) {
-    console.error("Failed to update draft:", error);
-  }
-}
-//----------------
-async function handleRegenerate() {
-if (!draft) {
-await handleGenerate();
-return;
-}
-
-try {
-setGenerating(true);
-
-await fetch(
-  `/api/admin/inquiries/${id}/whatsapp/${draft.id}/regenerate`,
-  {
-    method: "POST",
-  }
-);
-
-await loadWhatsAppConversation();
-} finally {
-setGenerating(false);
-}
-}
-
-async function handleSend() {
-if (!draft) {
-return;
-}
-
-await fetch(
-`/api/admin/inquiries/${id}/whatsapp/${draft.id}/send`,
-{
-  method: "POST",
-}
-);
-
-await loadWhatsAppConversation();
-}
+    try {
+      setGenerating(true);
 
 
 
 
-///----------------
-async function updateStatus() {
-try {
-setSavingStatus(true);
+      const response = await fetch(
+        `/api/admin/inquiries/${id}/whatsapp/${draft.id}/regenerate`,
+        {
+          method: "POST",
+        }
+      );
 
-await fetch(
-  `/api/admin/inquiries/${id}`,
-  {
-    method: "PATCH",
-    headers: {
-      "Content-Type":
-        "application/json",
-    },
-    body: JSON.stringify({
-      status,
-    }),
-  }
-);
-
-await loadInquiry();
-} finally {
-setSavingStatus(false);
-}
-}
-
-async function updateSalesStage() {
-try {
-setSavingStage(true);
-
-await fetch(
-  `/api/admin/inquiries/${id}`,
-  {
-    method: "PATCH",
-    headers: {
-      "Content-Type":
-        "application/json",
-    },
-    body: JSON.stringify({
-      salesStage,
-    }),
-  }
-);
-
-await loadInquiry();
-} finally {
-setSavingStage(false);
-}
-}
-
-// ===== END OF PART 2 =====
-async function addNote() {
-  if (!note.trim()) return;
-
-  try {
-    setSavingNote(true);
-
-    await fetch(
-      `/api/admin/inquiries/${id}/notes`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type":
-            "application/json",
-        },
-        body: JSON.stringify({
-          note,
-        }),
+      if (!response.ok) {
+        throw new Error("Failed to regenerate WhatsApp draft.");
       }
-    );
 
-    setNote("");
+      await loadInquiry();
+      await loadWhatsAppConversation();
 
-    await loadInquiry();
-  } finally {
-    setSavingNote(false);
+
+
+    } finally {
+      setGenerating(false);
+    }
   }
-}
 
-if (loading) {
+
+  async function handleApprove() {
+    if (!draft) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `/api/admin/communication/whatsapp/${draft.id}/approve`,
+        {
+          method: "POST",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to approve WhatsApp draft.");
+      }
+
+      await loadInquiry();
+      await loadWhatsAppConversation();
+    } catch (error) {
+      console.error(
+        "Failed to approve WhatsApp draft:",
+        error
+      );
+    }
+  }
+
+
+  async function handleSend() {
+    if (!draft) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `/api/admin/communication/whatsapp/${draft.id}`,
+        {
+          method: "POST",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to send WhatsApp message.");
+      }
+
+      await loadInquiry();
+      await loadWhatsAppConversation();
+    } catch (error) {
+      console.error(
+        "Failed to send WhatsApp message:",
+        error
+      );
+    }
+  }
+
+
+
+  async function updateStatus() {
+    try {
+      setSavingStatus(true);
+
+
+
+
+      const response =
+
+
+
+        await fetch(
+          `/api/admin/inquiries/${id}`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              status,
+            }),
+          }
+        );
+
+
+
+      if (!response.ok) {
+        throw new Error("Failed to update inquiry status.");
+      }
+
+      await loadInquiry();
+
+
+
+
+    } finally {
+      setSavingStatus(false);
+    }
+  }
+
+  async function updateSalesStage() {
+    try {
+      setSavingStage(true);
+
+      const response = await fetch(
+        `/api/admin/inquiries/${id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            salesStage,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to update sales stage.");
+      }
+
+      await loadInquiry();
+    } finally {
+      setSavingStage(false);
+    }
+  }
+
+
+
+
+
+  // ===== END OF PART 2 =====
+  async function addNote() {
+    if (!note.trim()) return;
+
+    try {
+      setSavingNote(true);
+
+      const response = await fetch(
+        `/api/admin/inquiries/${id}/notes`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify({
+            note,
+          }),
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Failed to add note.");
+      }
+      setNote("");
+
+      await loadInquiry();
+
+
+      //
+
+
+
+    } finally {
+      setSavingNote(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="rounded-lg border bg-white p-8">
+        Loading...
+      </div>
+    );
+  }
+
+  if (!inquiry) {
+    return (
+      <div className="rounded-lg border bg-white p-8">
+        Inquiry not found.
+      </div>
+    );
+  }
+
   return (
-    <div className="rounded-lg border bg-white p-8">
-      Loading...
-    </div>
-  );
-}
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="rounded-lg border bg-white p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">
+              {inquiry.inquiryNumber}
+            </h1>
 
-if (!inquiry) {
-  return (
-    <div className="rounded-lg border bg-white p-8">
-      Inquiry not found.
-    </div>
-  );
-}
+            <p className="text-gray-500">
+              {inquiry.companyName}
+            </p>
+          </div>
 
-return (
-  <div className="space-y-6">
-    {/* Header */}
-    <div className="rounded-lg border bg-white p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">
-            {inquiry.inquiryNumber}
-          </h1>
+          <InquiryStatusBadge
+            status={inquiry.status}
+          />
+        </div>
+      </div>
 
-          <p className="text-gray-500">
-            {inquiry.companyName}
-          </p>
+      {/* Buyer Snapshot */}
+      <div className="rounded-lg border bg-white p-6">
+        <h2 className="mb-5 text-lg font-semibold">
+          Buyer Snapshot
+        </h2>
+
+        <div className="grid gap-4 md:grid-cols-4">
+          <InfoCard
+            label="Company"
+            value={inquiry.companyName}
+          />
+
+          <InfoCard
+            label="Contact"
+            value={inquiry.contactPerson}
+          />
+
+          <InfoCard
+            label="WhatsApp"
+            value={inquiry.phone}
+          />
+
+          <InfoCard
+            label="Country"
+            value={inquiry.country}
+          />
+        </div>
+      </div>
+
+      {/* Requirement Summary */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="rounded-lg border bg-white p-6">
+          <h2 className="mb-5 text-lg font-semibold">
+            Requirement Summary
+          </h2>
+
+          <Row
+            label="Product"
+            value={inquiry.product}
+          />
+
+          <Row
+            label="Quantity"
+            value={inquiry.quantity}
+          />
+
+          <Row
+            label="Source"
+            value={inquiry.source}
+          />
+
+          <Row
+            label="Priority"
+            value={inquiry.priority}
+          />
         </div>
 
-        <InquiryStatusBadge
-          status={inquiry.status}
-        />
-      </div>
-    </div>
+        {/* R-CAPTAIN Intelligence */}
+        <div className="rounded-lg border bg-white p-6">
+          <h2 className="mb-5 text-lg font-semibold">
+            R-CAPTAIN Intelligence
+          </h2>
 
-    {/* Buyer Snapshot */}
-    <div className="rounded-lg border bg-white p-6">
-      <h2 className="mb-5 text-lg font-semibold">
-        Buyer Snapshot
-      </h2>
-
-      <div className="grid gap-4 md:grid-cols-4">
-        <InfoCard
-          label="Company"
-          value={inquiry.companyName}
-        />
-
-        <InfoCard
-          label="Contact"
-          value={inquiry.contactPerson}
-        />
-
-        <InfoCard
-          label="WhatsApp"
-          value={inquiry.phone}
-        />
-
-        <InfoCard
-          label="Country"
-          value={inquiry.country}
-        />
-      </div>
-    </div>
-
-    {/* Requirement Summary */}
-    <div className="grid gap-6 lg:grid-cols-2">
-      <div className="rounded-lg border bg-white p-6">
-        <h2 className="mb-5 text-lg font-semibold">
-          Requirement Summary
-        </h2>
-
-        <Row
-          label="Product"
-          value={inquiry.product}
-        />
-
-        <Row
-          label="Quantity"
-          value={inquiry.quantity}
-        />
-
-        <Row
-          label="Source"
-          value={inquiry.source}
-        />
-
-        <Row
-          label="Priority"
-          value={inquiry.priority}
-        />
-      </div>
-
-      {/* R-CAPTAIN Intelligence */}
-      <div className="rounded-lg border bg-white p-6">
-        <h2 className="mb-5 text-lg font-semibold">
-          R-CAPTAIN Intelligence
-        </h2>
-
-        <Row
-          label="Lead Source"
-          value="R-CAPTAIN AI"
-        />
+          <Row
+            label="Lead Source"
+            value="R-CAPTAIN AI"
+          />
 
 // ===== END OF PART 3 =====
-<Row
+          <Row
             label="Intent"
             value="BUYING REQUEST"
           />
@@ -493,11 +627,10 @@ return (
                 onClick={() =>
                   setSalesStage(stage)
                 }
-                className={`rounded-full border px-4 py-2 text-sm ${
-                  salesStage === stage
-                    ? "bg-green-600 text-white"
-                    : "bg-white"
-                }`}
+                className={`rounded-full border px-4 py-2 text-sm ${salesStage === stage
+                  ? "bg-green-600 text-white"
+                  : "bg-white"
+                  }`}
               >
                 {stage.replaceAll(
                   "_",
@@ -531,15 +664,17 @@ return (
         </p>
 
         <WhatsAppConversationCard
-  inquiryId={id}
-  loading={loadingWhatsApp}
-  generating={generating}
-  draft={draft}
-  onGenerate={handleGenerate}
-  onSaveEdit={handleEdit}
-  onRegenerate={handleRegenerate}
-  onSend={handleSend}
-/>
+          inquiryId={id}
+          loading={loadingWhatsApp}
+          generating={generating}
+          draft={draft}
+          messages={messages}
+          onGenerate={handleGenerate}
+          onSaveEdit={handleEdit}
+          onRegenerate={handleRegenerate}
+          onApprove={handleApprove}
+          onSend={handleSend}
+        />
       </div>
 
       {/* Customer Message */}

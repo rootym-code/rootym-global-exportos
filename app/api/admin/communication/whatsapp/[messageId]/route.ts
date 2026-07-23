@@ -119,3 +119,50 @@ export async function DELETE(
     );
   }
 }
+
+export async function POST(
+  request: NextRequest,
+  { params }: RouteContext
+) {
+  try {
+    const auth = await authenticateAdmin(request);
+
+    if (!auth.authenticated) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: auth.error,
+        },
+        {
+          status: auth.status,
+        }
+      );
+    }
+
+    const { messageId } = await params;
+
+    const sentMessage =
+      await whatsappService.sendDraft(messageId);
+
+    return NextResponse.json({
+      success: true,
+      message: "WhatsApp message sent successfully.",
+      data: sentMessage,
+    });
+  } catch (error) {
+    console.error(error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Internal Server Error",
+      },
+      {
+        status: 500,
+      }
+    );
+  }
+}

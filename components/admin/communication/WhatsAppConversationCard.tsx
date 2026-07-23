@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Bot,
   Loader2,
@@ -12,6 +12,7 @@ import {
   Clock3,
   Truck,
   Eye,
+  Copy,
 } from "lucide-react";
 
 import Card from "@/components/ui/Card";
@@ -27,30 +28,52 @@ export type CommunicationStatus =
   | "FAILED"
   | "REJECTED";
 
-export interface WhatsAppConversationCardProps {
-  inquiryId: string;
-
-  loading?: boolean;
-
-  generating?: boolean;
-
-  draft?: {
+  export interface WhatsAppMessage {
+    id: string;
+    message: string;
+    status: CommunicationStatus;
+    createdAt?: string;
+    updatedAt?: string;
+  }
+  
+  export interface WhatsAppDraft {
     id: string;
     message: string;
     status: CommunicationStatus;
     updatedAt?: string;
-  } | null;
+  }
+  
+  export interface WhatsAppConversationCardProps {
+    inquiryId: string;
+  
+    loading?: boolean;
+  
+    generating?: boolean;
+  
+    draft?: WhatsAppDraft | null;
+  
+    /**
+     * Complete conversation history.
+     * Oldest → Newest.
+     */
+    messages?: WhatsAppMessage[];
+  
+    onGenerate?: () => void | Promise<void>;
+  
+    onApprove?: () => void | Promise<void>;
+  
+    onSaveEdit?: (
+      message: string
+    ) => void | Promise<void>;
+  
+    onRegenerate?: () => void | Promise<void>;
+  
+    onSend?: () => void | Promise<void>;
+  }
 
-  onGenerate?: () => void | Promise<void>;
 
-  onSaveEdit?: (
-    message: string
-  ) => void | Promise<void>;
 
-  onRegenerate?: () => void | Promise<void>;
 
-  onSend?: () => void | Promise<void>;
-}
 
 const STATUS = {
   DRAFT: {
@@ -119,26 +142,36 @@ const STATUS = {
 
 const TIMELINE: CommunicationStatus[] = [
   "DRAFT",
-  "QUEUED",
+  "APPROVED",
   "SENT",
   "DELIVERED",
   "READ",
 ];
 
 export default function WhatsAppConversationCard({
+  inquiryId,
   loading = false,
   generating = false,
   draft,
+  messages = [],
   onGenerate,
   onSaveEdit,
   onRegenerate,
+  onApprove,
   onSend,
-}: WhatsAppConversationCardProps) {
+}: WhatsAppConversationCardProps)
+
+
+{
   const [editOpen, setEditOpen] =
     useState(false);
 
   const [editedMessage, setEditedMessage] =
     useState("");
+    const [copied, setCopied] = useState(false);
+
+    const editorRef = useRef<HTMLTextAreaElement>(null);
+    const [actionInProgress, setActionInProgress] = useState(false);
 
   useEffect(() => {
     if (draft) {
@@ -146,11 +179,34 @@ export default function WhatsAppConversationCard({
     }
   }, [draft]);
 
+  useEffect(() => {
+    if (editOpen) {
+      editorRef.current?.focus();
+    }
+  }, [editOpen]);
+
+
   const currentStep = useMemo(() => {
     if (!draft) return -1;
 
     return TIMELINE.indexOf(draft.status);
   }, [draft]);
+
+  const conversation = useMemo(() => {
+    return [...messages].sort((a, b) => {
+      const first =
+        a.createdAt ?? a.updatedAt ?? "";
+  
+      const second =
+        b.createdAt ?? b.updatedAt ?? "";
+  
+      return (
+        new Date(first).getTime() -
+        new Date(second).getTime()
+      );
+    });
+  }, [messages]);
+
 
   if (loading) {
     return (
@@ -205,10 +261,27 @@ export default function WhatsAppConversationCard({
                 R-CAPTAIN AI.
               </p>
 
+             
+             
+             
               <Button
                 className="mt-8 bg-green-600 hover:bg-green-700"
-                onClick={onGenerate}
-                disabled={generating}
+                onClick={async () => {
+                  if (!onGenerate) return;
+                
+                  setActionInProgress(true);
+                
+                  try {
+                    await onGenerate();
+                  } finally {
+                    setActionInProgress(false);
+                  }
+                }}
+                disabled={
+                  loading ||
+                  generating ||
+                  actionInProgress
+                }
               >
                 {generating ? (
                   <>
@@ -226,7 +299,28 @@ export default function WhatsAppConversationCard({
           ) : (
             <>
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold">Draft</h3>
+
+
+
+
+              <div>
+  <h3 className="font-semibold">
+    Active Draft
+  </h3>
+
+  <p className="mt-1 text-sm text-gray-500">
+    Latest editable AI-generated WhatsApp message.
+  </p>
+
+  {draft.updatedAt && (
+    <p className="mt-1 text-xs text-gray-400">
+      Last updated:{" "}
+      {new Date(draft.updatedAt).toLocaleString()}
+    </p>
+  )}
+</div>
+
+
 
                 <div
                   className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm ${
@@ -242,37 +336,195 @@ export default function WhatsAppConversationCard({
                 </div>
               </div>
 
-              <div className="rounded-xl bg-gray-50 p-5">
-                <p className="whitespace-pre-wrap text-sm leading-7 text-gray-700">
-                  {draft.message}
-                </p>
-              </div>
 
-              <div className="flex flex-wrap gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => setEditOpen(true)}
-                >
-                  <SquarePen className="mr-2 h-4 w-4" />
-                  Edit
-                </Button>
 
-                <Button
-                  variant="outline"
-                  onClick={onRegenerate}
-                >
-                  <RefreshCcw className="mr-2 h-4 w-4" />
-                  Regenerate
-                </Button>
 
+              <div className="max-h-80 overflow-y-auto rounded-xl bg-gray-50 p-5">
+  <p className="whitespace-pre-wrap break-words text-sm leading-7 text-gray-700">
+    {draft.message}
+  </p>
+</div>
+
+
+
+
+              <div className="flex flex-wrap items-center gap-3">
+              
+              
+              
+              <Button
+    variant="outline" 
+    disabled={copied}
+    onClick={async () => {
+      try {
+        await navigator.clipboard.writeText(draft.message);
+    
+        setCopied(true);
+    
+        setTimeout(() => {
+          setCopied(false);
+        }, 2000);
+      } catch (error) {
+        console.error("Failed to copy message:", error);
+       alert("Unable to copy the message to the clipboard.");
+    //toast.error("Unable to copy the message.");
+
+      }
+    }}
+  >
+<Copy className="mr-2 h-4 w-4" />
+{copied ? "Copied!" : "Copy"}
+  </Button>
+
+
+              {draft.status === "DRAFT" && !loading && !generating && (
                 <Button
-                  className="bg-green-600 hover:bg-green-700"
-                  onClick={onSend}
-                >
-                  <Send className="mr-2 h-4 w-4" />
-                  Send WhatsApp
-                </Button>
-              </div>
+  variant="outline"
+  onClick={() => {
+    if (!draft?.message.trim()) return;
+    setEditOpen(true);
+  }}
+  disabled={loading || generating}
+>
+    <SquarePen className="mr-2 h-4 w-4" />
+    Edit Draft
+  </Button>
+)}
+
+  {[
+  "SENT",
+  "DELIVERED",
+  "READ",
+  "FAILED",
+  "REJECTED",
+].includes(draft.status) && (
+<Button
+  variant="outline"
+  onClick={async () => {
+    if (!onRegenerate) return;
+  
+    setActionInProgress(true);
+  
+    try {
+      await onRegenerate();
+    } finally {
+      setActionInProgress(false);
+    }
+  }}
+  disabled={
+    generating ||
+    loading ||
+    actionInProgress
+  }
+>
+    <RefreshCcw className="mr-2 h-4 w-4" />
+    Generate New Draft
+  </Button>
+)}
+
+
+
+
+
+
+{draft.status === "DRAFT" && (
+  
+  
+  
+  <Button
+    variant="outline"
+    onClick={async () => {
+      if (!onApprove) return;
+    
+      setActionInProgress(true);
+    
+      try {
+        await onApprove();
+      } finally {
+        setActionInProgress(false);
+      }
+    }}
+    disabled={
+      loading ||
+      actionInProgress ||
+      !draft?.message.trim()
+    }
+  >
+{actionInProgress ? (
+  <>
+    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+    Approving...
+  </>
+) : (
+  <>
+    <CheckCircle2 className="mr-2 h-4 w-4" />
+    Approve
+  </>
+)}
+  </Button>
+)}
+
+
+
+
+
+
+
+
+  {draft.status === "APPROVED" && (
+    <Button
+  className="bg-green-600 hover:bg-green-700"
+
+
+
+  onClick={async () => {
+    if (
+      !confirm(
+        "Are you sure you want to send this WhatsApp message?"
+      )
+    ) {
+      return;
+    }
+  
+    if (!onSend) return;
+  
+    setActionInProgress(true);
+  
+    try {
+      await onSend();
+    } finally {
+      setActionInProgress(false);
+    }
+  }}
+
+
+  disabled={
+    loading ||
+    actionInProgress ||
+    !draft?.message.trim()
+  }
+
+>
+{actionInProgress ? (
+  <>
+    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+    Sending...
+  </>
+) : (
+  <>
+    <Send className="mr-2 h-4 w-4" />
+    Send WhatsApp
+  </>
+)}
+    </Button>
+  )}
+
+
+
+</div>
+
+
+
 
               <div className="rounded-xl border bg-gray-50 p-5">
                 <h4 className="mb-4 font-semibold">
@@ -313,6 +565,110 @@ export default function WhatsAppConversationCard({
                   })}
                 </div>
               </div>
+
+             
+             
+             
+              {conversation.filter(
+  (message) => message.id !== draft?.id
+).length > 0 ? (
+  <div className="rounded-xl border bg-white p-5">
+   
+   
+   <h4 className="mb-4 font-semibold">
+  Conversation History
+  <span className="ml-2 text-sm font-normal text-gray-500">
+    (
+    {
+      conversation.filter(
+        (message) => message.id !== draft?.id
+      ).length
+    }
+    )
+  </span>
+</h4>
+
+
+
+    <div className="space-y-4">
+
+
+
+    {[...conversation]
+  .filter(
+    (message) => message.id !== draft?.id
+  )
+  .reverse()
+  .map((message) => {
+
+
+
+          const Icon = STATUS[message.status].icon;
+
+          return (
+            <div
+              key={message.id}
+              className="rounded-lg border p-4"
+            >
+              <div className="mb-2 flex items-center justify-between">
+                <div
+                  className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs ${
+                    STATUS[message.status].className
+                  }`}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {STATUS[message.status].label}
+                </div>
+
+
+
+                <div className="text-right">
+  <p className="text-xs text-gray-600">
+    {message.updatedAt
+      ? new Date(message.updatedAt).toLocaleString()
+      : "-"}
+  </p>
+</div>
+
+
+
+
+              </div>
+
+              <p className="whitespace-pre-wrap text-sm leading-6 text-gray-700">
+                {message.message}
+              </p>
+            </div>
+          );
+        })}
+    </div>
+  </div>
+) : (
+  <div className="rounded-xl border bg-white p-5">
+<h4 className="mb-4 font-semibold">
+  Conversation History
+  <span className="ml-2 text-sm font-normal text-gray-500">
+    (
+    {
+      conversation.filter(
+        (message) => message.id !== draft?.id
+      ).length
+    }
+    )
+  </span>
+</h4>
+
+    <p className="text-sm text-gray-500">
+      No previous communication available.
+      Once this draft is sent and a new draft is
+      generated, the conversation history will
+      appear here.
+    </p>
+  </div>
+)}
+
+              //------------
+
             </>
           )}
         </div>
@@ -328,36 +684,112 @@ export default function WhatsAppConversationCard({
             </div>
 
             <div className="p-6">
+             
+             
+             
               <textarea
+              ref={editorRef}
                 value={editedMessage}
+
+
+
                 onChange={(e) =>
                   setEditedMessage(e.target.value)
                 }
+                onKeyDown={async (e) => {
+                  if (
+                    (e.ctrlKey || e.metaKey) &&
+                    e.key === "Enter" &&
+                    editedMessage.trim() &&
+                    editedMessage.trim() !== draft.message.trim() &&
+                    !loading
+                  ) {
+                    e.preventDefault();
+                    await onSaveEdit?.(editedMessage);
+                    setEditOpen(false);
+                  }
+                }}
+
+
+
                 rows={10}
                 className="w-full rounded-lg border p-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
               />
+<div className="mt-2 flex justify-end">
+  <span className="text-xs text-gray-500">
+    {editedMessage.length} characters
+  </span>
+</div>
+
             </div>
 
             <div className="flex justify-end gap-3 border-t px-6 py-4">
+             
+             
+             
               <Button
                 variant="outline"
+               
+               
                 onClick={() => {
+                  if (
+                    editedMessage !== draft.message &&
+                    !confirm(
+                      "Discard your unsaved changes?"
+                    )
+                  ) {
+                    return;
+                  }
+                
                   setEditedMessage(draft.message);
                   setEditOpen(false);
                 }}
+
+
               >
                 Cancel
               </Button>
 
               <Button
                 className="bg-green-600 hover:bg-green-700"
+               
+               
+               
                 onClick={async () => {
-                  await onSaveEdit?.(editedMessage);
-                  setEditOpen(false);
+                  if (!onSaveEdit) return;
+                
+                  setActionInProgress(true);
+                
+                  try {
+                    await onSaveEdit(editedMessage);
+                    setEditOpen(false);
+                  } finally {
+                    setActionInProgress(false);
+                  }
                 }}
+
+                disabled={
+                  loading ||
+                  actionInProgress ||
+                  !editedMessage.trim() ||
+                  editedMessage.trim() === draft.message.trim()
+                }
+
+
+
               >
-                Save Changes
+                {actionInProgress ? (
+  <>
+    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+    Saving...
+  </>
+) : (
+  "Save Changes"
+)}
               </Button>
+
+
+
             </div>
           </div>
         </div>

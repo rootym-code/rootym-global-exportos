@@ -19,6 +19,8 @@ export async function GET(
 ) {
   try {
     const auth = await authenticateAdmin(request);
+    console.log("AUTH:", auth);
+
 
     if (!auth.authenticated) {
       return NextResponse.json(
@@ -33,6 +35,7 @@ export async function GET(
     }
 
     const { id } = await params;
+    console.log("ID:", id);
 
     const inquiry = await prisma.inquiry.findUnique({
       where: {
@@ -58,6 +61,9 @@ export async function GET(
         },
       },
     });
+
+    console.log("INQUIRY:", inquiry);
+
 
     if (!inquiry) {
       return NextResponse.json(
@@ -96,6 +102,7 @@ export async function PATCH(
 ) {
   try {
     const auth = await authenticateAdmin(request);
+    
 
     if (!auth.authenticated || !auth.admin) {
       return NextResponse.json(

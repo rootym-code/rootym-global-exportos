@@ -4,13 +4,13 @@
  * Organization    : ROOTYM Agro Harvest Pvt. Ltd.
  *
  * Sprint          : 10.4.2
- * Feature         : Generate AI WhatsApp Reply
+ * Feature         : Regenerate AI WhatsApp Reply
  *
  * Description
  * ------------------------------------------------------------
- * Generates an AI-powered WhatsApp draft for an inquiry.
- * The generated reply is stored as a DRAFT and can later be
- * edited, regenerated or sent through Meta WhatsApp.
+ * Regenerates an existing WhatsApp draft using AI.
+ * The existing message is updated and reset to DRAFT so it can
+ * be reviewed and approved again.
  * ============================================================
  */
 
@@ -26,13 +26,13 @@ import {
 } from "@/lib/ai/types";
 
 import {
-  MessageDirection,
   WhatsAppMessageStatus,
 } from "@/lib/generated/prisma";
 
 interface RouteContext {
   params: Promise<{
     id: string;
+    messageId: string;
   }>;
 }
 
@@ -98,13 +98,17 @@ export async function POST(
       );
     }
 
-    const { id } = await params;
+    const {
+      id,
+      messageId,
+    } = await params;
 
-    const inquiry = await prisma.inquiry.findUnique({
-      where: {
-        id,
-      },
-    });
+    const inquiry =
+      await prisma.inquiry.findUnique({
+        where: {
+          id,
+        },
+      });
 
     if (!inquiry) {
       return NextResponse.json(
@@ -118,7 +122,27 @@ export async function POST(
       );
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    const existingMessage =
+      await prisma.whatsAppMessage.findUnique({
+        where: {
+          id: messageId,
+        },
+      });
+
+    if (!existingMessage) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "WhatsApp message not found.",
+        },
+        {
+          status: 404,
+        }
+      );
+    }
+
+    const apiKey =
+      process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
       return NextResponse.json(
@@ -140,7 +164,8 @@ Customer Inquiry
 ${buildCustomerContext(inquiry)}
 `.trim();
 
-    const aiService = new AIService(apiKey);
+    const aiService =
+      new AIService(apiKey);
 
     const aiRequest: AIRequest = {
       message: prompt,
@@ -152,13 +177,17 @@ ${buildCustomerContext(inquiry)}
         },
       ],
 
-      context: "Generate WhatsApp export reply.",
+      context:
+        "Generate WhatsApp export reply.",
     };
 
     const aiResponse: AIResponse =
-      await aiService.generateResponse(aiRequest);
+      await aiService.generateResponse(
+        aiRequest
+      );
 
-    const reply = aiResponse.reply.trim();
+    const reply =
+      aiResponse.reply.trim();
 
     if (!reply) {
       return NextResponse.json(
@@ -173,71 +202,45 @@ ${buildCustomerContext(inquiry)}
       );
     }
 
-    const existingDraft =
-      await prisma.whatsAppMessage.findFirst({
+    const draft =
+      await prisma.whatsAppMessage.update({
         where: {
-          inquiryId: inquiry.id,
-          status: WhatsAppMessageStatus.DRAFT,
+          id: messageId,
         },
-        orderBy: {
-          createdAt: "desc",
+        data: {
+          message: reply,
+          status:
+            WhatsAppMessageStatus.DRAFT,
+          approvedAt: null,
+          approvedBy: null,
+          updatedAt: new Date(),
         },
       });
-      let draft;
 
-      if (existingDraft) {
-        draft = await prisma.whatsAppMessage.update({
-          where: {
-            id: existingDraft.id,
-          },
-          data: {
-            message: reply,
-            status: WhatsAppMessageStatus.DRAFT,
-            updatedAt: new Date(),
-          },
-        });
-      } else {
-        draft = await prisma.whatsAppMessage.create({
-          data: {
-            inquiryId: inquiry.id,
-  
-            direction: MessageDirection.OUTBOUND,
-  
-            message: reply,
-  
-            status: WhatsAppMessageStatus.DRAFT,
-          },
-        });
-      }
-  
-      return NextResponse.json({
-        success: true,
-  
+    return NextResponse.json({
+      success: true,
+      message:
+        "WhatsApp draft regenerated successfully.",
+      draft,
+    });
+
+  } catch (error) {
+    console.error(
+      "WhatsApp Regenerate Error",
+      error
+    );
+
+    return NextResponse.json(
+      {
+        success: false,
         message:
-          "WhatsApp draft generated successfully.",
-  
-        draft,
-      });
-    } catch (error) {
-      console.error(
-        "WhatsApp Generate Error",
-        error
-      );
-  
-      return NextResponse.json(
-        {
-          success: false,
-  
-          message:
-            error instanceof Error
-              ? error.message
-              : "Internal Server Error",
-        },
-        {
-          status: 500,
-        }
-      );
-    }
+          error instanceof Error
+            ? error.message
+            : "Internal Server Error",
+      },
+      {
+        status: 500,
+      }
+    );
   }
-  
-   
+}

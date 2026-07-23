@@ -29,6 +29,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { WhatsAppMessageStatus } from "@/lib/generated/prisma";
+import metaWhatsAppService from "@/lib/services/meta/meta-whatsapp.service";
 
 /**
  * Service responsible for WhatsApp communication workflow.
@@ -115,14 +116,6 @@ export class WhatsAppService {
    */
 
 
-
-/**
- * Updates an existing WhatsApp draft.
- *
- * @param messageId WhatsApp message identifier
- * @param message Updated message body
- * @returns Updated draft
- */
 async updateDraft(messageId: string, message: string) {
   if (!messageId?.trim()) {
     throw new Error("Message ID is required.");
@@ -246,6 +239,75 @@ async updateDraft(messageId: string, message: string) {
     });
   }
 
+
+  /**
+ * Sends an approved WhatsApp draft using Meta Cloud API.
+ *
+ * @param messageId WhatsApp message identifier
+ * @returns Updated WhatsApp message
+ */
+async sendDraft(messageId: string) {
+  if (!messageId?.trim()) {
+    throw new Error("Message ID is required.");
+  }
+
+  const draft = await prisma.whatsAppMessage.findUnique({
+    where: {
+      id: messageId,
+    },
+    include: {
+      inquiry: {
+        select: {
+          phone: true,
+        },
+      },
+    },
+  });
+
+  if (!draft) {
+    throw new Error("WhatsApp message not found.");
+  }
+
+  if (draft.status !== WhatsAppMessageStatus.APPROVED) {
+    throw new Error("Only approved drafts can be sent.");
+  }
+
+  if (!draft.inquiry?.phone?.trim()) {
+    throw new Error("Customer phone number is missing.");
+  }
+
+  console.log("========== WhatsApp Send ==========");
+  console.log("Message ID:", draft.id);
+  console.log("Inquiry Phone:", draft.inquiry.phone);
+  console.log(
+    "Normalized:",
+    draft.inquiry.phone.replace(/\D/g, "")
+  );
+  console.log("==================================");
+
+   
+  const externalId =
+    await metaWhatsAppService.sendTextMessage({
+      to: draft.inquiry.phone,
+      message: draft.message,
+    });
+
+    console.log("Meta External ID:", externalId);
+
+
+  return prisma.whatsAppMessage.update({
+    where: {
+      id: messageId,
+    },
+    data: {
+      status: WhatsAppMessageStatus.SENT,
+      externalId,
+      sentAt: new Date(),
+    },
+  });
+}
+
+
   /**
    * Rejects an existing draft.
    *
@@ -286,4 +348,4 @@ const whatsappService = new WhatsAppService();
 
 export default whatsappService;
 
-// END OF FILE
+ 
