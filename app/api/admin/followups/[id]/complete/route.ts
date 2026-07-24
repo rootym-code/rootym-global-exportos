@@ -1,43 +1,87 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { authenticateAdmin } from "@/lib/auth";
+
 import followUpService from "@/lib/services/followup/followup.service";
 
-export async function GET(request: NextRequest) {
+import type {
+  CompleteFollowUpInput,
+} from "@/lib/services/followup/types";
+
+
+interface RouteContext {
+  params: Promise<{
+    id: string;
+  }>;
+}
+
+
+export async function PATCH(
+  request: NextRequest,
+  context: RouteContext,
+) {
   try {
-    const { searchParams } = new URL(request.url);
+    const auth =
+      await authenticateAdmin(request);
 
-    const assignedToId = searchParams.get("assignedToId");
-
-    if (!assignedToId) {
+    if (!auth.authenticated) {
       return NextResponse.json(
         {
           success: false,
-          message: "assignedToId is required.",
+          message: auth.error,
         },
         {
-          status: 400,
+          status: auth.status,
         },
       );
     }
 
-    const result = await followUpService.findMany({
-      assignedToId,
-      status: undefined,
-      page: 1,
-      limit: 100,
-    });
+    if (!auth.admin) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Admin information missing",
+        },
+        {
+          status: 401,
+        },
+      );
+    }
+
+    const { id } =
+      await context.params;
+
+    const body =
+      (await request.json()) as CompleteFollowUpInput;
+
+    const completedById =
+      auth.admin.adminId;
+
+    const followUp =
+      await followUpService.complete(
+        id,
+        body,
+        completedById,
+      );
 
     return NextResponse.json({
       success: true,
-      data: result.items,
+      followUp,
     });
-  } catch (error: any) {
-    console.error("My follow-ups failed:", error);
+
+  } catch (error) {
+    console.error(
+      "PATCH /api/admin/followups/[id]/complete error:",
+      error,
+    );
 
     return NextResponse.json(
       {
         success: false,
-        message: error.message ?? "Unable to load assigned follow-ups.",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Internal Server Error",
       },
       {
         status: 500,
