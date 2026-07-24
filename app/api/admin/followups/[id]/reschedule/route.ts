@@ -1,44 +1,74 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import followUpService from "@/lib/services/followup/followup.service";
-import { rescheduleFollowUpSchema } from "@/lib/validations/followup.validation";
+import { authenticateAdmin } from "@/lib/auth";
 
-type RouteContext = {
+import followUpService from "@/lib/services/followup/followup.service";
+
+import type {
+  RescheduleFollowUpInput,
+} from "@/lib/services/followup/types";
+
+
+interface RouteContext {
   params: Promise<{
     id: string;
   }>;
-};
+}
+
 
 export async function PATCH(
   request: NextRequest,
-  { params }: RouteContext,
+  context: RouteContext,
 ) {
   try {
-    const { id } = await params;
+    const auth =
+      await authenticateAdmin(request);
 
-    const body = await request.json();
+    if (!auth.authenticated) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: auth.error,
+        },
+        {
+          status: auth.status,
+        },
+      );
+    }
 
-    const validated = rescheduleFollowUpSchema.parse(body);
+    const { id } =
+      await context.params;
 
-    const followUp = await followUpService.reschedule(
-      id,
-      validated,
-    );
+    const body =
+      (await request.json()) as RescheduleFollowUpInput;
+
+    const followUp =
+      await followUpService.reschedule(
+        id,
+        body,
+      );
 
     return NextResponse.json({
       success: true,
-      data: followUp,
+      followUp,
     });
-  } catch (error: any) {
-    console.error("Reschedule follow-up failed:", error);
+
+  } catch (error) {
+    console.error(
+      "PATCH /api/admin/followups/[id]/reschedule error:",
+      error,
+    );
 
     return NextResponse.json(
       {
         success: false,
-        message: error.message ?? "Unable to reschedule follow-up.",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Internal Server Error",
       },
       {
-        status: 400,
+        status: 500,
       },
     );
   }
