@@ -4,17 +4,11 @@ import { authenticateAdmin } from "@/lib/auth";
 
 import followUpService from "@/lib/services/followup/followup.service";
 
-import type {
-  UpdateFollowUpInput,
-} from "@/lib/services/followup/types";
-
-
 interface RouteContext {
   params: Promise<{
     id: string;
   }>;
 }
-
 
 export async function GET(
   request: NextRequest,
@@ -40,9 +34,7 @@ export async function GET(
       await context.params;
 
     const followUp =
-      await followUpService.getById(
-        id,
-      );
+      await followUpService.getById(id);
 
     return NextResponse.json({
       success: true,
@@ -64,120 +56,12 @@ export async function GET(
             : "Internal Server Error",
       },
       {
-        status: 500,
-      },
-    );
-  }
-}
-
-
-export async function PATCH(
-  request: NextRequest,
-  context: RouteContext,
-) {
-  try {
-    const auth =
-      await authenticateAdmin(request);
-
-    if (!auth.authenticated) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: auth.error,
-        },
-        {
-          status: auth.status,
-        },
-      );
-    }
-
-    const { id } =
-      await context.params;
-
-    const body =
-      (await request.json()) as UpdateFollowUpInput;
-
-    const followUp =
-      await followUpService.update(
-        id,
-        body,
-      );
-
-    return NextResponse.json({
-      success: true,
-      followUp,
-    });
-
-  } catch (error) {
-    console.error(
-      "PATCH /api/admin/followups/[id] error:",
-      error,
-    );
-
-    return NextResponse.json(
-      {
-        success: false,
-        message:
-          error instanceof Error
-            ? error.message
-            : "Internal Server Error",
-      },
-      {
-        status: 500,
-      },
-    );
-  }
-}
-
-
-export async function DELETE(
-  request: NextRequest,
-  context: RouteContext,
-) {
-  try {
-    const auth =
-      await authenticateAdmin(request);
-
-    if (!auth.authenticated) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: auth.error,
-        },
-        {
-          status: auth.status,
-        },
-      );
-    }
-
-    const { id } =
-      await context.params;
-
-      const result =
-      await followUpService.delete(
-        id,
-      );
-    
-    return NextResponse.json(
-      result,
-    );
-
-  } catch (error) {
-    console.error(
-      "DELETE /api/admin/followups/[id] error:",
-      error,
-    );
-
-    return NextResponse.json(
-      {
-        success: false,
-        message:
-          error instanceof Error
-            ? error.message
-            : "Internal Server Error",
-      },
-      {
-        status: 500,
+        status:
+          error instanceof Error &&
+          error.message ===
+            "Follow-up not found."
+            ? 404
+            : 500,
       },
     );
   }
