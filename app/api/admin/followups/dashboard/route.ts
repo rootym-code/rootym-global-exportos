@@ -1,22 +1,50 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+
+import { authenticateAdmin } from "@/lib/auth";
 
 import followUpService from "@/lib/services/followup/followup.service";
 
-export async function GET() {
+
+export async function GET(
+  request: NextRequest,
+) {
   try {
-    const summary = await followUpService.getDashboardSummary();
+    const auth =
+      await authenticateAdmin(request);
+
+    if (!auth.authenticated) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: auth.error,
+        },
+        {
+          status: auth.status,
+        },
+      );
+    }
+
+    const summary =
+      await followUpService.getDashboardSummary();
 
     return NextResponse.json({
       success: true,
-      data: summary,
+      summary,
     });
-  } catch (error: any) {
-    console.error("Follow-up dashboard failed:", error);
+
+  } catch (error) {
+    console.error(
+      "GET /api/admin/followups/dashboard error:",
+      error,
+    );
 
     return NextResponse.json(
       {
         success: false,
-        message: error.message ?? "Unable to load follow-up dashboard.",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Internal Server Error",
       },
       {
         status: 500,
