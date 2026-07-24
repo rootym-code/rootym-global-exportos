@@ -1,41 +1,117 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { authenticateAdmin } from "@/lib/auth";
+
+import {
+  FollowUpStatus,
+  FollowUpPriority,
+  FollowUpCategory,
+  FollowUpActionType,
+} from "@/lib/generated/prisma";
+
 import followUpService from "@/lib/services/followup/followup.service";
-import { createFollowUpSchema } from "@/lib/validations/followup.validation";
 
-export async function GET(request: NextRequest) {
+import type {
+  FollowUpFilters,
+  CreateFollowUpInput,
+} from "@/lib/services/followup/types";
+
+
+export async function GET(
+  request: NextRequest,
+) {
   try {
-    const { searchParams } = new URL(request.url);
+    const auth =
+      await authenticateAdmin(request);
 
-    const page = Number(searchParams.get("page") ?? "1");
-    const limit = Number(searchParams.get("limit") ?? "20");
+    if (!auth.authenticated) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: auth.error,
+        },
+        {
+          status: auth.status,
+        },
+      );
+    }
 
-    const result = await followUpService.findMany({
-      inquiryId: searchParams.get("inquiryId") ?? undefined,
-      assignedToId: searchParams.get("assignedToId") ?? undefined,
-      status: searchParams.get("status") as any,
-      priority: searchParams.get("priority") as any,
-      category: searchParams.get("category") as any,
-      actionType: searchParams.get("actionType") as any,
-      search: searchParams.get("search") ?? undefined,
-      fromDate: searchParams.get("fromDate")
-        ? new Date(searchParams.get("fromDate")!)
-        : undefined,
-      toDate: searchParams.get("toDate")
-        ? new Date(searchParams.get("toDate")!)
-        : undefined,
-      page,
-      limit,
+    const { searchParams } =
+      new URL(request.url);
+
+    const filters: FollowUpFilters = {
+      page: Number(
+        searchParams.get("page") ?? "1",
+      ),
+
+      limit: Number(
+        searchParams.get("limit") ?? "10",
+      ),
+
+      search:
+        searchParams.get("search") ??
+        undefined,
+
+      status:
+        Object.values(FollowUpStatus).includes(
+          searchParams.get("status") as FollowUpStatus,
+        )
+          ? (searchParams.get("status") as FollowUpStatus)
+          : undefined,
+
+      priority:
+        Object.values(FollowUpPriority).includes(
+          searchParams.get("priority") as FollowUpPriority,
+        )
+          ? (searchParams.get("priority") as FollowUpPriority)
+          : undefined,
+
+      category:
+        Object.values(FollowUpCategory).includes(
+          searchParams.get("category") as FollowUpCategory,
+        )
+          ? (searchParams.get("category") as FollowUpCategory)
+          : undefined,
+
+          actionType:
+          Object.values(FollowUpActionType).includes(
+            searchParams.get("actionType") as FollowUpActionType,
+          )
+            ? (searchParams.get("actionType") as FollowUpActionType)
+            : undefined,
+
+      assignedToId:
+        searchParams.get("assignedToId") ??
+        undefined,
+    };
+
+    const result =
+      await followUpService.findMany(
+        filters,
+      );
+
+    return NextResponse.json({
+      success: true,
+      followUps: result.items,
+      pagination: {
+        page: result.page,
+        limit: result.limit,
+        totalRecords: result.total,
+        totalPages: result.totalPages,
+      },
     });
 
-    return NextResponse.json(result);
   } catch (error) {
-    console.error("Follow-up list failed:", error);
+    console.error(
+      "GET /api/admin/followups error:",
+      error,
+    );
 
     return NextResponse.json(
       {
         success: false,
-        message: "Unable to load follow-ups.",
+        message:
+          "Internal Server Error",
       },
       {
         status: 500,
@@ -44,33 +120,58 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(
+  request: NextRequest,
+) {
   try {
-    const body = await request.json();
+    const auth =
+      await authenticateAdmin(request);
 
-    const validated = createFollowUpSchema.parse(body);
+    if (!auth.authenticated) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: auth.error,
+        },
+        {
+          status: auth.status,
+        },
+      );
+    }
 
-    const followUp = await followUpService.create(validated);
+    const body =
+      (await request.json()) as CreateFollowUpInput;
+
+    const followUp =
+      await followUpService.create(
+        body,
+      );
 
     return NextResponse.json(
       {
         success: true,
-        data: followUp,
+        followUp,
       },
       {
         status: 201,
       },
     );
-  } catch (error: any) {
-    console.error("Create follow-up failed:", error);
+  } catch (error) {
+    console.error(
+      "POST /api/admin/followups error:",
+      error,
+    );
 
     return NextResponse.json(
       {
         success: false,
-        message: error.message ?? "Unable to create follow-up.",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Internal Server Error",
       },
       {
-        status: 400,
+        status: 500,
       },
     );
   }
