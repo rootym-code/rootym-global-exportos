@@ -5,13 +5,14 @@ import {
   FollowUpStatus,
 } from "@/lib/generated/prisma";
 
+
 export class FollowUpMetricsService {
   async getStatusMetrics() {
     const [
       pending,
       completed,
-      missed,
-      cancelled,
+      rescheduled,
+      closed,
     ] = await prisma.$transaction([
       prisma.followUp.count({
         where: {
@@ -27,24 +28,26 @@ export class FollowUpMetricsService {
 
       prisma.followUp.count({
         where: {
-          status: FollowUpStatus.MISSED,
+          status: FollowUpStatus.RESCHEDULED,
         },
       }),
 
       prisma.followUp.count({
         where: {
-          status: FollowUpStatus.CANCELLED,
+          status: FollowUpStatus.CLOSED,
         },
       }),
     ]);
 
+
     return {
       pending,
       completed,
-      missed,
-      cancelled,
+      rescheduled,
+      closed,
     };
   }
+
 
   async getPriorityMetrics() {
     const [
@@ -78,6 +81,7 @@ export class FollowUpMetricsService {
       }),
     ]);
 
+
     return {
       urgent,
       high,
@@ -86,32 +90,42 @@ export class FollowUpMetricsService {
     };
   }
 
-  async getCompletionRate() {
-    const [total, completed] =
-      await prisma.$transaction([
-        prisma.followUp.count(),
 
-        prisma.followUp.count({
-          where: {
-            status: FollowUpStatus.COMPLETED,
-          },
-        }),
-      ]);
+  async getCompletionRate() {
+    const [
+      total,
+      completed,
+    ] = await prisma.$transaction([
+      prisma.followUp.count(),
+
+      prisma.followUp.count({
+        where: {
+          status: FollowUpStatus.COMPLETED,
+        },
+      }),
+    ]);
+
 
     return {
       total,
       completed,
+
       completionRate:
         total === 0
           ? 0
           : Number(
-              ((completed / total) * 100).toFixed(2),
+              (
+                (completed / total) *
+                100
+              ).toFixed(2),
             ),
     };
   }
 }
 
+
 const followUpMetricsService =
   new FollowUpMetricsService();
+
 
 export default followUpMetricsService;

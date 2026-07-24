@@ -13,8 +13,8 @@ export class FollowUpArchiveService {
         status: {
           in: [
             FollowUpStatus.COMPLETED,
-            FollowUpStatus.CANCELLED,
-            FollowUpStatus.MISSED,
+            FollowUpStatus.CLOSED,
+            FollowUpStatus.RESCHEDULED,
           ],
         },
       },
@@ -24,6 +24,7 @@ export class FollowUpArchiveService {
       },
     });
   }
+
 
   async getArchivedByInquiry(
     inquiryId: string,
@@ -31,20 +32,24 @@ export class FollowUpArchiveService {
     return prisma.followUp.findMany({
       where: {
         inquiryId,
+
         status: {
           in: [
             FollowUpStatus.COMPLETED,
-            FollowUpStatus.CANCELLED,
-            FollowUpStatus.MISSED,
+            FollowUpStatus.CLOSED,
+            FollowUpStatus.RESCHEDULED,
           ],
         },
       },
+
       include: followUpInclude,
+
       orderBy: {
         updatedAt: "desc",
       },
     });
   }
+
 
   async getArchivedCount() {
     return prisma.followUp.count({
@@ -52,8 +57,8 @@ export class FollowUpArchiveService {
         status: {
           in: [
             FollowUpStatus.COMPLETED,
-            FollowUpStatus.CANCELLED,
-            FollowUpStatus.MISSED,
+            FollowUpStatus.CLOSED,
+            FollowUpStatus.RESCHEDULED,
           ],
         },
       },
@@ -61,7 +66,9 @@ export class FollowUpArchiveService {
   }
 }
 
+
 const followUpArchiveService =
   new FollowUpArchiveService();
+
 
 export default followUpArchiveService;

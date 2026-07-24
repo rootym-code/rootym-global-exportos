@@ -7,23 +7,34 @@ import type {
   FollowUpEntity,
 } from "./followup.entity";
 
+
 export interface FollowUpStatistics {
   total: number;
+
   pending: number;
+
   completed: number;
-  missed: number;
-  cancelled: number;
+
+  rescheduled: number;
+
+  closed: number;
+
   overdue: number;
+
   urgent: number;
+
   completionRate: number;
 }
+
 
 export function calculateFollowUpStatistics(
   followUps: FollowUpEntity[],
 ): FollowUpStatistics {
+
   const now = new Date();
 
   const total = followUps.length;
+
 
   const pending = followUps.filter(
     (followUp) =>
@@ -31,23 +42,27 @@ export function calculateFollowUpStatistics(
       FollowUpStatus.PENDING,
   ).length;
 
+
   const completed = followUps.filter(
     (followUp) =>
       followUp.status ===
       FollowUpStatus.COMPLETED,
   ).length;
 
-  const missed = followUps.filter(
+
+  const rescheduled = followUps.filter(
     (followUp) =>
       followUp.status ===
-      FollowUpStatus.MISSED,
+      FollowUpStatus.RESCHEDULED,
   ).length;
 
-  const cancelled = followUps.filter(
+
+  const closed = followUps.filter(
     (followUp) =>
       followUp.status ===
-      FollowUpStatus.CANCELLED,
+      FollowUpStatus.CLOSED,
   ).length;
+
 
   const overdue = followUps.filter(
     (followUp) =>
@@ -56,20 +71,29 @@ export function calculateFollowUpStatistics(
       followUp.scheduledAt < now,
   ).length;
 
+
   const urgent = followUps.filter(
     (followUp) =>
       followUp.priority ===
       FollowUpPriority.URGENT,
   ).length;
 
+
   return {
     total,
+
     pending,
+
     completed,
-    missed,
-    cancelled,
+
+    rescheduled,
+
+    closed,
+
     overdue,
+
     urgent,
+
     completionRate:
       total === 0
         ? 0

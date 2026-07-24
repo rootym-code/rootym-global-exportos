@@ -15,52 +15,64 @@ export class FollowUpActions {
       where: {
         id,
       },
+
       data: {
         status: FollowUpStatus.COMPLETED,
         completedById,
         completedAt: new Date(),
       },
+
       include: followUpInclude,
     });
   }
 
-  async markCancelled(id: string) {
+
+  async markClosed(id: string) {
     return prisma.followUp.update({
       where: {
         id,
       },
+
       data: {
-        status: FollowUpStatus.CANCELLED,
+        status: FollowUpStatus.CLOSED,
       },
+
       include: followUpInclude,
     });
   }
 
-  async markMissed(id: string) {
+
+  async markRescheduled(id: string) {
     return prisma.followUp.update({
       where: {
         id,
       },
+
       data: {
-        status: FollowUpStatus.MISSED,
+        status: FollowUpStatus.RESCHEDULED,
       },
+
       include: followUpInclude,
     });
   }
+
 
   async reopen(id: string) {
     return prisma.followUp.update({
       where: {
         id,
       },
+
       data: {
         status: FollowUpStatus.PENDING,
         completedAt: null,
         completedById: null,
       },
+
       include: followUpInclude,
     });
   }
+
 
   async delete(id: string) {
     return prisma.followUp.delete({

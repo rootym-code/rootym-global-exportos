@@ -1,7 +1,8 @@
 import {
-    FollowUpPriority,
-    FollowUpStatus,
-  } from "@/lib/generated/prisma";
+  FollowUpPriority,
+  FollowUpResult,
+  FollowUpStatus,
+} from "@/lib/generated/prisma";
   
   import prisma from "@/lib/prisma";
   
@@ -290,28 +291,93 @@ import {
           include: followUpInclude,
         });
       }
-    
       async complete(
         id: string,
         data: CompleteFollowUpInput,
         completedById: string,
       ) {
-        await this.getById(id);
-    
-        return prisma.followUp.update({
-          where: {
-            id,
-          },
-          data: {
-            status: FollowUpStatus.COMPLETED,
-            result: data.result,
-            notes: data.notes,
-            actualMinutes: data.actualMinutes,
-            completedById,
-            completedAt: new Date(),
-          },
-          include: followUpInclude,
-        });
+        const followUp = await this.getById(id);
+      
+        const completedFollowUp =
+          await prisma.followUp.update({
+            where: {
+              id,
+            },
+      
+            data: {
+              status: FollowUpStatus.COMPLETED,
+      
+              result: data.result,
+      
+              notes: data.notes,
+      
+              actualMinutes:
+                data.actualMinutes,
+      
+              completedById,
+      
+              completedAt: new Date(),
+            },
+      
+            include: followUpInclude,
+          });
+      
+      
+        let recommendation = null;
+      
+      
+        switch (data.result) {
+      
+          case FollowUpResult.NO_RESPONSE:
+            recommendation = {
+              createNextFollowUp: true,
+              reason:
+                "Customer did not respond. Consider creating another follow-up.",
+            };
+            break;
+      
+      
+          case FollowUpResult.CALL_BACK_LATER:
+            recommendation = {
+              createNextFollowUp: true,
+              reason:
+                "Customer requested a callback.",
+            };
+            break;
+      
+      
+          case FollowUpResult.BUYER_RESPONDED:
+            recommendation = {
+              createNextFollowUp: false,
+              reason:
+                "Buyer responded. Continue sales process.",
+            };
+            break;
+      
+      
+          case FollowUpResult.WRONG_NUMBER:
+            recommendation = {
+              createNextFollowUp: false,
+              reason:
+                "Wrong number. Close cycle workflow required.",
+            };
+            break;
+      
+      
+          default:
+            recommendation = {
+              createNextFollowUp: false,
+              reason:
+                "No automatic next action suggested.",
+            };
+      
+        }
+      
+      
+        return {
+          followUp: completedFollowUp,
+          recommendation,
+        };
       }
     
       async reschedule(

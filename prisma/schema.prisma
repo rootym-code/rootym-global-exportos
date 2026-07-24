@@ -550,8 +550,8 @@ enum WhatsAppMessageStatus {
 enum FollowUpStatus {
   PENDING
   COMPLETED
-  MISSED
-  CANCELLED
+  RESCHEDULED
+  CLOSED
 }
 
 enum FollowUpPriority {
@@ -576,11 +576,13 @@ enum FollowUpActionType {
 
 enum FollowUpResult {
   BUYER_RESPONDED
-  NO_ANSWER
-  BUSY
-  FOLLOWUP_REQUIRED
+  NO_RESPONSE
+  CALL_BACK_LATER
+  QUOTE_SENT
+  MEETING_DONE
   DEAL_CLOSED
   NOT_INTERESTED
+  WRONG_NUMBER
 }
 
 enum FollowUpCategory {
