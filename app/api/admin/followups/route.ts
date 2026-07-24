@@ -1,51 +1,77 @@
-import { NextRequest } from "next/server";
-
-import ApiResponse from "@/lib/api/api-response";
-import handleApiError from "@/lib/api/handle-api-error";
+import { NextRequest, NextResponse } from "next/server";
 
 import followUpService from "@/lib/services/followup/followup.service";
+import { createFollowUpSchema } from "@/lib/validations/followup.validation";
 
 export async function GET(request: NextRequest) {
   try {
-    const followUps = await followUpService.getPending();
+    const { searchParams } = new URL(request.url);
 
-    return ApiResponse.success({
-      data: followUps,
+    const page = Number(searchParams.get("page") ?? "1");
+    const limit = Number(searchParams.get("limit") ?? "20");
+
+    const result = await followUpService.findMany({
+      inquiryId: searchParams.get("inquiryId") ?? undefined,
+      assignedToId: searchParams.get("assignedToId") ?? undefined,
+      status: searchParams.get("status") as any,
+      priority: searchParams.get("priority") as any,
+      category: searchParams.get("category") as any,
+      actionType: searchParams.get("actionType") as any,
+      search: searchParams.get("search") ?? undefined,
+      fromDate: searchParams.get("fromDate")
+        ? new Date(searchParams.get("fromDate")!)
+        : undefined,
+      toDate: searchParams.get("toDate")
+        ? new Date(searchParams.get("toDate")!)
+        : undefined,
+      page,
+      limit,
     });
+
+    return NextResponse.json(result);
   } catch (error) {
-    return handleApiError(error);
+    console.error("Follow-up list failed:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Unable to load follow-ups.",
+      },
+      {
+        status: 500,
+      },
+    );
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    if (
-        !body.inquiryId ||
-        !body.title ||
-        !body.actionType ||
-        !body.category ||
-        !body.scheduledAt
-      ) {
-        return ApiResponse.error({
-          message: "Missing required fields.",
-          status: 400,
-        });
-      }
 
-    const followUp = await followUpService.create({
-      inquiryId: body.inquiryId,
-      title: body.title,
-      description: body.description,
-      actionType: body.actionType,
-      category: body.category,
-      scheduledAt: new Date(body.scheduledAt),
-    });
-    
-    return ApiResponse.success({
-      data: followUp,
-    });
-  } catch (error) {
-    return handleApiError(error);
+    const validated = createFollowUpSchema.parse(body);
+
+    const followUp = await followUpService.create(validated);
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: followUp,
+      },
+      {
+        status: 201,
+      },
+    );
+  } catch (error: any) {
+    console.error("Create follow-up failed:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: error.message ?? "Unable to create follow-up.",
+      },
+      {
+        status: 400,
+      },
+    );
   }
 }
