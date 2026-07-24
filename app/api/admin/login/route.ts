@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
         success: true,
         message: "Login successful.",
         admin,
+        token,
       },
       { status: 200 }
     );

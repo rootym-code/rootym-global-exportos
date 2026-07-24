@@ -19,6 +19,51 @@ enum WhatsAppMessageStatus {
   REJECTED
 }
 
+enum FollowUpStatus {
+  PENDING
+  COMPLETED
+  MISSED
+  CANCELLED
+}
+
+enum FollowUpPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum FollowUpActionType {
+  CALL
+  WHATSAPP
+  EMAIL
+  QUOTATION
+  MEETING
+  SAMPLE
+  PAYMENT
+  DOCUMENTATION
+  SHIPMENT
+  OTHER
+}
+
+enum FollowUpResult {
+  BUYER_RESPONDED
+  NO_ANSWER
+  BUSY
+  FOLLOWUP_REQUIRED
+  DEAL_CLOSED
+  NOT_INTERESTED
+}
+
+enum FollowUpCategory {
+  SALES
+  NEGOTIATION
+  PAYMENT
+  DOCUMENTATION
+  SHIPMENT
+  GENERAL
+}
+
 model WhatsAppMessage {
   id String @id @default(cuid())
 
@@ -86,6 +131,7 @@ model Inquiry {
   statusHistory    InquiryStatusHistory[]
   quotes           Quote[]
   whatsappMessages WhatsAppMessage[]
+  followUps        FollowUp[]
 
   @@index([inquiryNumber])
   @@index([email])
@@ -142,20 +188,69 @@ model WhatsAppAttachment {
 }
 
 model Admin {
-  id            String                 @id @default(cuid())
-  name          String
-  email         String                 @unique
-  password      String
-  createdAt     DateTime               @default(now())
-  updatedAt     DateTime               @updatedAt
-  isActive      Boolean                @default(true)
-  lastLogin     DateTime?
-  role          AdminRole              @default(SUPER_ADMIN)
+  id        String    @id @default(cuid())
+  name      String
+  email     String    @unique
+  password  String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  isActive  Boolean   @default(true)
+  lastLogin DateTime?
+  role      AdminRole @default(SUPER_ADMIN)
+
   activities    Activity[]             @relation("ActivityPerformedBy")
   inquiryNotes  InquiryNote[]
   statusChanges InquiryStatusHistory[]
-  createdQuotes Quote[]                @relation("QuoteCreatedBy")
-  updatedQuotes Quote[]                @relation("QuoteUpdatedBy")
+
+  createdQuotes Quote[] @relation("QuoteCreatedBy")
+  updatedQuotes Quote[] @relation("QuoteUpdatedBy")
+
+  assignedFollowUps  FollowUp[] @relation("AssignedFollowUps")
+  completedFollowUps FollowUp[] @relation("CompletedFollowUps")
+}
+
+model FollowUp {
+  id String @id @default(cuid())
+
+  inquiryId String
+  inquiry   Inquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+
+  assignedToId String?
+  assignedTo   Admin?  @relation("AssignedFollowUps", fields: [assignedToId], references: [id])
+
+  completedById String?
+  completedBy   Admin?  @relation("CompletedFollowUps", fields: [completedById], references: [id])
+
+  sequence Int @default(1)
+
+  title       String
+  description String? @db.Text
+  notes       String? @db.Text
+
+  actionType FollowUpActionType
+  category   FollowUpCategory
+
+  priority FollowUpPriority @default(MEDIUM)
+  status   FollowUpStatus   @default(PENDING)
+  result   FollowUpResult?
+
+  scheduledAt DateTime
+  dueAt       DateTime?
+
+  estimatedMinutes Int?
+  actualMinutes    Int?
+
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([inquiryId])
+  @@index([assignedToId])
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([priority])
+  @@index([category])
 }
 
 model Product {
