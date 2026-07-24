@@ -3,104 +3,35 @@ generator client {
   output   = "../lib/generated/prisma"
 }
 
-enum MessageDirection {
-  INBOUND
-  OUTBOUND
-}
-
-enum WhatsAppMessageStatus {
-  DRAFT
-  APPROVED
-  QUEUED
-  SENT
-  DELIVERED
-  READ
-  FAILED
-  REJECTED
-}
-
-enum FollowUpStatus {
-  PENDING
-  COMPLETED
-  MISSED
-  CANCELLED
-}
-
-enum FollowUpPriority {
-  LOW
-  MEDIUM
-  HIGH
-  URGENT
-}
-
-enum FollowUpActionType {
-  CALL
-  WHATSAPP
-  EMAIL
-  QUOTATION
-  MEETING
-  SAMPLE
-  PAYMENT
-  DOCUMENTATION
-  SHIPMENT
-  OTHER
-}
-
-enum FollowUpResult {
-  BUYER_RESPONDED
-  NO_ANSWER
-  BUSY
-  FOLLOWUP_REQUIRED
-  DEAL_CLOSED
-  NOT_INTERESTED
-}
-
-enum FollowUpCategory {
-  SALES
-  NEGOTIATION
-  PAYMENT
-  DOCUMENTATION
-  SHIPMENT
-  GENERAL
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model WhatsAppMessage {
-  id String @id @default(cuid())
-
-  inquiryId String
-  inquiry   Inquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
-
-  direction MessageDirection @default(OUTBOUND)
-
-  message String @db.Text
-
-  status WhatsAppMessageStatus @default(DRAFT)
-
-  externalId String?
-  approvedBy String?
-  approvedAt DateTime?
-
-  queuedAt    DateTime?
-  sentAt      DateTime?
-  deliveredAt DateTime?
-  readAt      DateTime?
-
-  failedAt     DateTime?
-  errorMessage String?   @db.Text
-
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
+  id                  String                @id @default(cuid())
+  inquiryId           String
+  message             String
+  status              WhatsAppMessageStatus @default(DRAFT)
+  approvedAt          DateTime?
+  sentAt              DateTime?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  approvedBy          String?
+  deliveredAt         DateTime?
+  direction           MessageDirection      @default(OUTBOUND)
+  errorMessage        String?
+  externalId          String?
+  failedAt            DateTime?
+  queuedAt            DateTime?
+  readAt              DateTime?
   whatsAppAttachments WhatsAppAttachment[]
+  inquiry             Inquiry               @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
 
   @@index([inquiryId])
   @@index([status])
   @@index([direction])
   @@index([externalId])
-}
-
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model Inquiry {
@@ -127,11 +58,11 @@ model Inquiry {
   unit             String?
   userAgent        String?
   salesStage       SalesStage             @default(NEW)
+  followUps        FollowUp[]
   notes            InquiryNote[]
   statusHistory    InquiryStatusHistory[]
   quotes           Quote[]
   whatsappMessages WhatsAppMessage[]
-  followUps        FollowUp[]
 
   @@index([inquiryNumber])
   @@index([email])
@@ -171,79 +102,60 @@ model InquiryNote {
 }
 
 model WhatsAppAttachment {
-  id String @id @default(cuid())
-
+  id                String          @id @default(cuid())
   whatsappMessageId String
-
-  whatsappMessage WhatsAppMessage @relation(fields: [whatsappMessageId], references: [id], onDelete: Cascade)
-
-  mediaId String
-
-  media Media @relation(fields: [mediaId], references: [id])
-
-  createdAt DateTime @default(now())
+  mediaId           String
+  createdAt         DateTime        @default(now())
+  media             Media           @relation(fields: [mediaId], references: [id])
+  whatsappMessage   WhatsAppMessage @relation(fields: [whatsappMessageId], references: [id], onDelete: Cascade)
 
   @@index([whatsappMessageId])
   @@index([mediaId])
 }
 
 model Admin {
-  id        String    @id @default(cuid())
-  name      String
-  email     String    @unique
-  password  String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  isActive  Boolean   @default(true)
-  lastLogin DateTime?
-  role      AdminRole @default(SUPER_ADMIN)
-
-  activities    Activity[]             @relation("ActivityPerformedBy")
-  inquiryNotes  InquiryNote[]
-  statusChanges InquiryStatusHistory[]
-
-  createdQuotes Quote[] @relation("QuoteCreatedBy")
-  updatedQuotes Quote[] @relation("QuoteUpdatedBy")
-
-  assignedFollowUps  FollowUp[] @relation("AssignedFollowUps")
-  completedFollowUps FollowUp[] @relation("CompletedFollowUps")
+  id                 String                 @id @default(cuid())
+  name               String
+  email              String                 @unique
+  password           String
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  isActive           Boolean                @default(true)
+  lastLogin          DateTime?
+  role               AdminRole              @default(SUPER_ADMIN)
+  activities         Activity[]             @relation("ActivityPerformedBy")
+  assignedFollowUps  FollowUp[]             @relation("AssignedFollowUps")
+  completedFollowUps FollowUp[]             @relation("CompletedFollowUps")
+  inquiryNotes       InquiryNote[]
+  statusChanges      InquiryStatusHistory[]
+  createdQuotes      Quote[]                @relation("QuoteCreatedBy")
+  updatedQuotes      Quote[]                @relation("QuoteUpdatedBy")
 }
 
 model FollowUp {
-  id String @id @default(cuid())
-
-  inquiryId String
-  inquiry   Inquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
-
-  assignedToId String?
-  assignedTo   Admin?  @relation("AssignedFollowUps", fields: [assignedToId], references: [id])
-
-  completedById String?
-  completedBy   Admin?  @relation("CompletedFollowUps", fields: [completedById], references: [id])
-
-  sequence Int @default(1)
-
-  title       String
-  description String? @db.Text
-  notes       String? @db.Text
-
-  actionType FollowUpActionType
-  category   FollowUpCategory
-
-  priority FollowUpPriority @default(MEDIUM)
-  status   FollowUpStatus   @default(PENDING)
-  result   FollowUpResult?
-
-  scheduledAt DateTime
-  dueAt       DateTime?
-
+  id               String             @id @default(cuid())
+  inquiryId        String
+  assignedToId     String?
+  completedById    String?
+  sequence         Int                @default(1)
+  title            String
+  description      String?
+  notes            String?
+  actionType       FollowUpActionType
+  category         FollowUpCategory
+  priority         FollowUpPriority   @default(MEDIUM)
+  status           FollowUpStatus     @default(PENDING)
+  result           FollowUpResult?
+  scheduledAt      DateTime
+  dueAt            DateTime?
   estimatedMinutes Int?
   actualMinutes    Int?
-
-  completedAt DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  completedAt      DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  assignedTo       Admin?             @relation("AssignedFollowUps", fields: [assignedToId], references: [id])
+  completedBy      Admin?             @relation("CompletedFollowUps", fields: [completedById], references: [id])
+  inquiry          Inquiry            @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
 
   @@index([inquiryId])
   @@index([assignedToId])
@@ -617,6 +529,67 @@ model Redirect {
 
   @@index([isActive])
   @@index([redirectType])
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum WhatsAppMessageStatus {
+  DRAFT
+  APPROVED
+  QUEUED
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  REJECTED
+}
+
+enum FollowUpStatus {
+  PENDING
+  COMPLETED
+  MISSED
+  CANCELLED
+}
+
+enum FollowUpPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum FollowUpActionType {
+  CALL
+  WHATSAPP
+  EMAIL
+  QUOTATION
+  MEETING
+  SAMPLE
+  PAYMENT
+  DOCUMENTATION
+  SHIPMENT
+  OTHER
+}
+
+enum FollowUpResult {
+  BUYER_RESPONDED
+  NO_ANSWER
+  BUSY
+  FOLLOWUP_REQUIRED
+  DEAL_CLOSED
+  NOT_INTERESTED
+}
+
+enum FollowUpCategory {
+  SALES
+  NEGOTIATION
+  PAYMENT
+  DOCUMENTATION
+  SHIPMENT
+  GENERAL
 }
 
 enum InquiryStatus {
