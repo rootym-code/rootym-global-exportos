@@ -137,25 +137,38 @@ model FollowUp {
   inquiryId        String
   assignedToId     String?
   completedById    String?
+  parentFollowUpId String?
+
   sequence         Int                @default(1)
+
   title            String
   description      String?
   notes            String?
+
   actionType       FollowUpActionType
   category         FollowUpCategory
   priority         FollowUpPriority   @default(MEDIUM)
+
   status           FollowUpStatus     @default(PENDING)
   result           FollowUpResult?
+
   scheduledAt      DateTime
   dueAt            DateTime?
+
   estimatedMinutes Int?
   actualMinutes    Int?
+
   completedAt      DateTime?
+
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
+
   assignedTo       Admin?             @relation("AssignedFollowUps", fields: [assignedToId], references: [id])
   completedBy      Admin?             @relation("CompletedFollowUps", fields: [completedById], references: [id])
   inquiry          Inquiry            @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+
+  parentFollowUp   FollowUp?          @relation("FollowUpChain", fields: [parentFollowUpId], references: [id])
+  childFollowUps   FollowUp[]         @relation("FollowUpChain")
 
   @@index([inquiryId])
   @@index([assignedToId])
@@ -163,6 +176,7 @@ model FollowUp {
   @@index([scheduledAt])
   @@index([priority])
   @@index([category])
+  @@index([parentFollowUpId])
 }
 
 model Product {
@@ -649,6 +663,7 @@ enum QuoteStatus {
 
 enum ActivityEntityType {
   INQUIRY
+  FOLLOWUP
   QUOTE
   ORDER
   SHIPMENT

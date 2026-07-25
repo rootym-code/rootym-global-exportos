@@ -40,7 +40,7 @@ export async function createInquiry(
 
     const inquiryNumber = generateInquiryNumber(inquiry.id);
 
-    return await tx.inquiry.update({
+    const updatedInquiry = await tx.inquiry.update({
       where: {
         id: inquiry.id,
       },
@@ -48,5 +48,39 @@ export async function createInquiry(
         inquiryNumber,
       },
     });
+    
+    const defaultAdmin = await tx.admin.findFirst({
+      where: {
+        email: "prem@rootym.in",
+        isActive: true,
+      },
+    });
+
+    await tx.followUp.create({
+      data: {
+        inquiryId: inquiry.id,
+        assignedToId: defaultAdmin?.id ?? null,
+    
+        title: "Contact new buyer inquiry",
+    
+        description:
+          "Initial follow-up for new export inquiry.",
+    
+        actionType: "WHATSAPP",
+    
+        category: "SALES",
+    
+        priority: "MEDIUM",
+    
+        status: "PENDING",
+    
+        scheduledAt: new Date(),
+    
+        estimatedMinutes: 10,
+      },
+    });
+    
+    
+    return updatedInquiry;  
   });
 }

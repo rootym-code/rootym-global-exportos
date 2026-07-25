@@ -123,8 +123,48 @@ import {
               },
           }
         );
+        
+        const defaultAdmin =
+  await prisma.admin.findFirst({
+    where: {
+      email: "prem@rootym.in",
+      isActive: true,
+    },
+  });
+
+        await prisma.followUp.create({
+          data: {
+            inquiryId: inquiry.id,
+            assignedToId:
+  defaultAdmin?.id ?? null,
   
-  
+        
+            title:
+              "Contact new R-CAPTAIN buyer",
+        
+            description:
+              "Initial follow-up generated from qualified AI lead.",
+        
+            actionType:
+              "WHATSAPP",
+        
+            category:
+              "SALES",
+        
+            priority:
+              "MEDIUM",
+        
+            status:
+              "PENDING",
+        
+            scheduledAt:
+              new Date(),
+        
+            estimatedMinutes:
+              10,
+          },
+        });
+
       return inquiry;
   
     }

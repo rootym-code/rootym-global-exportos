@@ -12,18 +12,23 @@ interface Props {
   status: string;
   priority: string;
 
+  myFollowUps: boolean;
+
   onSearchChange: (value: string) => void;
   onStatusChange: (value: string) => void;
   onPriorityChange: (value: string) => void;
+  onMyFollowUpsChange: (value: boolean) => void;
 }
 
 export default function FollowUpFilters({
   search,
   status,
   priority,
+  myFollowUps,
   onSearchChange,
   onStatusChange,
   onPriorityChange,
+  onMyFollowUpsChange,
 }: Props) {
   return (
     <div className="mb-6 flex flex-col gap-4 rounded-lg border bg-white p-4 lg:flex-row lg:items-center lg:justify-between">
@@ -46,6 +51,20 @@ export default function FollowUpFilters({
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row">
+
+        <button
+          type="button"
+          onClick={() =>
+            onMyFollowUpsChange(!myFollowUps)
+          }
+          className={`rounded-md border px-4 py-2 ${
+            myFollowUps
+              ? "bg-green-600 text-white"
+              : "bg-white"
+          }`}
+        >
+          My FollowUps
+        </button>
 
         <select
           value={status}
