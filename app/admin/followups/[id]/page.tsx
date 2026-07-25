@@ -506,11 +506,11 @@ async function loadBuyerIntelligence() {
 
   return (
 
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24 lg:pb-6">
 
 
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
 
         <div>
 
@@ -527,7 +527,7 @@ async function loadBuyerIntelligence() {
 
 
 
-          <h1 className="text-3xl font-bold">
+          <h1 className="text-2xl font-bold text-slate-900 lg:text-3xl">
             {followUp.title}
           </h1>
 
@@ -540,7 +540,7 @@ async function loadBuyerIntelligence() {
 
 
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
 
 
         <SummaryCard
@@ -577,7 +577,7 @@ async function loadBuyerIntelligence() {
 
 
 
-      <div className="rounded-lg border bg-white p-6">
+      <div className="rounded-lg border bg-white p-4 lg:p-6">
 
 
         <h2 className="mb-5 text-xl font-semibold">
@@ -694,7 +694,7 @@ async function loadBuyerIntelligence() {
 
 
       </div>
-      <div className="rounded-lg border bg-white p-6">
+      <div className="rounded-lg border bg-white p-4 lg:p-6">
 
 <h2 className="mb-5 text-xl font-semibold">
   Inquiry Information
@@ -710,7 +710,7 @@ async function loadBuyerIntelligence() {
     </div>
 
 
-    <div className="rounded-lg border bg-white p-6">
+    <div className="rounded-lg border bg-white p-4 lg:p-6">
 
   <h2 className="mb-5 text-xl font-semibold">
     🧠 Buyer Intelligence
@@ -1009,7 +1009,7 @@ async function loadBuyerIntelligence() {
 
 
 
-<div className="rounded-lg border bg-white p-6">
+<div className="rounded-lg border bg-white p-4 lg:p-6">
 
 <h2 className="mb-5 text-xl font-semibold">
   FollowUp Information
@@ -1080,7 +1080,7 @@ async function loadBuyerIntelligence() {
 
 
 
-<div className="rounded-lg border bg-white p-6">
+<div className="rounded-lg border bg-white p-4 lg:p-6">
 
 <h2 className="mb-4 text-xl font-semibold">
   Description
@@ -1097,7 +1097,7 @@ async function loadBuyerIntelligence() {
 
 
 
-<div className="rounded-lg border bg-white p-6">
+<div className="rounded-lg border bg-white p-4 lg:p-6">
 
 <h2 className="mb-4 text-xl font-semibold">
   Internal Notes
@@ -1114,7 +1114,7 @@ async function loadBuyerIntelligence() {
 
 
 
-<div className="rounded-lg border bg-white p-6">
+<div className="rounded-lg border bg-white p-4 lg:p-6">
 
 <h2 className="mb-5 text-xl font-semibold">
   Action Panel
@@ -1187,7 +1187,7 @@ value: string | number;
 
 return (
 
-<div className="rounded-lg border bg-white p-5">
+<div className="rounded-lg border bg-white p-4 lg:p-5">
 
 <div className="text-sm text-gray-500">
 {label}

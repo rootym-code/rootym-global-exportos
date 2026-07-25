@@ -424,7 +424,73 @@ export default function FollowUpsPage() {
 
       <div className="rounded-xl border bg-white p-6 shadow-sm">
 
+{/* Quick Action Chips */}
 
+<div className="mb-6 flex flex-wrap gap-3">
+
+  <button
+    type="button"
+    onClick={() => {
+      setStatus("");
+      setPriority("");
+      setMyFollowUps(false);
+      setPage(1);
+    }}
+    className="rounded-full border px-4 py-2 text-sm font-medium hover:bg-gray-50"
+  >
+    All
+  </button>
+
+
+  <button
+    type="button"
+    onClick={() => {
+      setStatus("OVERDUE");
+      setPage(1);
+    }}
+    className="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100"
+  >
+    🔥 Overdue
+  </button>
+
+
+  <button
+    type="button"
+    onClick={() => {
+      setStatus("PENDING");
+      setPage(1);
+    }}
+    className="rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100"
+  >
+    ⚡ Pending
+  </button>
+
+
+  <button
+    type="button"
+    onClick={() => {
+      setPriority("HIGH");
+      setPage(1);
+    }}
+    className="rounded-full border border-orange-200 bg-orange-50 px-4 py-2 text-sm font-medium text-orange-700 hover:bg-orange-100"
+  >
+    ⭐ High Priority
+  </button>
+
+
+  <button
+    type="button"
+    onClick={() => {
+      setMyFollowUps(true);
+      setPage(1);
+    }}
+    className="rounded-full border border-green-200 bg-green-50 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-100"
+  >
+    👤 My FollowUps
+  </button>
+
+
+</div>
         <div className="mb-5 flex items-center justify-between">
 
 
@@ -481,6 +547,8 @@ export default function FollowUpsPage() {
 
 
         <FollowUpFilters
+
+        
 
           search={search}
 

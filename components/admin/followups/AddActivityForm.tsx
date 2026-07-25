@@ -48,6 +48,7 @@ export default function AddActivityForm({
       setLoading(true);
 
 
+
       const response =
         await fetch(
           `/api/admin/followups/${followUpId}/timeline`,
@@ -60,18 +61,40 @@ export default function AddActivityForm({
             },
 
             body: JSON.stringify({
-              title,
-              description,
+
+              /*
+               * Timeline API requires action.
+               * For manual follow-up updates,
+               * title is the activity action label.
+               */
+
+              action:
+                title.trim()
+                  .toUpperCase(),
+
+
+              title:
+                title.trim(),
+
+
+              description:
+                description.trim() || undefined,
+
             }),
           },
         );
+
 
 
       const data =
         await response.json();
 
 
-      if (!response.ok || !data.success) {
+
+      if (
+        !response.ok ||
+        !data.success
+      ) {
 
         throw new Error(
           data.message ??
@@ -81,20 +104,25 @@ export default function AddActivityForm({
       }
 
 
+
       setTitle("");
 
       setDescription("");
 
+
       onSuccess();
 
 
+
     } catch (error) {
+
 
       alert(
         error instanceof Error
           ? error.message
           : "Unexpected error",
       );
+
 
 
     } finally {
@@ -107,6 +135,7 @@ export default function AddActivityForm({
 
 
 
+
   return (
 
     <form
@@ -114,12 +143,15 @@ export default function AddActivityForm({
       className="rounded-lg border bg-white p-6"
     >
 
+
       <h3 className="mb-4 text-lg font-semibold">
         Add Activity Update
       </h3>
 
 
+
       <div className="space-y-4">
+
 
 
         <input
@@ -135,6 +167,7 @@ export default function AddActivityForm({
           className="w-full rounded-md border px-3 py-2"
 
         />
+
 
 
         <textarea
@@ -173,13 +206,15 @@ export default function AddActivityForm({
 
         >
 
-          {loading
-            ? "Saving..."
-            : "Add Update"
+          {
+            loading
+              ? "Saving..."
+              : "Add Update"
           }
 
 
         </button>
+
 
 
       </div>

@@ -26,17 +26,23 @@ interface AdminShellProps {
 
 interface NavigationItem {
   title: string;
+
   href: string;
+
   icon: React.ComponentType<{
     className?: string;
   }>;
+
+  mobileVisible?: boolean;
 }
 
 
 interface NavigationGroup {
   title?: string;
+
   items: NavigationItem[];
 }
+
 
 
 const navigationGroups: NavigationGroup[] = [
@@ -47,6 +53,7 @@ const navigationGroups: NavigationGroup[] = [
         title: "Dashboard",
         href: "/admin",
         icon: LayoutDashboard,
+        mobileVisible: true,
       },
     ],
   },
@@ -100,9 +107,12 @@ const navigationGroups: NavigationGroup[] = [
         title: "FollowUps",
         href: "/admin/followups",
         icon: ClipboardCheck,
+        mobileVisible: true,
       },
     ],
   },
+
+
   {
     title: "SYSTEM",
 
@@ -114,9 +124,8 @@ const navigationGroups: NavigationGroup[] = [
       },
     ],
   },
+
 ];
-
-
 const navigationItems =
   navigationGroups.flatMap(
     (group) => group.items
@@ -180,6 +189,8 @@ export default function AdminShell({
 
 
 
+
+
   async function handleLogout() {
 
     try {
@@ -206,6 +217,8 @@ export default function AdminShell({
     router.refresh();
 
   }
+
+
 
 
 
@@ -247,7 +260,17 @@ export default function AdminShell({
 
                 {group.title && (
 
-                  <div className="mb-2 px-4 text-[11px] font-semibold uppercase tracking-[0.2em] text-green-200">
+                  <div
+                    className="
+                      mb-2
+                      px-4
+                      text-[11px]
+                      font-semibold
+                      uppercase
+                      tracking-[0.2em]
+                      text-green-200
+                    "
+                  >
 
                     {group.title}
 
@@ -274,10 +297,10 @@ export default function AdminShell({
 
                           :
 
-                            pathname === item.href ||
-                            pathname.startsWith(
-                              `${item.href}/`
-                            );
+                          pathname === item.href ||
+                          pathname.startsWith(
+                            `${item.href}/`
+                          );
 
 
 
@@ -289,24 +312,61 @@ export default function AdminShell({
                             item.href
                           }
 
+
                           href={
                             item.href
                           }
+
 
                           onClick={() =>
                             setMobileOpen(false)
                           }
 
-                          className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
-                            active
-                              ? "bg-white text-[#1B5E20]"
-                              : "text-white hover:bg-green-700"
-                          }`}
+
+                          className={`
+
+                            flex
+
+                            items-center
+
+                            gap-3
+
+                            rounded-xl
+
+                            px-4
+
+                            py-3
+
+                            text-sm
+
+                            font-medium
+
+                            transition
+
+
+                            ${
+                              item.mobileVisible
+                                ? "flex"
+                                : "hidden lg:flex"
+                            }
+
+
+                            ${
+                              active
+                                ? "bg-white text-[#1B5E20]"
+                                : "text-white hover:bg-green-700"
+                            }
+
+                          `}
 
                         >
 
                           <Icon
-                            className="h-5 w-5 shrink-0"
+                            className="
+                              h-5
+                              w-5
+                              shrink-0
+                            "
                           />
 
 
@@ -335,7 +395,18 @@ export default function AdminShell({
 
 <button
   onClick={handleLogout}
-  className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm transition hover:bg-green-700"
+  className="
+    flex
+    w-full
+    items-center
+    gap-3
+    rounded-xl
+    px-4
+    py-3
+    text-sm
+    transition
+    hover:bg-green-700
+  "
 >
 
   <LogOut
@@ -348,6 +419,7 @@ export default function AdminShell({
 
 </div>
 
+
 </>
 
 );
@@ -356,18 +428,32 @@ export default function AdminShell({
 
 
 
+
+
 return (
 
 <div className="flex min-h-screen bg-slate-100">
 
 
+
 {/* Desktop Sidebar */}
 
-<aside className="hidden w-72 flex-col bg-[#1B5E20] text-white lg:flex">
+<aside
+className="
+hidden
+w-72
+flex-col
+bg-[#1B5E20]
+text-white
+lg:flex
+"
+>
 
 <Sidebar />
 
 </aside>
+
+
 
 
 
@@ -383,17 +469,38 @@ return (
     setMobileOpen(false)
   }
 
-  className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+  className="
+    fixed
+    inset-0
+    z-40
+    bg-black/40
+    lg:hidden
+  "
 
 />
 
 
 
-<aside className="fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-[#1B5E20] text-white shadow-2xl lg:hidden">
+<aside
+  className="
+    fixed
+    inset-y-0
+    left-0
+    z-50
+    flex
+    w-72
+    flex-col
+    bg-[#1B5E20]
+    text-white
+    shadow-2xl
+    lg:hidden
+  "
+>
 
   <Sidebar />
 
 </aside>
+
 
 </>
 
@@ -401,16 +508,40 @@ return (
 
 
 
+
+
+
 <div className="flex min-h-screen flex-1 flex-col">
 
 
-<header className="sticky top-0 z-30 border-b bg-white shadow-sm">
+
+<header
+className="
+  sticky
+  top-0
+  z-30
+  border-b
+  bg-white
+  shadow-sm
+"
+>
 
 
-<div className="flex h-16 items-center justify-between px-6 lg:px-8">
+<div
+  className="
+    flex
+    h-16
+    items-center
+    justify-between
+    px-6
+    lg:px-8
+  "
+>
+
 
 
   <div className="flex items-center gap-4">
+
 
 
     <button
@@ -419,17 +550,26 @@ return (
         setMobileOpen(!mobileOpen)
       }
 
-      className="rounded-lg border p-2 lg:hidden"
+      className="
+        rounded-lg
+        border
+        p-2
+        lg:hidden
+      "
 
     >
 
       {mobileOpen ? (
 
-        <X className="h-5 w-5" />
+        <X
+          className="h-5 w-5"
+        />
 
       ) : (
 
-        <Menu className="h-5 w-5" />
+        <Menu
+          className="h-5 w-5"
+        />
 
       )}
 
@@ -437,16 +577,28 @@ return (
 
 
 
+
     <div>
 
-      <h2 className="text-xl font-bold text-slate-900">
+      <h2
+        className="
+          text-xl
+          font-bold
+          text-slate-900
+        "
+      >
 
         {pageTitle}
 
       </h2>
 
 
-      <p className="text-sm text-slate-500">
+      <p
+        className="
+          text-sm
+          text-slate-500
+        "
+      >
 
         ROOTYM Global Export Platform
 
@@ -460,7 +612,19 @@ return (
 
 
 
-  <div className="rounded-full bg-green-100 px-4 py-2 text-sm font-medium text-green-800">
+
+
+  <div
+    className="
+      rounded-full
+      bg-green-100
+      px-4
+      py-2
+      text-sm
+      font-medium
+      text-green-800
+    "
+  >
 
     Administrator
 
@@ -474,14 +638,28 @@ return (
 
 
 
-<main className="flex-1 p-6 lg:p-8">
+
+
+
+<main
+className="
+  flex-1
+  p-6
+  lg:p-8
+"
+>
 
 {children}
 
 </main>
 
 
+
+
+
 </div>
+
+
 
 
 </div>
