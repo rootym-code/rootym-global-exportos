@@ -10,6 +10,7 @@
  *
  * Responsibilities:
  * - Build API endpoints
+ * - Load Meta configuration
  * - Attach authorization headers
  * - Execute HTTP requests
  * - Handle Meta API errors
@@ -18,12 +19,11 @@
  * - Single Responsibility Principle
  * - Centralized HTTP Client
  * - Production Ready
- *
- * Author: ROOTYM Engineering
  * ============================================================================
  */
 
 import metaConfig from "@/lib/config/meta";
+import metaConfigService from "./meta-config.service";
 
 export interface MetaApiError {
   error?: {
@@ -46,12 +46,15 @@ class MetaClient {
     endpoint: string,
     options: RequestInit
   ): Promise<T> {
+    const config =
+      await metaConfigService.getConfiguration();
+
     const response = await fetch(
       `${this.baseUrl}${endpoint}`,
       {
         ...options,
         headers: {
-          Authorization: `Bearer ${metaConfig.accessToken}`,
+          Authorization: `Bearer ${config.accessToken}`,
           "Content-Type": "application/json",
           ...(options.headers ?? {}),
         },

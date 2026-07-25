@@ -29,9 +29,12 @@ import {
   
   class WhatsAppSettingsService {
     async getWhatsAppSettings() {
+
+
       const map = await getSettingsByKeys(
         WHATSAPP_SETTING_KEYS
       );
+     
   
       return {
         metaAppId:
