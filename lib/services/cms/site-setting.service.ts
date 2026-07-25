@@ -1,9 +1,30 @@
 import { Prisma } from "@/lib/generated/prisma";
 import prisma from "@/lib/prisma";
+import {
+  getSettingsByKeys,
+  saveSettings,
+} from "./settings/helpers";
+import googleSettingsService from "./settings/google-settings.service";
+import { GoogleSettingsInput } from "./settings/types";
+import companySettingsService from "./settings/company-settings.service";
+import { CompanySettingsInput } from "./settings/types";
+
+
+import { SiteSettingUpsertInput } from "./settings/types";
 
 import BaseCmsService, {
   PaginationOptions,
 } from "@/lib/services/cms/base.service";
+
+import {
+  COMPANY_SETTINGS_KEYS,
+  SITE_SETTING_KEY,
+} from "@/lib/constants/site-settings";
+
+import {
+  GOOGLE_SETTING_KEY,
+  GOOGLE_SETTING_KEYS,
+} from "@/lib/constants/site-settings/google";
 
 import {
   createSiteSettingSchema,
@@ -12,11 +33,15 @@ import {
   UpdateSiteSettingInput,
 } from "@/lib/validations/cms";
 
+
 class SiteSettingService extends BaseCmsService {
+
   async create(data: CreateSiteSettingInput) {
     return this.execute(async () => {
       const validated =
         createSiteSettingSchema.parse(data);
+
+
 
       const exists =
         await prisma.siteSetting.findUnique({
@@ -93,6 +118,41 @@ class SiteSettingService extends BaseCmsService {
   async getByKey(key: string) {
     return prisma.siteSetting.findUnique({
       where: { key },
+    });
+  }
+
+  async getCompanySettings() {
+    return this.execute(async () => {
+      return companySettingsService.getCompanySettings();
+    });
+  }
+
+
+  async saveCompanySettings(
+    data: CompanySettingsInput
+  ) {
+    return this.execute(async () => {
+      return companySettingsService.saveCompanySettings(
+        data
+      );
+    });
+  }
+  async getGoogleSettings() {
+    return this.execute(async () => {
+      return googleSettingsService.getGoogleSettings();
+    });
+  }
+
+
+
+
+  async saveGoogleSettings(
+    data: GoogleSettingsInput
+  ) {
+    return this.execute(async () => {
+      return googleSettingsService.saveGoogleSettings(
+        data
+      );
     });
   }
 
