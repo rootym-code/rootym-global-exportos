@@ -1,18 +1,7 @@
-type Opportunity = {
-  id: number;
-  buyer: string;
-  country: string;
-  product: string;
-  stage: string;
-  revenue: string;
-  action: string;
-  reason: string;
-  aiScore: number;
-  confidence: string;
-};
+import { PriorityOpportunity } from "@/lib/services/dashboard/dashboard.types";
 
 type PriorityQueueProps = {
-  opportunities: Opportunity[];
+  opportunities: PriorityOpportunity[];
 };
 
 export default function PriorityQueue({
@@ -20,7 +9,6 @@ export default function PriorityQueue({
 }: PriorityQueueProps) {
   return (
     <section className="rounded-3xl border border-gray-100 bg-white p-8 shadow-xl">
-
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-semibold uppercase tracking-widest text-emerald-600">
@@ -38,16 +26,13 @@ export default function PriorityQueue({
       </div>
 
       <div className="mt-8 space-y-6">
-
         {opportunities.map((item) => (
           <div
             key={item.id}
             className="rounded-2xl border border-gray-200 bg-gradient-to-r from-white to-gray-50 p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
           >
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-
               <div className="space-y-2">
-
                 <div className="inline-flex flex-col rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
                   <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600">
                     AI Score
@@ -73,11 +58,9 @@ export default function PriorityQueue({
                 <p className="text-gray-600">
                   {item.product}
                 </p>
-
               </div>
 
               <div className="space-y-2">
-
                 <p className="text-sm text-gray-500">
                   Sales Stage
                 </p>
@@ -93,11 +76,9 @@ export default function PriorityQueue({
                 <p className="font-semibold text-gray-900">
                   {item.reason}
                 </p>
-
               </div>
 
               <div className="text-center">
-
                 <p className="text-sm text-gray-500">
                   Expected Revenue
                 </p>
@@ -109,15 +90,11 @@ export default function PriorityQueue({
                 <button className="mt-6 rounded-xl bg-emerald-600 px-6 py-3 font-semibold text-white transition hover:bg-emerald-700">
                   {item.action}
                 </button>
-
               </div>
-
             </div>
           </div>
         ))}
-
       </div>
-
     </section>
   );
 }

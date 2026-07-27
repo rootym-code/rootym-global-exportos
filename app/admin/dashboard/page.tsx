@@ -15,7 +15,7 @@ export default function AdminDashboardPage() {
 
     priorityQueue: [
       {
-        id: 1,
+        id: "1",
         buyer: "ABC Foods",
         country: "🇱🇰 Sri Lanka",
         product: "Onion Powder",
@@ -27,7 +27,7 @@ export default function AdminDashboardPage() {
         confidence: "High Conversion Probability",
       },
       {
-        id: 2,
+        id: "2",
         buyer: "Dubai Fresh",
         country: "🇦🇪 UAE",
         product: "Frozen French Fries",
@@ -39,7 +39,7 @@ export default function AdminDashboardPage() {
         confidence: "Buyer Engagement Active",
       },
       {
-        id: 3,
+        id: "3",
         buyer: "London Imports",
         country: "🇬🇧 United Kingdom",
         product: "Makhana",
