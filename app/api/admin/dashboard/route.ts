@@ -104,6 +104,47 @@ export async function GET(request: NextRequest) {
 
         recentInquiries,
       },
+
+      rCaptain: {
+        morningBrief: {
+          greeting: "Good Morning",
+          pendingAttention: newInquiries + negotiationInquiries,
+          quotationsExpiring: quotationSentInquiries,
+          opportunityValue: "USD 34,000",
+        },
+
+        priorityQueue: [],
+
+        opportunityRadar: {
+          readyToClose: negotiationInquiries,
+          goingCold: 2,
+          highestRevenue: "USD 34,000",
+        },
+
+        todaysMission: {
+          calls: {
+            completed: 0,
+            total: 5,
+          },
+          whatsapp: {
+            completed: 0,
+            total: 3,
+          },
+          quotations: {
+            completed: 0,
+            total: quotationSentInquiries,
+          },
+          meetings: {
+            completed: 0,
+            total: 1,
+          },
+        },
+
+        captain: {
+          status: "Pipeline analyzed",
+          lastUpdated: new Date().toISOString(),
+        },
+      },
     });
   } catch (error) {
     console.error(error);
