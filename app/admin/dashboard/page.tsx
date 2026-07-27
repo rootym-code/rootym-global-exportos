@@ -1,53 +1,37 @@
+import MorningBrief from "@/components/admin/rcaptain/MorningBrief";
+import PriorityQueue from "@/components/admin/rcaptain/PriorityQueue";
+import OpportunityRadar from "@/components/admin/rcaptain/OpportunityRadar";
+import TodaysMission from "@/components/admin/rcaptain/TodaysMission";
+import FloatingCaptain from "@/components/admin/rcaptain/FloatingCaptain";
+
 export default function AdminDashboardPage() {
-    return (
-      <main className="min-h-screen bg-gray-100 p-8">
-        <div className="max-w-7xl mx-auto">
-  
-          <h1 className="text-3xl font-bold text-gray-800">
-            ROOTYM Admin Dashboard
-          </h1>
-  
-          <p className="text-gray-500 mt-2">
-            Welcome back, Administrator.
-          </p>
-  
-          {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mt-8">
-  
-            <div className="bg-white rounded-xl shadow p-6">
-              <h2 className="text-gray-500 text-sm">Total Enquiries</h2>
-              <p className="text-3xl font-bold mt-2">0</p>
-            </div>
-  
-            <div className="bg-white rounded-xl shadow p-6">
-              <h2 className="text-gray-500 text-sm">New Enquiries</h2>
-              <p className="text-3xl font-bold mt-2">0</p>
-            </div>
-  
-            <div className="bg-white rounded-xl shadow p-6">
-              <h2 className="text-gray-500 text-sm">Contact Messages</h2>
-              <p className="text-3xl font-bold mt-2">0</p>
-            </div>
-  
-            <div className="bg-white rounded-xl shadow p-6">
-              <h2 className="text-gray-500 text-sm">Newsletter Subscribers</h2>
-              <p className="text-3xl font-bold mt-2">0</p>
-            </div>
-  
+  return (
+    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-green-50">
+      <div className="mx-auto max-w-7xl px-6 py-8">
+
+        {/* Page Header */}
+        <MorningBrief />
+
+        {/* Main Grid */}
+        <div className="mt-8 grid gap-8 xl:grid-cols-3">
+
+          {/* Left Content */}
+          <div className="space-y-8 xl:col-span-2">
+            <PriorityQueue />
+            <OpportunityRadar />
           </div>
-  
-          {/* Recent Enquiries */}
-          <div className="bg-white rounded-xl shadow mt-8 p-6">
-            <h2 className="text-xl font-semibold mb-4">
-              Recent Enquiries
-            </h2>
-  
-            <p className="text-gray-500">
-              No enquiries available.
-            </p>
+
+          {/* Right Sidebar */}
+          <div className="space-y-8">
+            <TodaysMission />
           </div>
-  
+
         </div>
-      </main>
-    );
-  }
+
+      </div>
+
+      {/* Floating AI Assistant */}
+      <FloatingCaptain />
+    </main>
+  );
+}

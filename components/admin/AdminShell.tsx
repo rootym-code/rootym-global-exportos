@@ -76,7 +76,32 @@ const navigationGroups: NavigationGroup[] = [
       },
     ],
   },
+  {
+    title: "CMS",
+  
+    items: [
+      {
+        title: "Company Settings",
+        href: "/admin/cms/company",
+        icon: Settings,
+      },
+  
+      {
+        title: "Google Integration",
+        href: "/admin/cms/integrations/google",
+        icon: Settings,
+      },
+  
+      {
+        title: "WhatsApp Integration",
+        href: "/admin/cms/integrations/whatsapp",
+        icon: MessageSquare,
+      },
+    ],
+  },
 
+
+  
 
   {
     title: "BUSINESS",
@@ -344,17 +369,15 @@ export default function AdminShell({
                             transition
 
 
-                            ${
-                              item.mobileVisible
-                                ? "flex"
-                                : "hidden lg:flex"
+                            ${item.mobileVisible
+                              ? "flex"
+                              : "hidden lg:flex"
                             }
 
 
-                            ${
-                              active
-                                ? "bg-white text-[#1B5E20]"
-                                : "text-white hover:bg-green-700"
+                            ${active
+                              ? "bg-white text-[#1B5E20]"
+                              : "text-white hover:bg-green-700"
                             }
 
                           `}
@@ -393,9 +416,9 @@ export default function AdminShell({
         </nav>
         <div className="border-t border-green-700 p-4">
 
-<button
-  onClick={handleLogout}
-  className="
+          <button
+            onClick={handleLogout}
+            className="
     flex
     w-full
     items-center
@@ -407,39 +430,39 @@ export default function AdminShell({
     transition
     hover:bg-green-700
   "
->
+          >
 
-  <LogOut
-    className="h-5 w-5"
-  />
+            <LogOut
+              className="h-5 w-5"
+            />
 
-  Logout
+            Logout
 
-</button>
+          </button>
 
-</div>
-
-
-</>
-
-);
-
-}
+        </div>
 
 
+      </>
+
+    );
+
+  }
 
 
 
-return (
-
-<div className="flex min-h-screen bg-slate-100">
 
 
+  return (
 
-{/* Desktop Sidebar */}
+    <div className="flex min-h-screen bg-slate-100">
 
-<aside
-className="
+
+
+      {/* Desktop Sidebar */}
+
+      <aside
+        className="
 hidden
 w-72
 flex-col
@@ -447,29 +470,29 @@ bg-[#1B5E20]
 text-white
 lg:flex
 "
->
+      >
 
-<Sidebar />
+        <Sidebar />
 
-</aside>
-
-
+      </aside>
 
 
 
-{/* Mobile Drawer */}
 
-{mobileOpen && (
 
-<>
+      {/* Mobile Drawer */}
 
-<div
+      {mobileOpen && (
 
-  onClick={() =>
-    setMobileOpen(false)
-  }
+        <>
 
-  className="
+          <div
+
+            onClick={() =>
+              setMobileOpen(false)
+            }
+
+            className="
     fixed
     inset-0
     z-40
@@ -477,12 +500,12 @@ lg:flex
     lg:hidden
   "
 
-/>
+          />
 
 
 
-<aside
-  className="
+          <aside
+            className="
     fixed
     inset-y-0
     left-0
@@ -495,28 +518,28 @@ lg:flex
     shadow-2xl
     lg:hidden
   "
->
+          >
 
-  <Sidebar />
+            <Sidebar />
 
-</aside>
-
-
-</>
-
-)}
+          </aside>
 
 
+        </>
+
+      )}
 
 
 
 
-<div className="flex min-h-screen flex-1 flex-col">
+
+
+      <div className="flex min-h-screen flex-1 flex-col">
 
 
 
-<header
-className="
+        <header
+          className="
   sticky
   top-0
   z-30
@@ -524,11 +547,11 @@ className="
   bg-white
   shadow-sm
 "
->
+        >
 
 
-<div
-  className="
+          <div
+            className="
     flex
     h-16
     items-center
@@ -536,86 +559,86 @@ className="
     px-6
     lg:px-8
   "
->
+          >
 
 
 
-  <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4">
 
 
 
-    <button
+              <button
 
-      onClick={() =>
-        setMobileOpen(!mobileOpen)
-      }
+                onClick={() =>
+                  setMobileOpen(!mobileOpen)
+                }
 
-      className="
+                className="
         rounded-lg
         border
         p-2
         lg:hidden
       "
 
-    >
+              >
 
-      {mobileOpen ? (
+                {mobileOpen ? (
 
-        <X
-          className="h-5 w-5"
-        />
+                  <X
+                    className="h-5 w-5"
+                  />
 
-      ) : (
+                ) : (
 
-        <Menu
-          className="h-5 w-5"
-        />
+                  <Menu
+                    className="h-5 w-5"
+                  />
 
-      )}
+                )}
 
-    </button>
-
-
+              </button>
 
 
-    <div>
 
-      <h2
-        className="
+
+              <div>
+
+                <h2
+                  className="
           text-xl
           font-bold
           text-slate-900
         "
-      >
+                >
 
-        {pageTitle}
+                  {pageTitle}
 
-      </h2>
+                </h2>
 
 
-      <p
-        className="
+                <p
+                  className="
           text-sm
           text-slate-500
         "
-      >
+                >
 
-        ROOTYM Global Export Platform
+                  ROOTYM Global Export Platform
 
-      </p>
-
-
-    </div>
+                </p>
 
 
-  </div>
+              </div>
 
 
+            </div>
 
 
 
-  <div
-    className="
+
+
+            <div
+              className="
       rounded-full
       bg-green-100
       px-4
@@ -624,46 +647,46 @@ className="
       font-medium
       text-green-800
     "
-  >
+            >
 
-    Administrator
+              Administrator
 
-  </div>
-
-
-</div>
+            </div>
 
 
-</header>
+          </div>
 
 
+        </header>
 
 
 
 
-<main
-className="
+
+
+        <main
+          className="
   flex-1
   p-6
   lg:p-8
 "
->
+        >
 
-{children}
+          {children}
 
-</main>
-
-
-
-
-
-</div>
+        </main>
 
 
 
 
-</div>
 
-);
+      </div>
+
+
+
+
+    </div>
+
+  );
 
 }
