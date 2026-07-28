@@ -8,6 +8,7 @@ import {
 import { DashboardResponse } from "./dashboard.types";
 import { getFollowUpIntelligence } from "../intelligence/followup.engine";
 import { buildPriorityQueue } from "./dashboard.presenter";
+import { analyzePriorityQueue } from "./dashboard.engine";
 
 export async function getDashboardData(): Promise<DashboardResponse> {
 
@@ -290,6 +291,14 @@ const highestRevenue =
 
 const currency = "USD";
 
+const analyzedPriorityQueue = analyzePriorityQueue(priorityQueue);
+
+const sortedPriorityQueue = analyzedPriorityQueue.sort((a, b) => {
+  const revA = a.quotes.length > 0 ? Number(a.quotes[0].grandTotal.toString()) : 0;
+  const revB = b.quotes.length > 0 ? Number(b.quotes[0].grandTotal.toString()) : 0;
+  return revB - revA;
+});
+
 return {
     dashboard: {
       counts: {
@@ -315,14 +324,7 @@ return {
         opportunityValue: `${currency} ${opportunityValue}`,
       },
   
-      priorityQueue: buildPriorityQueue(priorityQueue).sort((a, b) => {
-        const getRevenue = (value: string) => {
-          const amount = Number(value.replace(/[^\d.]/g, ""));
-          return Number.isNaN(amount) ? 0 : amount;
-        };
-      
-        return getRevenue(b.revenue) - getRevenue(a.revenue);
-      }),
+      priorityQueue: buildPriorityQueue(sortedPriorityQueue),
   
       opportunityRadar: {
         readyToClose: negotiationInquiries,
