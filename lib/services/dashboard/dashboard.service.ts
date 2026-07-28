@@ -1,10 +1,24 @@
 import prisma from "@/lib/prisma";
-import { InquiryStatus } from "@/lib/generated/prisma";
+import {
+  InquiryStatus,
+  QuoteStatus,
+  FollowUpActionType,
+  FollowUpStatus,
+} from "@/lib/generated/prisma";
 import { DashboardResponse } from "./dashboard.types";
 import { getFollowUpIntelligence } from "../intelligence/followup.engine";
 import { buildPriorityQueue } from "./dashboard.presenter";
 
 export async function getDashboardData(): Promise<DashboardResponse> {
+
+  const today = new Date();
+
+  const startOfDay = new Date(today);
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const endOfDay = new Date(today);
+  endOfDay.setHours(23, 59, 59, 999);
+
   const [
     followUp,
     totalInquiries,
@@ -16,6 +30,21 @@ export async function getDashboardData(): Promise<DashboardResponse> {
     rejectedInquiries,
     recentInquiries,
     priorityQueue,
+    quoteStatistics,
+    goingColdCount,
+  
+    todayCalls,
+    completedCalls,
+  
+    todayWhatsApp,
+    completedWhatsApp,
+  
+    todayQuotations,
+    completedQuotations,
+  
+    todayMeetings,
+    completedMeetings,
+  
   ] = await Promise.all([
 
 
@@ -85,7 +114,7 @@ export async function getDashboardData(): Promise<DashboardResponse> {
           ],
         },
       },
-
+    
       orderBy: [
         {
           priority: "desc",
@@ -94,9 +123,9 @@ export async function getDashboardData(): Promise<DashboardResponse> {
           createdAt: "desc",
         },
       ],
-
+    
       take: 5,
-
+    
       select: {
         id: true,
         inquiryNumber: true,
@@ -108,9 +137,153 @@ export async function getDashboardData(): Promise<DashboardResponse> {
         createdAt: true,
       },
     }),
+    
+    prisma.quote.aggregate({
+      where: {
+        status: {
+          in: [
+            QuoteStatus.SENT,
+            QuoteStatus.ACCEPTED,
+          ],
+        },
+      },
+    
+      _sum: {
+        grandTotal: true,
+      },
+    
+      _max: {
+        grandTotal: true,
+      },
+    }),
+    
+    prisma.inquiry.count({
+      where: {
+        status: {
+          notIn: [
+            InquiryStatus.CONFIRMED,
+            InquiryStatus.REJECTED,
+          ],
+        },
+    
+        followUps: {
+          none: {
+            OR: [
+              {
+                scheduledAt: {
+                  gte: new Date(
+                    Date.now() - 10 * 24 * 60 * 60 * 1000
+                  ),
+                },
+              },
+              {
+                completedAt: {
+                  gte: new Date(
+                    Date.now() - 10 * 24 * 60 * 60 * 1000
+                  ),
+                },
+              },
+            ],
+          },
+        },
+      },
+    }),
+
+    prisma.followUp.count({
+      where: {
+        actionType: FollowUpActionType.CALL,
+        scheduledAt: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+    }),
+    
+    prisma.followUp.count({
+      where: {
+        actionType: FollowUpActionType.CALL,
+        status: FollowUpStatus.COMPLETED,
+        scheduledAt: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+    }),
+    
+    prisma.followUp.count({
+      where: {
+        actionType: FollowUpActionType.WHATSAPP,
+        scheduledAt: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+    }),
+    
+    prisma.followUp.count({
+      where: {
+        actionType: FollowUpActionType.WHATSAPP,
+        status: FollowUpStatus.COMPLETED,
+        scheduledAt: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+    }),
+    
+    prisma.followUp.count({
+      where: {
+        actionType: FollowUpActionType.QUOTATION,
+        scheduledAt: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+    }),
+    
+    prisma.followUp.count({
+      where: {
+        actionType: FollowUpActionType.QUOTATION,
+        status: FollowUpStatus.COMPLETED,
+        scheduledAt: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+    }),
+    
+    prisma.followUp.count({
+      where: {
+        actionType: FollowUpActionType.MEETING,
+        scheduledAt: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+    }),
+    
+    prisma.followUp.count({
+      where: {
+        actionType: FollowUpActionType.MEETING,
+        status: FollowUpStatus.COMPLETED,
+        scheduledAt: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+    }),
+
   ]);
 
-  return {
+  const opportunityValue =
+  quoteStatistics._sum.grandTotal ?? 0;
+
+const highestRevenue =
+  quoteStatistics._max.grandTotal ?? 0;
+
+const currency = "USD";
+
+return {
     dashboard: {
       counts: {
         total: totalInquiries,
@@ -132,36 +305,36 @@ export async function getDashboardData(): Promise<DashboardResponse> {
         greeting: "Good Morning",
         pendingAttention: newInquiries + negotiationInquiries,
         quotationsExpiring: quotationSentInquiries,
-        opportunityValue: "USD 34,000",
+        opportunityValue: `${currency} ${opportunityValue}`,
       },
   
       priorityQueue: buildPriorityQueue(priorityQueue),
   
       opportunityRadar: {
         readyToClose: negotiationInquiries,
-        goingCold: 2,
-        highestRevenue: "USD 34,000",
+        goingCold: goingColdCount,
+        highestRevenue: `${currency} ${highestRevenue}`,
       },
   
       todaysMission: {
         calls: {
-          completed: 0,
-          total: 5,
+          completed: completedCalls,
+          total: todayCalls,
         },
-  
+        
         whatsapp: {
-          completed: 0,
-          total: 3,
+          completed: completedWhatsApp,
+          total: todayWhatsApp,
         },
-  
+        
         quotations: {
-          completed: 0,
-          total: quotationSentInquiries,
+          completed: completedQuotations,
+          total: todayQuotations,
         },
-  
+        
         meetings: {
-          completed: 0,
-          total: 1,
+          completed: completedMeetings,
+          total: todayMeetings,
         },
       },
   
