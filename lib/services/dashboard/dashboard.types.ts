@@ -1,4 +1,5 @@
 import { FollowUpIntelligence } from "../intelligence/intelligence.types";
+import { Prisma } from "@/lib/generated/prisma";
 
 export interface DashboardCounts {
   total: number;
@@ -42,8 +43,13 @@ export interface PriorityQueueItem {
   status: string;
   priority: string;
   createdAt: Date;
-}
 
+  quotes: {
+    currency: string;
+    grandTotal: Prisma.Decimal;
+    createdAt: Date;
+  }[];
+}
 /* ============================================================
    Presentation Model
 ============================================================ */

@@ -17,6 +17,7 @@ export interface PriorityOpportunity {
   product: string;
   stage: string;
   revenue: string;
+  quotationAge: string;
   action: string;
   reason: string;
   aiScore: number;
@@ -36,12 +37,12 @@ export function buildPriorityQueue(
     product: item.product,
     stage: formatStage(item.status),
 
-    // Placeholder values (will become intelligence-driven)
-    revenue: "Pending",
-    action: getRecommendedAction(item.status),
-    reason: getRecommendationReason(item.status),
-    aiScore: calculateAIScore(item.priority),
-    confidence: getConfidence(item.priority),
+    revenue: formatRevenue(item.quotes),
+    quotationAge: getQuotationAge(item.quotes),
+    action: getRecommendedAction(item.status, item.quotes),
+    reason: getRecommendationReason(item.status, item.quotes),
+    aiScore: calculateAIScore(item.priority, item.quotes),
+    confidence: getConfidence(item.priority, item.quotes),
   }));
 }
 
@@ -50,26 +51,98 @@ export function buildPriorityQueue(
 ============================================================ */
 
 function formatStage(status: string): string {
-  return status.replaceAll("_", " ");
-}
+  switch (status) {
+    case "NEW":
+      return "New Inquiry";
 
-function calculateAIScore(priority: string): number {
-  switch (priority) {
-    case "URGENT":
-      return 98;
+    case "CONTACTED":
+      return "Contacted";
 
-    case "HIGH":
-      return 90;
+    case "QUOTATION_SENT":
+      return "Quotation Sent";
 
-    case "MEDIUM":
-      return 80;
+    case "NEGOTIATION":
+      return "Negotiation";
+
+    case "CONFIRMED":
+      return "Confirmed";
+
+    case "REJECTED":
+      return "Rejected";
 
     default:
-      return 70;
+      return status.replaceAll("_", " ");
   }
 }
 
-function getConfidence(priority: string): string {
+function formatRevenue(
+  quotes: {
+    currency: string;
+    grandTotal: { toString(): string };
+  }[]
+): string {
+  if (quotes.length === 0) {
+    return "Pending";
+  }
+
+  return `${quotes[0].currency} ${quotes[0].grandTotal.toString()}`;
+}
+
+function getQuotationAge(
+  quotes: {
+    createdAt: Date;
+  }[]
+): string {
+  if (quotes.length === 0) {
+    return "No Quote";
+  }
+
+  const days = Math.floor(
+    (Date.now() - quotes[0].createdAt.getTime()) /
+      (1000 * 60 * 60 * 24)
+  );
+
+  return `${days} day${days === 1 ? "" : "s"}`;
+}
+
+function calculateAIScore(
+  priority: string,
+  quotes: { createdAt: Date }[]
+): number {
+  let score = 70;
+
+  switch (priority) {
+    case "URGENT":
+      score = 98;
+      break;
+
+    case "HIGH":
+      score = 90;
+      break;
+
+    case "MEDIUM":
+      score = 80;
+      break;
+
+    default:
+      score = 70;
+  }
+
+  if (quotes.length > 0) {
+    score += 2;
+  }
+
+  return Math.min(score, 100);
+}
+
+function getConfidence(
+  priority: string,
+  quotes: { createdAt: Date }[]
+): string {
+  if (quotes.length > 0) {
+    return "Quotation Available";
+  }
+
   switch (priority) {
     case "URGENT":
       return "High Conversion Probability";
@@ -85,13 +158,34 @@ function getConfidence(priority: string): string {
   }
 }
 
-function getRecommendedAction(status: string): string {
+function getRecommendedAction(
+  status: string,
+  quotes: { createdAt: Date }[]
+): string {
   switch (status) {
     case "NEGOTIATION":
       return "Call Now";
 
-    case "QUOTATION_SENT":
-      return "Send Follow-up";
+    case "QUOTATION_SENT": {
+      if (quotes.length === 0) {
+        return "Verify Quote";
+      }
+
+      const ageInDays = Math.floor(
+        (Date.now() - quotes[0].createdAt.getTime()) /
+          (1000 * 60 * 60 * 24)
+      );
+
+      if (ageInDays <= 2) {
+        return "Wait for Response";
+      }
+
+      if (ageInDays <= 7) {
+        return "Send Follow-up";
+      }
+
+      return "Call Buyer";
+    }
 
     case "CONTACTED":
       return "Schedule Discussion";
@@ -101,13 +195,18 @@ function getRecommendedAction(status: string): string {
   }
 }
 
-function getRecommendationReason(status: string): string {
+function getRecommendationReason(
+  status: string,
+  quotes: { createdAt: Date }[]
+): string {
   switch (status) {
     case "NEGOTIATION":
       return "Buyer is actively negotiating.";
 
     case "QUOTATION_SENT":
-      return "Quotation has been shared. Follow-up is recommended.";
+      return quotes.length > 0
+        ? "Latest quotation sent. Follow-up recommended."
+        : "Quotation status found, but no quotation record exists.";
 
     case "CONTACTED":
       return "Continue buyer engagement.";

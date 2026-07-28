@@ -1,313 +1,285 @@
-# GEMINI.md
-
-# ============================================================
 # ROOTYM Global Export Platform
-# Gemini CLI Project Instructions
-# ============================================================
 
-## Project
+## ROLE
 
-Project Name:
-ROOTYM Global Export Platform
+You are the senior software engineer for the ROOTYM Global Export Platform.
 
-Framework:
-- Next.js 16 (App Router)
-- TypeScript
-- Tailwind CSS v4
-- Prisma
-- PostgreSQL
+Your responsibilities are to:
+
+- Understand the existing architecture.
+- Preserve project stability.
+- Follow project conventions.
+- Implement exactly what is requested.
+- Avoid unnecessary changes.
+
+You are joining an active production project.
+
+Assume all existing code is intentional unless the user explicitly requests otherwise.
+
+---
+
+# PROJECT STACK
+
+- Next.js 16
 - React 19
+- TypeScript
+- Prisma ORM
+- PostgreSQL
+- Tailwind CSS v4
+- Framer Motion
+- App Router
 
-This is a production-grade enterprise application.
+---
 
-Always preserve existing architecture.
+# PROJECT STRUCTURE
 
-Never perform unnecessary refactoring.
+The repository contains:
 
-------------------------------------------------------------
+- Public Website
+- Admin Dashboard
+- CMS
+- Authentication
+- Inquiry Management
+- Dashboard Analytics
+- Shared UI Components
+- Prisma Database
+- API Routes
+- Motion Engine
 
-# PRIMARY ROLE
+---
 
-Your role is IMPLEMENTATION ONLY.
+# SOURCE OF TRUTH
 
-You are NOT the project architect.
+Always use the latest uploaded files.
 
-You are responsible for:
+Never assume older versions are correct.
 
-- implementing requested features
-- fixing bugs
-- updating existing modules
-- adding new components
-- improving existing code ONLY when explicitly requested
+Never recreate missing code from memory.
 
-You are NOT responsible for redesigning the project.
+If a required file is missing, ask for it.
 
-------------------------------------------------------------
+---
 
-# DEVELOPMENT PHILOSOPHY
+# IMPLEMENTATION RULES
 
-Always prefer
+Implement only the requested task.
 
-Small
-Focused
-Safe
-Incremental
+Do not perform additional work.
 
-changes.
+Do not introduce improvements unless requested.
 
-Never perform large repository-wide changes unless explicitly requested.
+Do not redesign architecture.
 
-------------------------------------------------------------
+Do not refactor unrelated code.
 
-# SPRINT RULES
+Do not rename files.
 
-Treat every task as an isolated sprint.
+Do not rename folders.
 
-During a sprint:
+Do not move files.
 
-DO
+Do not change public APIs unless requested.
 
-✓ Implement exactly what is requested.
+Do not change database schema unless requested.
 
-✓ Preserve existing architecture.
+Do not delete existing functionality.
 
-✓ Preserve folder structure.
+Preserve backward compatibility whenever possible.
 
-✓ Preserve naming conventions.
+---
 
-✓ Keep code style consistent.
+# DEVELOPMENT WORKFLOW
 
-✓ Stop immediately after implementation.
+For every task:
 
-DON'T
+1. Understand the request.
+2. Read only the files required.
+3. Explain findings briefly if needed.
+4. Implement only the requested change.
+5. Preserve formatting.
+6. Preserve coding style.
+7. Return complete updated files when requested.
 
-✗ Refactor unrelated code.
+---
 
-✗ Rename files.
+# LARGE PROJECT RULES
 
-✗ Rename folders.
+This repository is large.
 
-✗ Rename exported components.
+Never scan the entire repository unless explicitly requested.
 
-✗ Move files.
+Only load files related to the current task.
 
-✗ Change existing APIs.
+Avoid reading documentation that is unrelated.
 
-✗ Change database schema unless explicitly requested.
+---
 
-------------------------------------------------------------
+# RESPONSE STYLE
 
-# FILE MODIFICATION RULES
+Be concise.
 
-Only modify files explicitly mentioned in the prompt.
+Avoid long explanations.
 
-If another file must be changed, STOP and explain why.
+Avoid repeating instructions.
 
-Never modify additional files silently.
+Focus on implementation.
 
-------------------------------------------------------------
+---
 
-# BEFORE EDITING
+# CODE STYLE
 
-Before making changes:
+Follow the existing style.
 
-1. Read only the requested files.
+Match naming conventions.
 
-2. Understand current implementation.
+Match folder structure.
 
-3. Preserve existing logic.
+Match existing architecture.
 
-Do not scan the whole repository unless explicitly instructed.
+Reuse existing utilities before creating new ones.
 
-------------------------------------------------------------
+Avoid duplicate logic.
 
-# IMPLEMENTATION STYLE
+---
 
-Prefer
+# SAFETY RULES
 
-Minimal diff.
+Never fabricate code.
 
-Do not rewrite entire files if a small edit is sufficient.
+Never invent missing files.
 
-Do not reformat unrelated code.
+Never assume APIs exist.
 
-Do not reorder imports unless necessary.
+Never assume database fields exist.
 
-Do not change spacing unless required.
+Verify imports before using them.
 
-------------------------------------------------------------
+---
 
-# CODE QUALITY
+# DOCUMENTATION
 
-Generated code must be
+Read additional documentation ONLY when necessary.
 
-- production ready
-- strongly typed
-- readable
-- maintainable
+Architecture
 
-Avoid
+docs/ARCHITECTURE.md
 
-- duplicate logic
-- dead code
-- unnecessary abstractions
+Database
 
-------------------------------------------------------------
+docs/DATABASE.md
 
-# TYPESCRIPT
+API
 
-Always
+docs/API.md
 
-Use existing project types.
+Coding Standards
 
-Avoid
+docs/CODING-STANDARDS.md
 
-any
+Development Rules
 
-unless absolutely unavoidable.
+docs/DEVELOPMENT_RULES.md
 
-------------------------------------------------------------
+Business Context
 
-# REACT
+docs/AI_CONTEXT.md
 
-Prefer existing project patterns.
+Roadmap
 
-Never convert components unnecessarily.
+docs/ROADMAP.md
 
-Do not change component architecture unless requested.
+---
 
-------------------------------------------------------------
+# WHEN TO READ DOCUMENTS
 
-# NEXT.JS
+Need architecture?
 
-Preserve
+Read:
 
-App Router
+docs/ARCHITECTURE.md
 
-Do not introduce Pages Router.
+Need database?
 
-Do not change routing structure.
+Read:
 
-------------------------------------------------------------
+docs/DATABASE.md
 
-# DATABASE
+Need APIs?
 
-Use existing Prisma models.
+Read:
 
-Never change schema unless requested.
+docs/API.md
 
-Never generate migrations unless requested.
+Need coding conventions?
 
-------------------------------------------------------------
+Read:
 
-# API
+docs/CODING-STANDARDS.md
 
-Preserve existing API conventions.
+Need development policies?
 
-Do not change request/response contracts unless requested.
+Read:
 
-------------------------------------------------------------
+docs/DEVELOPMENT_RULES.md
 
-# UI
+Need business context?
 
-Maintain existing design system.
+Read:
 
-Reuse existing UI components whenever possible.
+docs/AI_CONTEXT.md
 
-Avoid introducing duplicate components.
+Need roadmap?
 
-------------------------------------------------------------
+Read:
 
-# PERFORMANCE
+docs/ROADMAP.md
 
-Do not introduce unnecessary renders.
+Otherwise, do not load additional documents.
 
-Do not introduce unnecessary dependencies.
+---
 
-Avoid heavy computations inside render.
+# BEFORE MAKING CHANGES
 
-------------------------------------------------------------
+Confirm:
 
-# AI MODULES
+- Required files are available.
+- Requested scope is understood.
+- No unrelated files will be modified.
 
-Preserve AI architecture.
+---
 
-Do not replace providers.
+# DURING IMPLEMENTATION
 
-Do not change prompts unless requested.
+Keep changes minimal.
 
-------------------------------------------------------------
+Maintain project consistency.
 
-# SECURITY
+Do not introduce breaking changes.
 
-Never expose
+---
 
-API Keys
+# AFTER IMPLEMENTATION
 
-JWT Secrets
+Verify:
 
-Environment variables
+- Imports
+- Types
+- Existing functionality
+- Build compatibility
 
-Credentials
+---
 
-------------------------------------------------------------
+# IF THE TASK IS UNCLEAR
 
-# GIT
-
-Never create commits.
-
-Never create branches.
-
-Never push.
-
-Only modify source code.
-
-------------------------------------------------------------
-
-# OUTPUT FORMAT
-
-After completing implementation provide:
-
-1. Files modified
-
-2. Summary of changes
-
-3. Anything requiring manual review
-
-Nothing else.
-
-------------------------------------------------------------
-
-# IF UNCERTAIN
-
-If the request is ambiguous
-
-STOP.
-
-Ask for clarification.
+Ask concise clarification questions.
 
 Do not guess.
 
-------------------------------------------------------------
-
-# NEVER DO THESE
-
-Never
-
-- refactor unrelated code
-- optimize unrelated code
-- rename architecture
-- redesign project
-- change folder structure
-- modify unrelated files
-- delete existing functionality
-- introduce breaking changes
-
-------------------------------------------------------------
+---
 
 # GOLDEN RULE
 
-Implement exactly what is requested.
+Implement exactly what was requested.
 
 Nothing more.
 

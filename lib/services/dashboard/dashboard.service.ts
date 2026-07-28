@@ -115,14 +115,9 @@ export async function getDashboardData(): Promise<DashboardResponse> {
         },
       },
     
-      orderBy: [
-        {
-          priority: "desc",
-        },
-        {
-          createdAt: "desc",
-        },
-      ],
+      orderBy: {
+        createdAt: "desc",
+      },
     
       take: 5,
     
@@ -135,6 +130,18 @@ export async function getDashboardData(): Promise<DashboardResponse> {
         status: true,
         priority: true,
         createdAt: true,
+      
+        quotes: {
+          orderBy: {
+            createdAt: "desc",
+          },
+          take: 1,
+          select: {
+            currency: true,
+            grandTotal: true,
+            createdAt: true,
+          },
+        },
       },
     }),
     
@@ -308,7 +315,14 @@ return {
         opportunityValue: `${currency} ${opportunityValue}`,
       },
   
-      priorityQueue: buildPriorityQueue(priorityQueue),
+      priorityQueue: buildPriorityQueue(priorityQueue).sort((a, b) => {
+        const getRevenue = (value: string) => {
+          const amount = Number(value.replace(/[^\d.]/g, ""));
+          return Number.isNaN(amount) ? 0 : amount;
+        };
+      
+        return getRevenue(b.revenue) - getRevenue(a.revenue);
+      }),
   
       opportunityRadar: {
         readyToClose: negotiationInquiries,
