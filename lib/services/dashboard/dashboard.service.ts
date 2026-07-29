@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+
 import {
   InquiryStatus,
   QuoteStatus,
@@ -7,8 +8,12 @@ import {
 } from "@/lib/generated/prisma";
 import { DashboardResponse } from "./dashboard.types";
 import { getFollowUpIntelligence } from "../intelligence/followup.engine";
-import { buildPriorityQueue } from "./dashboard.presenter";
+import {
+  buildPriorityQueue,
+  buildProductivityScore,
+} from "./dashboard.presenter";
 import { analyzePriorityQueue } from "./dashboard.engine";
+import { analyzeProductivity } from "./productivity.engine";
 
 export async function getDashboardData(): Promise<DashboardResponse> {
 
@@ -299,6 +304,37 @@ const sortedPriorityQueue = analyzedPriorityQueue.sort((a, b) => {
   return revB - revA;
 });
 
+const todaysMission = {
+  calls: {
+    completed: completedCalls,
+    total: todayCalls,
+  },
+
+  whatsapp: {
+    completed: completedWhatsApp,
+    total: todayWhatsApp,
+  },
+
+  quotations: {
+    completed: completedQuotations,
+    total: todayQuotations,
+  },
+
+  meetings: {
+    completed: completedMeetings,
+    total: todayMeetings,
+  },
+};
+
+const productivityAnalysis =
+  analyzeProductivity(todaysMission);
+
+  const productivity = buildProductivityScore(
+    todaysMission,
+    productivityAnalysis
+  );
+
+
 return {
     dashboard: {
       counts: {
@@ -332,28 +368,11 @@ return {
         highestRevenue: `${currency} ${highestRevenue}`,
       },
   
-      todaysMission: {
-        calls: {
-          completed: completedCalls,
-          total: todayCalls,
-        },
-        
-        whatsapp: {
-          completed: completedWhatsApp,
-          total: todayWhatsApp,
-        },
-        
-        quotations: {
-          completed: completedQuotations,
-          total: todayQuotations,
-        },
-        
-        meetings: {
-          completed: completedMeetings,
-          total: todayMeetings,
-        },
-      },
-  
+todaysMission,
+
+productivity,
+
+
       captain: {
         status: "Pipeline analyzed",
         lastUpdated: new Date().toISOString(),

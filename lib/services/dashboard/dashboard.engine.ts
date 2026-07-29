@@ -12,41 +12,136 @@ export function analyzePriorityQueue(
 ): AnalyzedPriorityQueueItem[] {
   return items.map((item) => ({
     ...item,
-    aiScore: calculateAIScore(item.priority, item.quotes),
+    aiScore: calculateAIScore(item),
     confidence: getConfidence(item.priority, item.quotes),
     action: getRecommendedAction(item.status, item.quotes),
     reason: getRecommendationReason(item.status, item.quotes),
   }));
 }
 
-export function calculateAIScore(
-  priority: string,
-  quotes: { createdAt: Date }[]
-): number {
-  let score = 70;
+function getBuyerIntentScore(item: PriorityQueueItem): number {
+  switch (item.status.toUpperCase()) {
+    case "NEGOTIATION":
+      return 40;
 
-  switch (priority) {
-    case "URGENT":
-      score = 98;
-      break;
+    case "QUOTATION_SENT":
+      return 30;
 
-    case "HIGH":
-      score = 90;
-      break;
+    case "CONTACTED":
+      return 20;
 
-    case "MEDIUM":
-      score = 80;
-      break;
+    case "NEW":
+      return 10;
 
+    case "CONFIRMED":
+    case "REJECTED":
     default:
-      score = 70;
+      return 0;
+  }
+}
+function getOpportunityValueScore(item: PriorityQueueItem): number {
+  const firstQuote = item.quotes[0];
+
+  if (!firstQuote) {
+    return 0;
   }
 
-  if (quotes.length > 0) {
+  const value = Number(firstQuote.grandTotal.toString());
+
+  if (Number.isNaN(value)) {
+    return 0;
+  }
+
+  if (value > 25000) {
+    return 20;
+  }
+
+  if (value >= 10000) {
+    return 15;
+  }
+
+  if (value >= 5000) {
+    return 10;
+  }
+
+  if (value >= 1000) {
+    return 5;
+  }
+
+  return 0;
+}
+
+
+function getFollowUpScore(_: PriorityQueueItem): number {
+  // Follow-up intelligence will be implemented in Sprint V5
+  // once follow-up data is included in PriorityQueueItem.
+  return 0;
+}
+
+
+function getQuoteFreshnessScore(item: PriorityQueueItem): number {
+  // Move your existing Quote Freshness code here unchanged.
+  return 0;
+}
+
+function getPriorityScore(item: PriorityQueueItem): number {
+  switch (item.priority.toUpperCase()) {
+    case "URGENT":
+      return 10;
+
+    case "HIGH":
+      return 7;
+
+    case "MEDIUM":
+      return 4;
+
+    case "LOW":
+      return 2;
+
+    default:
+      return 0;
+  }
+}
+
+function getCompletenessScore(item: PriorityQueueItem): number {
+  let score = 0;
+
+  if (item.quotes.length > 0) {
     score += 2;
   }
 
-  return Math.min(score, 100);
+  if (item.country.trim().length > 0) {
+    score += 1;
+  }
+
+  if (item.product.trim().length > 0) {
+    score += 1;
+  }
+
+  if (item.companyName.trim().length > 0) {
+    score += 1;
+  }
+
+  return score;
+}
+
+export function calculateAIScore(  item: PriorityQueueItem): number {
+  const buyerIntentScore = getBuyerIntentScore(item);
+  const valueScore = getOpportunityValueScore(item);
+const followUpScore = getFollowUpScore(item);
+  const quoteFreshnessScore = getQuoteFreshnessScore(item);
+  const priorityScore = getPriorityScore(item);
+const completenessScore = getCompletenessScore(item);
+
+const totalScore =
+  buyerIntentScore +
+  valueScore +
+  followUpScore +
+  quoteFreshnessScore +
+  priorityScore +
+  completenessScore;
+
+return Math.min(100, Math.max(0, totalScore));
 }
 
 export function getConfidence(
