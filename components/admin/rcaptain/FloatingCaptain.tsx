@@ -1,59 +1,56 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+import CaptainCard from "./CaptainCard";
+import CaptainPanel from "./CaptainPanel";
+
+import { RCaptainData } from "@/lib/services/dashboard/dashboard.types";
+
 type FloatingCaptainProps = {
-  status: {
-    message: string;
-    lastUpdated: string;
-  };
+  data: RCaptainData;
 };
 
 export default function FloatingCaptain({
-  status,
+  data,
 }: FloatingCaptainProps) {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
   return (
-    <button
-      className="
-        fixed
-        bottom-8
-        right-8
-        z-50
-        flex
-        items-center
-        gap-3
-        rounded-full
-        bg-gradient-to-r
-        from-emerald-600
-        to-green-600
-        px-6
-        py-4
-        text-white
-        shadow-2xl
-        transition-all
-        duration-300
-        hover:scale-105
-        hover:shadow-emerald-500/40
-      "
-    >
-      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-xl">
-        🤖
-      </div>
-
-      <div className="text-left">
-        <p className="text-xs uppercase tracking-widest text-emerald-100">
-          AI Assistant
-        </p>
-
-        <h3 className="font-semibold">
-          Ask R-CAPTAIN
-        </h3>
-
-        <p className="mt-1 text-xs text-emerald-100/90">
-          {status.message} • {status.lastUpdated}
-        </p>
-      </div>
-
-      <span className="absolute -top-1 -right-1 flex h-4 w-4">
-        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-300 opacity-75" />
-        <span className="relative inline-flex h-4 w-4 rounded-full bg-green-400" />
-      </span>
-    </button>
+    <>
+      {!open && (
+        <CaptainCard
+          title={data.captain.title}
+          message={data.captain.message}
+          recommendation={data.captain.recommendation}
+          severity={data.captain.severity}
+          unread={data.captain.unread}
+          lastUpdated={data.captain.lastUpdated}
+          onClick={() => setOpen(true)}
+        />
+      )}
+<CaptainPanel
+  open={open}
+  onClose={() => setOpen(false)}
+  title={data.captain.title}
+  message={data.captain.message}
+  recommendation={data.captain.recommendation}
+  businessHealth={data.businessHealth}
+/>
+    </>
   );
 }

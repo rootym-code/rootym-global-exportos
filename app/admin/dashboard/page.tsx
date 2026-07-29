@@ -1,3 +1,5 @@
+import AIProductivityScore from "@/components/admin/dashboard/AIProductivityScore";
+
 import MorningBrief from "@/components/admin/rcaptain/MorningBrief";
 import PriorityQueue from "@/components/admin/rcaptain/PriorityQueue";
 import OpportunityRadar from "@/components/admin/rcaptain/OpportunityRadar";
@@ -74,6 +76,13 @@ export default async function AdminDashboardPage() {
 
         </div>
 
+        {/* AI Productivity Score */}
+        <div className="mt-8">
+          <AIProductivityScore
+            data={dashboardData.rCaptain.productivity}
+          />
+        </div>
+
         {/* Opportunity Radar */}
         <div className="mt-8">
           <OpportunityRadar
@@ -113,12 +122,10 @@ export default async function AdminDashboardPage() {
       </div>
 
       {/* Floating AI Assistant */}
-      <FloatingCaptain
-        status={{
-          message: dashboardData.rCaptain.captain.status,
-          lastUpdated: dashboardData.rCaptain.captain.lastUpdated,
-        }}
-      />
+{/* Floating AI Assistant */}
+<FloatingCaptain
+  data={dashboardData.rCaptain}
+/>
     </main>
   );
 }

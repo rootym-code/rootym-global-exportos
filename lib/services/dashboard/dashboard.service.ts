@@ -1,4 +1,8 @@
 import prisma from "@/lib/prisma";
+import { analyzeCaptain } from "./captain.engine";
+import { buildCaptain } from "./captain.presenter";
+import { analyzeBusinessHealth } from "./business-health.engine";
+import { buildBusinessHealth } from "./business-health.presenter";
 
 import {
   InquiryStatus,
@@ -334,6 +338,27 @@ const productivityAnalysis =
     productivityAnalysis
   );
 
+  const captainAnalysis = analyzeCaptain({
+    pendingAttention: newInquiries + negotiationInquiries,
+    negotiations: negotiationInquiries,
+    productivityScore: productivity.score,
+  });
+  
+  const captain = buildCaptain(captainAnalysis);
+
+const businessHealthAnalysis = analyzeBusinessHealth({
+  productivityScore: productivity.score,
+  pendingAttention: newInquiries + negotiationInquiries,
+  readyToClose: negotiationInquiries,
+  goingCold: goingColdCount,
+  confirmedDeals: confirmedInquiries,
+});
+
+const businessHealth = buildBusinessHealth(
+  businessHealthAnalysis
+);
+  
+
 
 return {
     dashboard: {
@@ -372,11 +397,9 @@ todaysMission,
 
 productivity,
 
+businessHealth,
 
-      captain: {
-        status: "Pipeline analyzed",
-        lastUpdated: new Date().toISOString(),
-      },
+captain,
     },
   };
   ;
