@@ -1,5 +1,5 @@
 "use client";
-
+import { useTranslation } from "@/lib/i18n/context";
 import {
   ClipboardCheck,
   FileCheck2,
@@ -20,45 +20,52 @@ type ProcessStep = {
   icon: React.ElementType;
 };
 
-const STEPS: ProcessStep[] = [
-  {
-    step: "01",
-    title: "Send Inquiry",
-    description:
-      "Share your product requirements, destination country, quantity and preferred delivery terms.",
-    icon: ClipboardCheck,
-  },
-  {
-    step: "02",
-    title: "Quotation & Confirmation",
-    description:
-      "Receive a detailed quotation with specifications, pricing, payment terms and shipment schedule.",
-    icon: FileCheck2,
-  },
-  {
-    step: "03",
-    title: "Quality & Packaging",
-    description:
-      "Products undergo quality inspection, export-grade packaging and documentation before dispatch.",
-    icon: PackageCheck,
-  },
-  {
-    step: "04",
-    title: "Global Delivery",
-    description:
-      "Cargo is shipped through trusted logistics partners with continuous shipment updates.",
-    icon: Ship,
-  },
+const PROCESS_ICONS = [
+  ClipboardCheck,
+  FileCheck2,
+  PackageCheck,
+  Ship,
 ];
 
+
+
 export default function PremiumExportProcess() {
-  return (
+  const { t } = useTranslation();
+
+  const STEPS: ProcessStep[] = [
+    {
+      step: "01",
+      title: t("exportProcess.steps.step1.title"),
+      description: t("exportProcess.steps.step1.description"),
+      icon: PROCESS_ICONS[0],
+    },
+    {
+      step: "02",
+      title: t("exportProcess.steps.step2.title"),
+      description: t("exportProcess.steps.step2.description"),
+      icon: PROCESS_ICONS[1],
+    },
+    {
+      step: "03",
+      title: t("exportProcess.steps.step3.title"),
+      description: t("exportProcess.steps.step3.description"),
+      icon: PROCESS_ICONS[2],
+    },
+    {
+      step: "04",
+      title: t("exportProcess.steps.step4.title"),
+      description: t("exportProcess.steps.step4.description"),
+      icon: PROCESS_ICONS[3],
+    },
+  ];
+  
+return (
     <Section spacing="xl" background="muted">
       <Container size="2xl">
         <SectionHeader
-          eyebrow="Export Process"
-          title="Simple & Transparent Export Journey"
-          description="From your first inquiry to final delivery, ROOTYM follows a streamlined export workflow designed for international buyers."
+        eyebrow={t("exportProcess.badge")}
+        title={t("exportProcess.title")}
+        description={t("exportProcess.description")}
           align="center"
         />
 

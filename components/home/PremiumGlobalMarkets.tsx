@@ -1,5 +1,5 @@
 "use client";
-
+import { useTranslation } from "@/lib/i18n/context";
 import {
   ArrowUpRight,
   Globe2,
@@ -18,56 +18,64 @@ type Market = {
   color: string;
 };
 
-const MARKETS: Market[] = [
-  {
-    region: "Middle East",
-    countries: [
-      "UAE",
-      "Saudi Arabia",
-      "Qatar",
-      "Oman",
-      "Kuwait",
-    ],
-    color: "from-emerald-500/10 to-primary/10",
-  },
-  {
-    region: "Europe",
-    countries: [
-      "United Kingdom",
-      "Germany",
-      "France",
-      "Netherlands",
-    ],
-    color: "from-blue-500/10 to-primary/10",
-  },
-  {
-    region: "Asia",
-    countries: [
-      "Sri Lanka",
-      "Singapore",
-      "Malaysia",
-      "Vietnam",
-    ],
-    color: "from-amber-500/10 to-primary/10",
-  },
-  {
-    region: "North America",
-    countries: [
-      "United States",
-      "Canada",
-    ],
-    color: "from-violet-500/10 to-primary/10",
-  },
+const MARKET_COLORS = [
+  "from-emerald-500/10 to-primary/10",
+  "from-blue-500/10 to-primary/10",
+  "from-amber-500/10 to-primary/10",
+  "from-violet-500/10 to-primary/10",
 ];
 
 export default function PremiumGlobalMarkets() {
+  const { t } = useTranslation();
+
+const MARKETS: Market[] = [
+  {
+    region: t("globalMarkets.markets.middleEast.region"),
+    countries: [
+      t("globalMarkets.markets.middleEast.countries.uae"),
+      t("globalMarkets.markets.middleEast.countries.saudi"),
+      t("globalMarkets.markets.middleEast.countries.qatar"),
+      t("globalMarkets.markets.middleEast.countries.oman"),
+      t("globalMarkets.markets.middleEast.countries.kuwait"),
+    ],
+    color: MARKET_COLORS[0],
+  },
+  {
+    region: t("globalMarkets.markets.europe.region"),
+    countries: [
+      t("globalMarkets.markets.europe.countries.uk"),
+      t("globalMarkets.markets.europe.countries.germany"),
+      t("globalMarkets.markets.europe.countries.france"),
+      t("globalMarkets.markets.europe.countries.netherlands"),
+    ],
+    color: MARKET_COLORS[1],
+  },
+  {
+    region: t("globalMarkets.markets.asia.region"),
+    countries: [
+      t("globalMarkets.markets.asia.countries.srilanka"),
+      t("globalMarkets.markets.asia.countries.singapore"),
+      t("globalMarkets.markets.asia.countries.malaysia"),
+      t("globalMarkets.markets.asia.countries.vietnam"),
+    ],
+    color: MARKET_COLORS[2],
+  },
+  {
+    region: t("globalMarkets.markets.northAmerica.region"),
+    countries: [
+      t("globalMarkets.markets.northAmerica.countries.usa"),
+      t("globalMarkets.markets.northAmerica.countries.canada"),
+    ],
+    color: MARKET_COLORS[3],
+  },
+];
   return (
     <Section spacing="xl">
       <Container size="2xl">
         <SectionHeader
-          eyebrow="Global Presence"
-          title="Serving Buyers Across International Markets"
-          description="ROOTYM is expanding its export footprint by connecting premium Indian agricultural products with importers and distributors around the world."
+      eyebrow={t("globalMarkets.badge")}
+      title={t("globalMarkets.title")}
+      description={t("globalMarkets.description")}
           align="center"
         />
 

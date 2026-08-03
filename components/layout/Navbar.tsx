@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { Link } from "@/lib/i18n/Link";
+import { useTranslation } from "@/lib/i18n/context";
+import { usePathname, useRouter } from "next/navigation";
+import { locales } from "@/lib/i18n/config";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Globe } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 
@@ -13,16 +16,16 @@ import { Button } from "@/components/ui/Button";
 /* -------------------------------------------------------------------------- */
 
 const NAV_ITEMS = [
-  { label: "Home", href: "/" },
-  { label: "Products", href: "/products" },
-  { label: "Why ROOTYM", href: "/about" },
-  { label: "Export Services", href: "/services" },
+  { key: "home", href: "/" },
+  { key: "products", href: "/products" },
+  { key: "about", href: "/about" },
+  { key: "services", href: "/services" },
   {
-    label: "Quality & Certifications",
+    key: "certifications",
     href: "/certifications",
   },
-  { label: "Global Markets", href: "/markets" },
-  { label: "Contact", href: "/contact" },
+  { key: "markets", href: "/markets" },
+  { key: "contact", href: "/contact" },
 ];
 
 function classNames(
@@ -34,6 +37,23 @@ function classNames(
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [elevated, setElevated] = useState(false);
+
+  const { t, locale } = useTranslation();
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newLocale = e.target.value;
+    if (!pathname) return;
+
+    const segments = pathname.split("/");
+    if (locales.includes(segments[1] as any)) {
+      segments[1] = newLocale;
+    } else {
+      segments.splice(1, 0, newLocale);
+    }
+    router.push(segments.join("/") || "/");
+  };
 
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -211,7 +231,7 @@ const Navbar = () => {
           </div>
 
           <span className="ml-10 mt-1 text-xs font-medium leading-tight text-gray-500">
-            Global Export Platform
+            {t("navbar.platform_title")}
           </span>
         </Link>
                 {/* Right Section */}
@@ -244,7 +264,7 @@ const Navbar = () => {
                     whileHover={{ y: -1 }}
                     className="relative z-10"
                   >
-                    {item.label}
+                    {t(`navbar.${item.key}`)}
                   </motion.span>
 
                   <motion.span
@@ -265,6 +285,33 @@ const Navbar = () => {
               </motion.div>
             ))}
 
+            {/* Language Switcher */}
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: NAV_ITEMS.length * 0.05, duration: 0.35 }}
+              className="ml-2 flex items-center"
+            >
+              <div className="relative flex items-center rounded-xl bg-gray-50 px-2 py-1.5 transition-colors hover:bg-gray-100">
+                <Globe className="h-4 w-4 text-gray-500 mr-1" />
+                <select
+                  value={locale}
+                  onChange={handleLanguageChange}
+                  className="appearance-none bg-transparent text-sm font-medium text-gray-700 focus:outline-none pr-4 cursor-pointer"
+                  aria-label={t("common.language")}
+                >
+                  <option value="en">{t("common.english")}</option>
+                  <option value="ar">{t("common.arabic")}</option>
+                  <option value="si">{t("common.sinhala")}</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-1 flex items-center px-1 text-gray-500">
+                  <svg className="h-3 w-3 fill-current" viewBox="0 0 20 20">
+                    <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                  </svg>
+                </div>
+              </div>
+            </motion.div>
+
             {/* Request Quote Button */}
 
             <motion.div
@@ -280,7 +327,7 @@ const Navbar = () => {
                   variant="primary"
                   className="ml-3 px-6 py-2 text-base shadow-sm"
                 >
-                  Request Quote
+                  {t("navbar.request_quote")}
                 </Button>
               </Link>
             </motion.div>
@@ -433,10 +480,44 @@ const Navbar = () => {
                       onClick={() => setMobileOpen(false)}
                       className="block rounded-lg px-3 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-[#F1F6F3] hover:text-[#2E7D32]"
                     >
-                      {item.label}
+                      {t(`navbar.${item.key}`)}
                     </Link>
                   </motion.div>
                 ))}
+
+                <motion.div
+                  initial={{
+                    opacity: 0,
+                    y: 15,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                  }}
+                  transition={{
+                    delay: 0.35,
+                  }}
+                  className="mt-2"
+                >
+                  <div className="relative flex items-center rounded-xl bg-gray-50 px-3 py-3 transition-colors hover:bg-gray-100">
+                    <Globe className="h-5 w-5 text-gray-500 mr-2" />
+                    <select
+                      value={locale}
+                      onChange={handleLanguageChange}
+                      className="appearance-none bg-transparent text-base font-medium text-gray-700 focus:outline-none w-full cursor-pointer"
+                      aria-label={t("common.language")}
+                    >
+                      <option value="en">{t("common.english")}</option>
+                      <option value="ar">{t("common.arabic")}</option>
+                      <option value="si">{t("common.sinhala")}</option>
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center px-1 text-gray-500">
+                      <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20">
+                        <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                      </svg>
+                    </div>
+                  </div>
+                </motion.div>
 
                 <motion.div
                   initial={{
@@ -465,7 +546,7 @@ const Navbar = () => {
                       variant="primary"
                       className="mt-5 w-full px-6 py-2 text-base"
                     >
-                      Request Quote
+                      {t("navbar.request_quote")}
                     </Button>
                   </Link>
                 </motion.div>

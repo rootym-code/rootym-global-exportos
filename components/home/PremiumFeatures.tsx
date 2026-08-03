@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslation } from "@/lib/i18n/context";
+
 import {
   BadgeCheck,
   Globe2,
@@ -21,55 +23,52 @@ type Feature = {
   icon: React.ElementType;
 };
 
-const FEATURES: Feature[] = [
-  {
-    title: "Premium Quality",
-    description:
-      "Every product is sourced from trusted farms and verified suppliers with strict quality control.",
-    icon: BadgeCheck,
-  },
-  {
-    title: "Global Export",
-    description:
-      "Reliable export operations with documentation, logistics and worldwide shipping support.",
-    icon: Globe2,
-  },
-  {
-    title: "Sustainable Farming",
-    description:
-      "Supporting environmentally responsible farming practices and ethical sourcing.",
-    icon: Leaf,
-  },
-  {
-    title: "Certified Products",
-    description:
-      "Products backed by applicable certifications and export compliance standards.",
-    icon: ShieldCheck,
-  },
-  {
-    title: "Efficient Logistics",
-    description:
-      "Optimized supply chain from farm to destination with complete shipment visibility.",
-    icon: Truck,
-  },
-  {
-    title: "Dedicated Support",
-    description:
-      "Professional assistance for importers, distributors and wholesale buyers.",
-    icon: Users,
-  },
-];
 
 export default function PremiumFeatures() {
+  const { t } = useTranslation();
+
+  const FEATURES: Feature[] = [
+    {
+      title: t("features.cards.quality.title"),
+      description: t("features.cards.quality.description"),
+      icon: BadgeCheck,
+    },
+    {
+      title: t("features.cards.export.title"),
+      description: t("features.cards.export.description"),
+      icon: Globe2,
+    },
+    {
+      title: t("features.cards.farming.title"),
+      description: t("features.cards.farming.description"),
+      icon: Leaf,
+    },
+    {
+      title: t("features.cards.certified.title"),
+      description: t("features.cards.certified.description"),
+      icon: ShieldCheck,
+    },
+    {
+      title: t("features.cards.logistics.title"),
+      description: t("features.cards.logistics.description"),
+      icon: Truck,
+    },
+    {
+      title: t("features.cards.support.title"),
+      description: t("features.cards.support.description"),
+      icon: Users,
+    },
+  ];
+
   return (
     <Section spacing="xl">
       <Container size="2xl">
-        <SectionHeader
-          eyebrow="Why ROOTYM"
-          title="Why Global Buyers Choose ROOTYM"
-          description="Built for international trade with transparency, quality assurance and dependable export operations."
-          align="center"
-        />
+      <SectionHeader
+  eyebrow={t("features.badge")}
+  title={t("features.title")}
+  description={t("features.description")}
+  align="center"
+/>
 
         <div className="mt-16 grid gap-8 md:grid-cols-2 xl:grid-cols-3">
           {FEATURES.map((feature, index) => {

@@ -67,7 +67,7 @@ const contactDetails = [
     icon: Phone,
     title: "Business Support",
     details: [
-      "+91 XXXXX XXXXX",
+      "+91 98735 29752",
       "Import & Export Assistance",
       "Monday - Saturday",
     ],

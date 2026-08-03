@@ -4,7 +4,7 @@
  */
 
 "use client";
-
+import { useTranslation } from "@/lib/i18n/context";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, Variants } from "framer-motion";
@@ -56,6 +56,8 @@ const itemVariants: Variants = {
 
 
 export default function ProductShowcase() {
+  const { t } = useTranslation();
+
   return (
 <Section
   background="gradient"
@@ -102,12 +104,12 @@ export default function ProductShowcase() {
       </div>
       <div className="relative">
       <motion.div variants={itemVariants}>
-  <SectionHeader
-    align="center"
-    eyebrow="Premium Agricultural Exports"
-    title="Fresh From India. Ready For Global Markets."
-    description="Carefully sourced agricultural products for importers, wholesalers, distributors and supermarket chains across global markets."
-  />
+      <SectionHeader
+  align="center"
+  eyebrow={t("productsSection.badge")}
+  title={t("productsSection.title")}
+  description={t("productsSection.description")}
+/>
 </motion.div>
          
 
@@ -243,7 +245,7 @@ export default function ProductShowcase() {
 
                     <div>
                       <p className="text-xs uppercase tracking-wide text-gray-500">
-                        Origin
+                      {t("productsSection.labels.origin")}
                       </p>
 
                       <p className="font-semibold text-gray-800">
@@ -261,7 +263,7 @@ export default function ProductShowcase() {
 
                     <div>
                       <p className="text-xs uppercase tracking-wide text-gray-500">
-                        Packaging
+                      {t("productsSection.labels.packaging")}
                       </p>
 
                       <p className="font-semibold text-gray-800">
@@ -286,7 +288,7 @@ export default function ProductShowcase() {
                     }}
                   className="rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1.5 text-xs font-semibold tracking-wide text-emerald-700"
                   >
-                    APEDA
+                 {t("productsSection.badges.apeda")}
                   </motion.span>
 
                   <motion.span
@@ -299,7 +301,7 @@ export default function ProductShowcase() {
                     }}
 className="rounded-full border border-sky-200 bg-sky-50 px-4 py-1.5 text-xs font-semibold tracking-wide text-sky-700"
                   >
-                    Export Ready
+                   {t("productsSection.badges.exportReady")}
                   </motion.span>
 
                   <motion.span
@@ -312,7 +314,7 @@ className="rounded-full border border-sky-200 bg-sky-50 px-4 py-1.5 text-xs font
                     }}
                     className="rounded-full border border-amber-200 bg-amber-50 px-4 py-1.5 text-xs font-semibold tracking-wide text-amber-700"
                   >
-                    Premium Quality
+                  {t("productsSection.badges.premiumQuality")}
                   </motion.span>
                 </motion.div>
 
@@ -331,7 +333,7 @@ className="rounded-full border border-sky-200 bg-sky-50 px-4 py-1.5 text-xs font
   variant="secondary"
   className="h-12 w-full rounded-xl font-semibold transition-all duration-300 hover:shadow-lg"
 >
-                        View Details
+{t("productsSection.buttons.details")}
                       </Button>
                     </Link>
                   </motion.div>
@@ -345,7 +347,7 @@ className="rounded-full border border-sky-200 bg-sky-50 px-4 py-1.5 text-xs font
                     }}
                   >
                   <Button className="h-12 w-full rounded-xl bg-gradient-to-r from-primary to-emerald-600 font-semibold shadow-lg transition-all duration-300 hover:shadow-xl">
-                      Request Quote
+                  {t("productsSection.buttons.quote")}
                     </Button>
                   </motion.div>
                 </div>
@@ -359,7 +361,7 @@ className="rounded-full border border-sky-200 bg-sky-50 px-4 py-1.5 text-xs font
                     className="flex items-center gap-2 text-sm font-semibold text-primary"
                   >
                     <BadgeCheck className="h-4 w-4" />
-                    Ready for Export
+                    {t("productsSection.badges.readyForExport")}
                   </motion.div>
 
                   <motion.div

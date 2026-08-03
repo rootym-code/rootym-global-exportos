@@ -9,6 +9,8 @@
 import { memo } from "react";
 import { motion } from "framer-motion";
 
+import { useTranslation } from "@/lib/i18n/context";
+
 import AnimatedGlobe from "./AnimatedGlobe";
 import CargoPlane from "./CargoPlane";
 import CargoShip from "./CargoShip";
@@ -18,14 +20,28 @@ import TradeRoutes from "./TradeRoutes";
 import { EXPORT_HUBS } from "./globe.constants";
 import { cardViewport, fadeUp } from "@/lib/motion";
 
-const STATS = [
-  { label: "Export Hubs", value: EXPORT_HUBS.length },
-  { label: "Countries", value: "25+" },
-  { label: "Products", value: "50+" },
-  { label: "Availability", value: "24×7" },
-] as const;
-
 function GlobalExportPanel() {
+  const { t } = useTranslation();
+
+  const STATS = [
+    {
+      label: t("globalPanel.stats.exportHubs"),
+      value: EXPORT_HUBS.length,
+    },
+    {
+      label: t("globalPanel.stats.countries"),
+      value: "25+",
+    },
+    {
+      label: t("globalPanel.stats.products"),
+      value: "50+",
+    },
+    {
+      label: t("globalPanel.stats.availability"),
+      value: "24×7",
+    },
+  ] as const;
+
   return (
     <motion.section
       variants={fadeUp}
@@ -40,16 +56,15 @@ function GlobalExportPanel() {
         {/* Content */}
         <div className="space-y-6">
           <span className="inline-flex rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-emerald-300">
-            Global Network
+            {t("globalPanel.badge")}
           </span>
 
           <h2 className="text-4xl font-extrabold tracking-tight text-white">
-            Connecting Indian Farms to Global Markets
+            {t("globalPanel.title")}
           </h2>
 
           <p className="max-w-xl text-slate-300">
-            ROOTYM combines trusted sourcing, export expertise and modern
-            logistics to deliver premium agricultural products worldwide.
+            {t("globalPanel.description")}
           </p>
 
           <div className="grid grid-cols-2 gap-4">

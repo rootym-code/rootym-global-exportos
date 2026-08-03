@@ -1,5 +1,5 @@
 "use client";
-
+import { useTranslation } from "@/lib/i18n/context";
 import {
   useEffect,
   useState,
@@ -77,7 +77,7 @@ const itemVariants: Variants = {
 
 
 export default function Footer() {
-
+  const { t } = useTranslation();
   const [companySettings, setCompanySettings] =
     useState<CompanySettings | null>(null);
 
@@ -269,7 +269,7 @@ export default function Footer() {
 
 
             <p className="mt-6 max-w-md leading-8 text-green-100">
-              {footer.company.description}
+            {t("footer.company.description")}
             </p>
 
           </motion.div>
@@ -282,13 +282,18 @@ export default function Footer() {
           <motion.div variants={itemVariants}>
 
             <h3 className="text-lg font-semibold">
-              Quick Links
+            {t("footer.headings.quickLinks")}
             </h3>
 
 
             <ul className="mt-6 space-y-3">
 
-              {footer.quickLinks.map(
+            {[
+  t("footer.links.home"),
+  t("footer.links.products"),
+  t("footer.links.about"),
+  t("footer.links.contact"),
+].map(
                 (item) => (
 
                   <li key={item}>
@@ -326,13 +331,18 @@ export default function Footer() {
           <motion.div variants={itemVariants}>
 
             <h3 className="text-lg font-semibold">
-              Products
+            {t("footer.headings.products")}
             </h3>
 
 
             <ul className="mt-6 space-y-3">
 
-              {footer.products.map(
+            {[
+  t("footer.products.makhana"),
+  t("footer.products.onion"),
+  t("footer.products.potato"),
+  t("footer.products.mango"),
+].map(
                 (item) => (
 
                   <li key={item}>
@@ -365,7 +375,7 @@ export default function Footer() {
           <motion.div variants={itemVariants}>
 
             <h3 className="text-lg font-semibold">
-              Contact
+            {t("footer.headings.contact")}
             </h3>
 
 
@@ -490,12 +500,12 @@ export default function Footer() {
         >
 
           <p className="text-sm text-green-200">
-            © 2026 ROOTYM AGRO HARVEST PRIVATE LIMITED. All Rights Reserved.
+          {t("footer.copyright")}
           </p>
 
 
           <p className="mt-2 text-xs text-green-300">
-            Rooted in India. Trusted Worldwide.
+          {t("footer.tagline")}
           </p>
 
 

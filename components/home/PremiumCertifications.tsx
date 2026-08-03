@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslation } from "@/lib/i18n/context";
 import {
   Award,
   BadgeCheck,
@@ -21,53 +22,58 @@ type Certification = {
   icon: React.ElementType;
 };
 
-const CERTIFICATIONS: Certification[] = [
-  {
-    title: "APEDA Registered",
-    description:
-      "Recognized exporter registered with the Agricultural and Processed Food Products Export Development Authority.",
-    icon: Globe2,
-  },
-  {
-    title: "FSSAI Certified",
-    description:
-      "Food products processed and handled in compliance with Indian food safety standards.",
-    icon: ShieldCheck,
-  },
-  {
-    title: "IEC Holder",
-    description:
-      "Valid Import Export Code enabling international trade and global shipments.",
-    icon: FileCheck2,
-  },
-  {
-    title: "MSME Registered",
-    description:
-      "Registered Indian MSME committed to quality manufacturing and export excellence.",
-    icon: BadgeCheck,
-  },
-  {
-    title: "Quality Assurance",
-    description:
-      "Every shipment passes quality inspection before dispatch to international buyers.",
-    icon: Award,
-  },
-  {
-    title: "Trusted Worldwide",
-    description:
-      "Building long-term relationships with importers through transparency and reliability.",
-    icon: Star,
-  },
+
+const CERTIFICATION_ICONS = [
+  Globe2,
+  ShieldCheck,
+  FileCheck2,
+  BadgeCheck,
+  Award,
+  Star,
 ];
 
 export default function PremiumCertifications() {
+  const { t } = useTranslation();
+
+const CERTIFICATIONS: Certification[] = [
+  {
+    title: t("certifications.cards.apeda.title"),
+    description: t("certifications.cards.apeda.description"),
+    icon: CERTIFICATION_ICONS[0],
+  },
+  {
+    title: t("certifications.cards.fssai.title"),
+    description: t("certifications.cards.fssai.description"),
+    icon: CERTIFICATION_ICONS[1],
+  },
+  {
+    title: t("certifications.cards.iec.title"),
+    description: t("certifications.cards.iec.description"),
+    icon: CERTIFICATION_ICONS[2],
+  },
+  {
+    title: t("certifications.cards.msme.title"),
+    description: t("certifications.cards.msme.description"),
+    icon: CERTIFICATION_ICONS[3],
+  },
+  {
+    title: t("certifications.cards.quality.title"),
+    description: t("certifications.cards.quality.description"),
+    icon: CERTIFICATION_ICONS[4],
+  },
+  {
+    title: t("certifications.cards.trusted.title"),
+    description: t("certifications.cards.trusted.description"),
+    icon: CERTIFICATION_ICONS[5],
+  },
+];
   return (
     <Section spacing="xl">
       <Container size="2xl">
         <SectionHeader
-          eyebrow="Trust & Compliance"
-          title="Certified for International Trade"
-          description="ROOTYM follows internationally accepted export practices backed by registrations, compliance and rigorous quality assurance."
+         eyebrow={t("certifications.badge")}
+         title={t("certifications.title")}
+         description={t("certifications.description")}
           align="center"
         />
 

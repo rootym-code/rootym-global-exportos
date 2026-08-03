@@ -1,5 +1,5 @@
 "use client";
-
+import { useTranslation } from "@/lib/i18n/context";
 import { Quote, Star } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -15,38 +15,37 @@ type Testimonial = {
   review: string;
 };
 
-const TESTIMONIALS: Testimonial[] = [
+const TESTIMONIALS_DATA = [
   {
+    key: "testimonial1",
     name: "Ahmed Al Mansoori",
-    company: "Al Noor Food Trading",
-    country: "United Arab Emirates",
-    review:
-      "ROOTYM demonstrated excellent professionalism throughout the export process. Product quality, documentation and shipment coordination exceeded our expectations.",
   },
   {
+    key: "testimonial2",
     name: "David Thompson",
-    company: "Global Harvest Imports",
-    country: "United Kingdom",
-    review:
-      "Communication was transparent from inquiry to delivery. We look forward to establishing a long-term sourcing partnership with ROOTYM.",
   },
   {
+    key: "testimonial3",
     name: "Nimal Perera",
-    company: "Lanka Agro Traders",
-    country: "Sri Lanka",
-    review:
-      "Reliable supplier with consistent product quality and timely export documentation. Highly recommended for international buyers.",
   },
 ];
 
 export default function PremiumTestimonials() {
+  const { t } = useTranslation();
+
+const TESTIMONIALS: Testimonial[] = TESTIMONIALS_DATA.map((item) => ({
+  name: item.name,
+  company: t(`testimonials.items.${item.key}.company`),
+  country: t(`testimonials.items.${item.key}.country`),
+  review: t(`testimonials.items.${item.key}.review`),
+}));
   return (
     <Section spacing="xl" background="muted">
       <Container size="2xl">
         <SectionHeader
-          eyebrow="Client Trust"
-          title="What Our International Buyers Say"
-          description="Building long-term business relationships through transparency, quality and dependable export services."
+     eyebrow={t("testimonials.badge")}
+     title={t("testimonials.title")}
+     description={t("testimonials.description")}
           align="center"
         />
 

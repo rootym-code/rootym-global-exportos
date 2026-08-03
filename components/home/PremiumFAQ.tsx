@@ -1,5 +1,5 @@
 "use client";
-
+import { useTranslation } from "@/lib/i18n/context";
 import { ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
@@ -13,49 +13,31 @@ type FAQ = {
   answer: string;
 };
 
-const FAQS: FAQ[] = [
-  {
-    question: "Which countries does ROOTYM export to?",
-    answer:
-      "ROOTYM serves buyers across the Middle East, Europe, Asia, Africa and other international markets, depending on product availability and import regulations.",
-  },
-  {
-    question: "Can I request customized packaging?",
-    answer:
-      "Yes. We provide private labeling, customized packaging sizes and export-grade packing based on buyer requirements.",
-  },
-  {
-    question: "What documents are provided with export shipments?",
-    answer:
-      "Depending on the shipment, ROOTYM provides Commercial Invoice, Packing List, Certificate of Origin, Phytosanitary Certificate, Bill of Lading/AWB and other export documents as required.",
-  },
-  {
-    question: "How do I request a quotation?",
-    answer:
-      "Simply submit your inquiry with product name, quantity, destination country and preferred Incoterms. Our export team will respond with a detailed quotation.",
-  },
-  {
-    question: "Do you support bulk orders?",
-    answer:
-      "Yes. ROOTYM specializes in bulk export orders for wholesalers, distributors, supermarkets and food processing companies.",
-  },
-  {
-    question: "How is product quality ensured?",
-    answer:
-      "Every shipment undergoes quality inspection, export-grade packaging and compliance verification before dispatch.",
-  },
-];
+const FAQ_KEYS = [
+  "faq1",
+  "faq2",
+  "faq3",
+  "faq4",
+  "faq5",
+  "faq6",
+] as const;
 
 export default function PremiumFAQ() {
+  const { t } = useTranslation();
+
+const FAQS: FAQ[] = FAQ_KEYS.map((key) => ({
+  question: t(`faq.questions.${key}.question`),
+  answer: t(`faq.questions.${key}.answer`),
+}));
   const [openIndex, setOpenIndex] = useState<number>(0);
 
   return (
     <Section spacing="xl">
       <Container size="xl">
         <SectionHeader
-          eyebrow="Frequently Asked Questions"
-          title="Questions From International Buyers"
-          description="Everything you need to know before placing your export order with ROOTYM."
+        eyebrow={t("faq.badge")}
+        title={t("faq.title")}
+        description={t("faq.description")}
           align="center"
         />
 

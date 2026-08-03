@@ -4,6 +4,7 @@ import { Globe2, ShieldCheck, Ship, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
 
 import AnimatedCard from "@/components/ui/animated-card";
+import { useTranslation } from "@/lib/i18n/context";
 
 type PremiumStat = {
   label: string;
@@ -11,30 +12,32 @@ type PremiumStat = {
   icon: React.ElementType;
 };
 
-const STATS: PremiumStat[] = [
-  {
-    label: "Countries Served",
-    value: "25+",
-    icon: Globe2,
-  },
-  {
-    label: "Export Products",
-    value: "50+",
-    icon: Ship,
-  },
-  {
-    label: "Quality Compliance",
-    value: "100%",
-    icon: ShieldCheck,
-  },
-  {
-    label: "Business Support",
-    value: "24×7",
-    icon: TrendingUp,
-  },
-];
-
 export default function PremiumStats() {
+  const { t } = useTranslation();
+
+  const STATS: PremiumStat[] = [
+    {
+      label: t("stats.countries"),
+      value: "25+",
+      icon: Globe2,
+    },
+    {
+      label: t("stats.products"),
+      value: "50+",
+      icon: Ship,
+    },
+    {
+      label: t("stats.quality"),
+      value: "100%",
+      icon: ShieldCheck,
+    },
+    {
+      label: t("stats.support"),
+      value: "24×7",
+      icon: TrendingUp,
+    },
+  ];
+
   return (
     <section className="mt-20">
       <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">

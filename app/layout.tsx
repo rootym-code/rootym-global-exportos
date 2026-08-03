@@ -1,7 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { headers } from "next/headers";
 
 import PublicFloatingProvider from "@/components/r-captain/floating/PublicFloatingProvider";
+import { TranslationProvider } from "@/lib/i18n/context";
+import { getDictionary } from "@/lib/i18n/get-dictionary";
+import { Locale } from "@/lib/i18n/config";
 
 import "./globals.css";
 
@@ -52,19 +56,35 @@ export const viewport: Viewport = {
   colorScheme: "light",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const headersList = await headers();
+  const locale = (headersList.get("x-locale") || "en") as Locale;
+//  console.log("x-locale header =", headersList.get("x-locale"));
+ // console.log("resolved locale =", locale);
+
+
+  const direction = locale === "ar" ? "rtl" : "ltr";
+  const dictionary = await getDictionary(locale);
+
   return (
     <html
-      lang="en"
+      lang={locale}
+      dir={direction}
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable}`}
     >
       <body className="min-h-screen bg-background text-foreground antialiased">
-        <PublicFloatingProvider>
-          {children}
-        </PublicFloatingProvider>
+        <TranslationProvider
+          locale={locale}
+          direction={direction}
+          dictionary={dictionary}
+        >
+          <PublicFloatingProvider>
+            {children}
+          </PublicFloatingProvider>
+        </TranslationProvider>
       </body>
     </html>
   );

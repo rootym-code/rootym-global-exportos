@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslation } from "@/lib/i18n/context";
 import { ArrowRight, Globe2 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -11,6 +12,8 @@ import PremiumHeroVisual from "./PremiumHeroVisual";
 import PremiumStats from "./PremiumStats";
 
 export default function PremiumHero() {
+  const { t } = useTranslation();
+
   return (
     <Section
       spacing="xl"
@@ -34,22 +37,19 @@ export default function PremiumHero() {
           >
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-5 py-2 text-sm font-semibold text-primary">
               <Globe2 className="h-4 w-4" />
-              Rooted in India. Trusted Worldwide.
+              {t("hero.badge")}
             </div>
 
             <div className="space-y-6">
               <h1 className="text-5xl font-extrabold leading-tight tracking-tight lg:text-7xl">
-                Premium Indian
+                {t("hero.title.line1")}
                 <span className="block bg-gradient-to-r from-primary to-emerald-600 bg-clip-text text-transparent">
-                  Agricultural Exports
+                  {t("hero.title.line2")}
                 </span>
               </h1>
 
               <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
-                ROOTYM connects global buyers with premium-quality Indian
-                agricultural products through transparent sourcing,
-                international quality standards, dependable logistics,
-                and a technology-driven export platform.
+                {t("hero.description")}
               </p>
             </div>
 
@@ -58,22 +58,22 @@ export default function PremiumHero() {
                 size="xl"
                 rightIcon={<ArrowRight className="h-5 w-5" />}
               >
-                Explore Products
+                {t("hero.buttons.explore")}
               </PremiumButton>
 
               <PremiumButton
                 variant="outline"
                 size="xl"
               >
-                Request Quote
+                {t("hero.buttons.quote")}
               </PremiumButton>
             </div>
 
             <div className="flex flex-wrap items-center gap-8 pt-4 text-sm text-muted-foreground">
-              <div>✔ Export Ready</div>
-              <div>✔ APEDA Registered</div>
-              <div>✔ Premium Quality</div>
-              <div>✔ Global Logistics</div>
+              <div>✔ {t("hero.features.exportReady")}</div>
+              <div>✔ {t("hero.features.apeda")}</div>
+              <div>✔ {t("hero.features.quality")}</div>
+              <div>✔ {t("hero.features.logistics")}</div>
             </div>
           </motion.div>
 

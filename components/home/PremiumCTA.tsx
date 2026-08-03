@@ -1,5 +1,5 @@
 "use client";
-
+import { useTranslation } from "@/lib/i18n/context";
 import { ArrowRight, Mail, Phone } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -8,6 +8,7 @@ import Section from "@/components/ui/section";
 import PremiumButton from "@/components/ui/premium-button";
 
 export default function PremiumCTA() {
+  const { t } = useTranslation();
   return (
     <Section
       spacing="xl"
@@ -39,18 +40,16 @@ export default function PremiumCTA() {
           className="relative z-10 text-center"
         >
           <div className="mx-auto max-w-4xl">
-            <h2 className="text-4xl font-extrabold leading-tight tracking-tight text-white lg:text-6xl">
-              Ready to Import Premium
-              <span className="block">
-                Agricultural Products from India?
-              </span>
-            </h2>
+          <h2 className="text-4xl font-extrabold leading-tight tracking-tight text-white lg:text-6xl">
+  {t("cta.title.line1")}
+  <span className="block">
+    {t("cta.title.line2")}
+  </span>
+</h2>
 
-            <p className="mx-auto mt-8 max-w-3xl text-lg leading-8 text-white/90">
-              Partner with ROOTYM for reliable sourcing,
-              export documentation, quality assurance,
-              and timely international deliveries.
-            </p>
+<p className="mx-auto mt-8 max-w-3xl text-lg leading-8 text-white/90">
+  {t("cta.description")}
+</p>
 
            
            
@@ -60,7 +59,7 @@ export default function PremiumCTA() {
     variant="gradient"
     rightIcon={<ArrowRight className="h-5 w-5" />}
   >
-    Request a Quote
+{t("cta.buttons.quote")}
   </PremiumButton>
 
   <PremiumButton
@@ -68,7 +67,7 @@ export default function PremiumCTA() {
     variant="outline"
     className="border-2 border-white !text-white hover:bg-white/10"
   >
-    Explore Products
+ {t("cta.buttons.products")}
   </PremiumButton>
 </div>
 
@@ -83,7 +82,7 @@ export default function PremiumCTA() {
 
               <div className="flex items-center gap-3">
                 <Phone className="h-5 w-5" />
-                <span>+91 XXXXX XXXXX</span>
+                <span>+91 98735 29752</span>
               </div>
             </div>
           </div>

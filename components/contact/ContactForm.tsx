@@ -365,7 +365,7 @@ export default function ContactForm() {
                           e.target.value,
                         )
                       }
-                      placeholder="+91 XXXXX XXXXX"
+                      placeholder="+91 98735 29752"
                       className="w-full rounded-xl border border-gray-200 py-3 pl-12 pr-4 outline-none transition focus:border-green-600"
                     />
                   </div>
