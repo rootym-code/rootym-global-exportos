@@ -4,6 +4,8 @@ import Link from "next/link";
 import { motion, type Variants } from "framer-motion";
 import { ArrowRight, Mail, Phone } from "lucide-react";
 
+import { useTranslation } from "@/lib/i18n/context";
+
 const containerVariants: Variants = {
   hidden: {},
   visible: {
@@ -29,6 +31,8 @@ const fadeUpVariants: Variants = {
 };
 
 export default function AboutCTA() {
+  const { t } = useTranslation();
+
   return (
     <section className="relative overflow-hidden bg-slate-900 py-24">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.18),transparent_45%)]" />
@@ -51,20 +55,17 @@ export default function AboutCTA() {
 
               <div className="text-white">
                 <span className="rounded-full bg-white/15 px-4 py-2 text-sm font-semibold backdrop-blur">
-                  Start Your Partnership
+                  {t("about.cta.badge")}
                 </span>
 
                 <h2 className="mt-6 text-4xl font-bold leading-tight md:text-5xl">
-                  Ready to Build a Reliable
+                  {t("about.cta.title.line1")}
                   <br />
-                  Supply Partnership with India?
+                  {t("about.cta.title.line2")}
                 </h2>
 
                 <p className="mt-6 max-w-xl text-lg leading-8 text-green-50">
-                  Whether you are an importer, distributor, wholesaler,
-                  retailer, or food manufacturer, ROOTYM helps you source
-                  premium Indian agricultural products with reliable supply,
-                  transparent communication, and dependable export support.
+                  {t("about.cta.description")}
                 </p>
 
                 <div className="mt-10 flex flex-wrap gap-4">
@@ -72,7 +73,8 @@ export default function AboutCTA() {
                     href="/request-quote"
                     className="inline-flex items-center gap-2 rounded-xl bg-white px-7 py-4 font-semibold text-green-700 transition hover:scale-105"
                   >
-                    Request a Quote
+                    {t("about.cta.buttons.quote")}
+
                     <ArrowRight className="h-5 w-5" />
                   </Link>
 
@@ -80,11 +82,10 @@ export default function AboutCTA() {
                     href="/contact"
                     className="inline-flex items-center gap-2 rounded-xl border border-white/30 px-7 py-4 font-semibold text-white backdrop-blur transition hover:bg-white/10"
                   >
-                    Contact Us
+                    {t("about.cta.buttons.contact")}
                   </Link>
                 </div>
               </div>
-
 
               {/* Right Content */}
 
@@ -98,7 +99,7 @@ export default function AboutCTA() {
 
                     <div>
                       <p className="text-sm uppercase tracking-wide text-green-100">
-                        Email
+                        {t("about.cta.contact.email")}
                       </p>
 
                       <h3 className="mt-1 text-xl font-semibold text-white">
@@ -108,7 +109,6 @@ export default function AboutCTA() {
                   </div>
                 </div>
 
-
                 <div className="rounded-3xl bg-white/10 p-8 backdrop-blur">
                   <div className="flex items-center gap-4">
                     <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15">
@@ -117,49 +117,51 @@ export default function AboutCTA() {
 
                     <div>
                       <p className="text-sm uppercase tracking-wide text-green-100">
-                        Business Enquiries
+                        {t("about.cta.contact.business")}
                       </p>
 
                       <h3 className="mt-1 text-xl font-semibold text-white">
-                        Export Enquiries & Buyer Support
+                        {t("about.cta.contact.support")}
                       </h3>
                     </div>
                   </div>
                 </div>
 
-
                 <div className="rounded-3xl bg-white/10 p-8 backdrop-blur">
                   <h3 className="text-2xl font-bold text-white">
-                    Why Partner with ROOTYM?
+                    {t("about.cta.partner.title")}
                   </h3>
 
                   <ul className="mt-6 space-y-4 text-green-50">
-
-                    <li className="flex items-start gap-3">
+                  <li className="flex items-start gap-3">
                       <span className="mt-2 h-2 w-2 rounded-full bg-white" />
+
                       <span>
-                        Premium Indian agricultural products prepared for global markets.
+                        {t("about.cta.partner.points.point1")}
                       </span>
                     </li>
 
                     <li className="flex items-start gap-3">
                       <span className="mt-2 h-2 w-2 rounded-full bg-white" />
+
                       <span>
-                        Clear communication and documentation support at every stage.
+                        {t("about.cta.partner.points.point2")}
                       </span>
                     </li>
 
                     <li className="flex items-start gap-3">
                       <span className="mt-2 h-2 w-2 rounded-full bg-white" />
+
                       <span>
-                        Trusted sourcing network with dependable supply partnerships.
+                        {t("about.cta.partner.points.point3")}
                       </span>
                     </li>
 
                     <li className="flex items-start gap-3">
                       <span className="mt-2 h-2 w-2 rounded-full bg-white" />
+
                       <span>
-                        A long-term approach focused on buyer success and trust.
+                        {t("about.cta.partner.points.point4")}
                       </span>
                     </li>
 

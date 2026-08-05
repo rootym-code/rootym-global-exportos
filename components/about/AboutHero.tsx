@@ -4,6 +4,8 @@ import Link from "next/link";
 import { motion, type Variants } from "framer-motion";
 import { ArrowRight, Globe2, Leaf } from "lucide-react";
 
+import { useTranslation } from "@/lib/i18n/context";
+
 /* -------------------------------------------------------------------------- */
 /*                                Animations                                  */
 /* -------------------------------------------------------------------------- */
@@ -33,10 +35,12 @@ const fadeUpVariants: Variants = {
 };
 
 /* -------------------------------------------------------------------------- */
-/*                               Why ROOTYM Hero                              */
+/*                               About Hero                                   */
 /* -------------------------------------------------------------------------- */
 
 export default function AboutHero() {
+  const { t } = useTranslation();
+
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-white via-green-50 to-emerald-100">
       {/* Animated Background */}
@@ -89,13 +93,13 @@ export default function AboutHero() {
               href="/"
               className="transition-colors hover:text-green-900"
             >
-              Home
+              {t("about.hero.breadcrumb.home")}
             </Link>
 
             <ArrowRight className="h-4 w-4" />
 
             <span className="font-semibold text-[#2E7D32]">
-              Why ROOTYM
+              {t("about.hero.breadcrumb.current")}
             </span>
           </motion.div>
 
@@ -107,7 +111,7 @@ export default function AboutHero() {
           >
             <Leaf className="h-4 w-4" />
 
-            Rooted in India. Trusted Worldwide.
+            {t("about.hero.tagline")}
           </motion.div>
 
           {/* Heading */}
@@ -116,32 +120,27 @@ export default function AboutHero() {
             variants={fadeUpVariants}
             className="text-5xl font-black leading-tight tracking-tight text-slate-900 md:text-6xl lg:text-7xl"
           >
-            Why Global Buyers
+            {t("about.hero.title.line1")}
 
             <br />
 
             <span className="bg-gradient-to-r from-[#2E7D32] to-[#43A047] bg-clip-text text-transparent">
-              Choose ROOTYM
+              {t("about.hero.title.line2")}
             </span>
           </motion.h1>
-                    {/* Description */}
 
-                    <motion.p
+          {/* Description */}
+
+          <motion.p
             variants={fadeUpVariants}
             className="mt-8 max-w-3xl text-lg leading-9 text-slate-600 md:text-xl"
           >
-            ROOTYM Agro Harvest Private Limited partners with global
-            importers, wholesalers, distributors, retailers, and food
-            manufacturers by supplying premium Indian agricultural products
-            backed by quality assurance, reliable sourcing, and export
-            expertise.
+            {t("about.hero.description.line1")}
 
             <br />
             <br />
 
-            From farm to destination, every shipment is managed with
-            transparency, compliance, and long-term partnerships—helping
-            international buyers source confidently from India.
+            {t("about.hero.description.line2")}
           </motion.p>
 
           {/* Action Buttons */}
@@ -154,7 +153,7 @@ export default function AboutHero() {
               href="/request-quote"
               className="inline-flex items-center gap-2 rounded-xl bg-[#2E7D32] px-8 py-4 font-semibold text-white shadow-lg transition-all duration-300 hover:-translate-y-1 hover:bg-[#256B29] hover:shadow-xl"
             >
-              Request Quote
+              {t("about.hero.buttons.quote")}
 
               <ArrowRight className="h-5 w-5" />
             </Link>
@@ -163,7 +162,7 @@ export default function AboutHero() {
               href="/products"
               className="inline-flex items-center gap-2 rounded-xl border border-green-200 bg-white/80 px-8 py-4 font-semibold text-[#2E7D32] backdrop-blur transition-all duration-300 hover:border-[#2E7D32] hover:bg-white"
             >
-              Explore Products
+              {t("about.hero.buttons.products")}
             </Link>
           </motion.div>
 
@@ -175,21 +174,21 @@ export default function AboutHero() {
           >
             <div className="rounded-2xl border border-white/70 bg-white/70 p-6 shadow-lg backdrop-blur">
               <div className="text-3xl font-black text-[#2E7D32]">
-                Premium
+                {t("about.hero.stats.quality.title")}
               </div>
 
               <p className="mt-2 text-sm font-medium text-slate-600">
-                Export-Grade Agricultural Products
+                {t("about.hero.stats.quality.subtitle")}
               </p>
             </div>
 
             <div className="rounded-2xl border border-white/70 bg-white/70 p-6 shadow-lg backdrop-blur">
               <div className="text-3xl font-black text-[#2E7D32]">
-                APEDA
+                {t("about.hero.stats.apeda.title")}
               </div>
 
               <p className="mt-2 text-sm font-medium text-slate-600">
-                Registered Export Organization
+                {t("about.hero.stats.apeda.subtitle")}
               </p>
             </div>
 
@@ -197,11 +196,11 @@ export default function AboutHero() {
               <div className="flex items-center gap-2 text-3xl font-black text-[#2E7D32]">
                 <Globe2 className="h-8 w-8" />
 
-                Global
+                {t("about.hero.stats.global.title")}
               </div>
 
               <p className="mt-2 text-sm font-medium text-slate-600">
-                Serving Importers Across Global Markets
+                {t("about.hero.stats.global.subtitle")}
               </p>
             </div>
           </motion.div>

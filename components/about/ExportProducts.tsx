@@ -1,18 +1,24 @@
 "use client";
 
+import { motion, type Variants } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { motion, type Variants } from "framer-motion";
 import {
   ArrowRight,
   Globe2,
   Package,
-  ShieldCheck,
+  MapPin,
 } from "lucide-react";
+
+import { useTranslation } from "@/lib/i18n/context";
+
+/* -------------------------------------------------------------------------- */
+/*                                Animations                                  */
+/* -------------------------------------------------------------------------- */
 
 const containerVariants: Variants = {
   hidden: {},
-  visible: {
+  show: {
     transition: {
       staggerChildren: 0.12,
     },
@@ -22,9 +28,9 @@ const containerVariants: Variants = {
 const fadeUpVariants: Variants = {
   hidden: {
     opacity: 0,
-    y: 40,
+    y: 30,
   },
-  visible: {
+  show: {
     opacity: 1,
     y: 0,
     transition: {
@@ -34,187 +40,152 @@ const fadeUpVariants: Variants = {
   },
 };
 
-const products = [
-  {
-    name: "Premium Makhana",
-    image: "/images/products/makhana.webp",
-    origin: "Mithilanchal, Bihar",
-    packaging: "250g • 500g • 1kg • Bulk",
-    markets: "UAE • Europe • USA",
-    description:
-      "Premium-grade fox nuts sourced from the renowned Mithilanchal region of Bihar, carefully processed to deliver exceptional taste, consistency, and export-quality standards.",
-  },
-  {
-    name: "Dehydrated Onion Powder",
-    image: "/images/products/onion-powder.webp",
-    origin: "Nashik, Maharashtra",
-    packaging: "25kg Export Bags",
-    markets: "Middle East • Europe",
-    description:
-      "Export-grade dehydrated onion powder manufactured from premium Indian onions, ideal for food processing, seasoning, and industrial food applications.",
-  },
-  {
-    name: "Frozen French Fries",
-    image: "/images/products/french-fries.webp",
-    origin: "India",
-    packaging: "Retail & Bulk",
-    markets: "GCC • Africa",
-    description:
-      "Premium frozen French fries processed under stringent food safety standards for distributors, restaurant chains, and food service businesses.",
-  },
-  {
-    name: "Potato Starch",
-    image: "/images/products/potato-starch.webp",
-    origin: "India",
-    packaging: "25kg Export Bags",
-    markets: "Asia • Middle East",
-    description:
-      "High-quality food-grade potato starch suitable for food manufacturing, processing industries, and a wide range of commercial applications.",
-  },
-  {
-    name: "Non-Basmati Rice",
-    image: "/images/products/rice.webp",
-    origin: "Bihar",
-    packaging: "5kg • 25kg • 50kg",
-    markets: "Africa • Middle East",
-    description:
-      "Premium Indian rice sourced from trusted farming communities, offering excellent quality, consistency, and dependable export supply.",
-  },
-  {
-    name: "Sharbati Wheat",
-    image: "/images/products/wheat.webp",
-    origin: "Madhya Pradesh",
-    packaging: "25kg • 50kg",
-    markets: "Global",
-    description:
-      "Premium Sharbati wheat valued for its superior milling quality, rich taste, and suitability for flour mills, bakeries, and food manufacturers.",
-  },
-];
-
 export default function ExportProducts() {
-  return (
-    <section className="relative overflow-hidden bg-slate-50 py-24">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(34,197,94,0.08),transparent_45%)]" />
+  const { t } = useTranslation();
 
-      <div className="relative mx-auto max-w-7xl px-6 lg:px-8">
+  const products = [
+    {
+      key: "makhana",
+      image: "/images/products/makhana.webp",
+    },
+    {
+      key: "onion",
+      image: "/images/products/onion.webp",
+    },
+    {
+      key: "potato",
+      image: "/images/products/potato.webp",
+    },
+    {
+      key: "rice",
+      image: "/images/products/rice.webp",
+    },
+    {
+      key: "wheat",
+      image: "/images/products/wheat.webp",
+    },
+    {
+      key: "fries",
+      image: "/images/products/french-fries.webp",
+    },
+  ];
+
+  return (
+    <section className="bg-white py-24">
+      <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <motion.div
           variants={containerVariants}
           initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.2 }}
+          whileInView="show"
+          viewport={{ once: true, amount: 0.15 }}
         >
+          {/* Section Header */}
+
           <motion.div
             variants={fadeUpVariants}
-            className="mx-auto max-w-3xl text-center"
+            className="mx-auto mb-16 max-w-3xl text-center"
           >
-            <span className="inline-flex rounded-full border border-green-200 bg-green-50 px-4 py-2 text-sm font-semibold text-green-700">
-              Export Product Portfolio
+            <span className="inline-flex rounded-full bg-[#2E7D32]/10 px-5 py-2 text-sm font-semibold text-[#2E7D32]">
+              {t("about.exportProducts.badge")}
             </span>
 
-            <h2 className="mt-6 text-4xl font-bold tracking-tight text-slate-900 md:text-5xl">
-              Premium Indian Agricultural Products
-
-              <span className="block text-green-700">
-                Trusted by Global Buyers
-              </span>
+            <h2 className="mt-6 text-4xl font-black text-slate-900 md:text-5xl">
+              {t("about.exportProducts.title")}
             </h2>
 
             <p className="mt-6 text-lg leading-8 text-slate-600">
-              Discover a carefully curated portfolio of premium Indian
-              agricultural products sourced through trusted farming and
-              manufacturing partners. Every product is selected to meet
-              international quality expectations, export requirements,
-              and long-term supply commitments.
+              {t("about.exportProducts.description")}
             </p>
           </motion.div>
-          <div className="mt-16 grid gap-8 md:grid-cols-2 xl:grid-cols-3">
+
+          {/* Products */}
+
+          <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
             {products.map((product) => (
               <motion.div
-                key={product.name}
+                key={product.key}
                 variants={fadeUpVariants}
-                className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
+                className="group overflow-hidden rounded-3xl border border-green-100 bg-white shadow-lg transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
               >
-               <div className="relative h-52 overflow-hidden">
+                <div className="relative h-64 overflow-hidden">
                   <Image
                     src={product.image}
-                    alt={product.name}
+                    alt={t(
+                      `about.exportProducts.products.${product.key}.name`
+                    )}
                     fill
-                    className="object-cover transition duration-500 group-hover:scale-110"
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
                   />
-
-                  <div className="absolute right-4 top-4 rounded-full bg-white/95 px-4 py-2 text-sm font-semibold text-green-700 shadow">
-                    Export Ready
-                  </div>
                 </div>
 
                 <div className="p-8">
                   <h3 className="text-2xl font-bold text-slate-900">
-                    {product.name}
+                    {t(
+                      `about.exportProducts.products.${product.key}.name`
+                    )}
                   </h3>
 
                   <p className="mt-4 leading-7 text-slate-600">
-                    {product.description}
+                    {t(
+                      `about.exportProducts.products.${product.key}.description`
+                    )}
                   </p>
 
-                  <div className="mt-8 space-y-4">
-                    <div className="flex items-start gap-3">
-                      <Package className="mt-1 h-5 w-5 text-green-600" />
+                  <div className="mt-6 space-y-3 text-sm">
+                    <div className="flex items-center gap-3">
+                      <MapPin className="h-4 w-4 text-[#2E7D32]" />
 
-                      <div>
-                        <p className="font-semibold text-slate-900">
-                          Packaging Options
-                        </p>
-
-                        <p className="text-slate-600">
-                          {product.packaging}
-                        </p>
-                      </div>
+                      <span>
+                        <strong>
+                          {t("about.exportProducts.labels.origin")}:
+                        </strong>{" "}
+                        {t(
+                          `about.exportProducts.products.${product.key}.origin`
+                        )}
+                      </span>
                     </div>
 
-                    <div className="flex items-start gap-3">
-                      <Globe2 className="mt-1 h-5 w-5 text-green-600" />
+                    <div className="flex items-center gap-3">
+                      <Package className="h-4 w-4 text-[#2E7D32]" />
 
-                      <div>
-                        <p className="font-semibold text-slate-900">
-                          Export Markets
-                        </p>
-
-                        <p className="text-slate-600">
-                          {product.markets}
-                        </p>
-                      </div>
+                      <span>
+                        <strong>
+                          {t("about.exportProducts.labels.packaging")}:
+                        </strong>{" "}
+                        {t(
+                          `about.exportProducts.products.${product.key}.packaging`
+                        )}
+                      </span>
                     </div>
 
-                    <div className="flex items-start gap-3">
-                      <ShieldCheck className="mt-1 h-5 w-5 text-green-600" />
+                    <div className="flex items-center gap-3">
+                      <Globe2 className="h-4 w-4 text-[#2E7D32]" />
 
-                      <div>
-                        <p className="font-semibold text-slate-900">
-                          Product Origin
-                        </p>
-
-                        <p className="text-slate-600">
-                          {product.origin}
-                        </p>
-                      </div>
+                      <span>
+                        <strong>
+                          {t("about.exportProducts.labels.markets")}:
+                        </strong>{" "}
+                        {t(
+                          `about.exportProducts.products.${product.key}.markets`
+                        )}
+                      </span>
                     </div>
                   </div>
 
                   <Link
-                  href="/request-quote"
-  className="mt-8 inline-flex min-h-[48px] items-center gap-2 rounded-xl bg-green-700 px-6 py-3 font-semibold text-white transition-all duration-300 hover:bg-green-800"
->
-                    Request Quote
+                    href="/request-quote"
+                    className="mt-8 inline-flex items-center gap-2 font-semibold text-[#2E7D32] transition-all hover:gap-3"
+                  >
+                    {t("about.exportProducts.buttons.quote")}
 
-                    <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+                    <ArrowRight className="h-5 w-5" />
                   </Link>
                 </div>
               </motion.div>
             ))}
           </div>
+                    {/* Bottom Information */}
 
-          {/* Bottom Information */}
-          {/* Bottom Information */}
                     <motion.div
             variants={fadeUpVariants}
             className="mt-20 rounded-3xl border border-green-100 bg-gradient-to-r from-green-700 to-green-600 p-10 text-white shadow-xl"
@@ -222,24 +193,19 @@ export default function ExportProducts() {
             <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
               <div>
                 <span className="rounded-full bg-white/15 px-4 py-2 text-sm font-semibold">
-                  Your Trusted Export Partner
+                  {t("about.exportProducts.bottom.badge")}
                 </span>
 
                 <h3 className="mt-6 text-4xl font-bold">
-                  Reliable Sourcing.
+                  {t("about.exportProducts.bottom.title.line1")}
                   <br />
-                  Reliable Quality.
+                  {t("about.exportProducts.bottom.title.line2")}
                   <br />
-                  Reliable Delivery.
+                  {t("about.exportProducts.bottom.title.line3")}
                 </h3>
 
                 <p className="mt-6 text-lg leading-8 text-green-50">
-                  Every shipment is supported by disciplined sourcing,
-                  quality inspections, export documentation, efficient
-                  logistics coordination, and responsive customer
-                  communication. Our commitment is to provide buyers with
-                  a dependable sourcing experience that builds confidence
-                  and long-term business relationships.
+                  {t("about.exportProducts.bottom.description")}
                 </p>
               </div>
 
@@ -248,31 +214,37 @@ export default function ExportProducts() {
                   <h4 className="text-3xl font-bold">100%</h4>
 
                   <p className="mt-2 text-green-100">
-                    Export Quality Focus
+                    {t("about.exportProducts.bottom.stats.quality")}
                   </p>
                 </div>
 
                 <div className="rounded-2xl bg-white/10 p-6 backdrop-blur">
-                  <h4 className="text-3xl font-bold">Trusted</h4>
+                  <h4 className="text-3xl font-bold">
+                    {t("about.exportProducts.bottom.stats.networkValue")}
+                  </h4>
 
                   <p className="mt-2 text-green-100">
-                    Verified Supply Network
+                    {t("about.exportProducts.bottom.stats.network")}
                   </p>
                 </div>
 
                 <div className="rounded-2xl bg-white/10 p-6 backdrop-blur">
-                  <h4 className="text-3xl font-bold">Global</h4>
+                  <h4 className="text-3xl font-bold">
+                    {t("about.exportProducts.bottom.stats.globalValue")}
+                  </h4>
 
                   <p className="mt-2 text-green-100">
-                    International Market Reach
+                    {t("about.exportProducts.bottom.stats.global")}
                   </p>
                 </div>
 
                 <div className="rounded-2xl bg-white/10 p-6 backdrop-blur">
-                  <h4 className="text-3xl font-bold">Reliable</h4>
+                  <h4 className="text-3xl font-bold">
+                    {t("about.exportProducts.bottom.stats.supportValue")}
+                  </h4>
 
                   <p className="mt-2 text-green-100">
-                    End-to-End Export Support
+                    {t("about.exportProducts.bottom.stats.support")}
                   </p>
                 </div>
               </div>

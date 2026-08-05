@@ -10,6 +10,8 @@ import {
   Truck,
 } from "lucide-react";
 
+import { useTranslation } from "@/lib/i18n/context";
+
 const containerVariants: Variants = {
   hidden: {},
   visible: {
@@ -37,43 +39,39 @@ const fadeUpVariants: Variants = {
 const features = [
   {
     icon: Handshake,
-    title: "Long-Term Business Relationships",
-    description:
-      "We build lasting partnerships with buyers, farmers, manufacturers, and logistics partners through transparency, reliability, and consistent business practices.",
+    title: "about.why.cards.relationships.title",
+    description: "about.why.cards.relationships.description",
   },
   {
     icon: Award,
-    title: "Consistent Export Quality",
-    description:
-      "Every shipment is supported by disciplined quality assurance processes to meet buyer specifications and international export expectations.",
+    title: "about.why.cards.quality.title",
+    description: "about.why.cards.quality.description",
   },
   {
     icon: Globe2,
-    title: "International Trade Expertise",
-    description:
-      "From sourcing to shipment coordination, we help buyers navigate global trade with dependable documentation and export support.",
+    title: "about.why.cards.trade.title",
+    description: "about.why.cards.trade.description",
   },
   {
     icon: ShieldCheck,
-    title: "Export Compliance & Documentation",
-    description:
-      "We assist with export documentation, certifications, regulatory compliance, and customs requirements for smooth international transactions.",
+    title: "about.why.cards.compliance.title",
+    description: "about.why.cards.compliance.description",
   },
   {
     icon: Truck,
-    title: "Reliable Supply Network",
-    description:
-      "Our verified sourcing and logistics network helps ensure consistent product availability and timely deliveries across global markets.",
+    title: "about.why.cards.network.title",
+    description: "about.why.cards.network.description",
   },
   {
     icon: Leaf,
-    title: "Responsible Sourcing",
-    description:
-      "We promote ethical sourcing practices that support farming communities while encouraging sustainable agricultural development.",
+    title: "about.why.cards.sourcing.title",
+    description: "about.why.cards.sourcing.description",
   },
 ];
 
 export default function WhyChooseRootym() {
+  const { t } = useTranslation();
+
   return (
     <section className="relative overflow-hidden bg-white py-24">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(34,197,94,0.08),transparent_45%)]" />
@@ -90,24 +88,22 @@ export default function WhyChooseRootym() {
             className="mx-auto max-w-3xl text-center"
           >
             <span className="inline-flex rounded-full border border-green-200 bg-green-50 px-4 py-2 text-sm font-semibold text-green-700">
-              Why Global Buyers Choose ROOTYM
+              {t("about.why.badge")}
             </span>
 
             <h2 className="mt-6 text-4xl font-bold tracking-tight text-slate-900 md:text-5xl">
-              A Reliable Export Partner
+              {t("about.why.title.line1")}
 
               <span className="block text-green-700">
-                for Global Buyers
+                {t("about.why.title.line2")}
               </span>
             </h2>
 
             <p className="mt-6 text-lg leading-8 text-slate-600">
-              ROOTYM combines trusted sourcing, rigorous quality assurance,
-              export compliance, and dependable logistics to help importers,
-              wholesalers, distributors, retailers, and food manufacturers
-              source premium Indian agricultural products with confidence.
+              {t("about.why.description")}
             </p>
           </motion.div>
+
           <div className="mt-16 grid gap-8 md:grid-cols-2 xl:grid-cols-3">
             {features.map((feature) => {
               const Icon = feature.icon;
@@ -123,11 +119,11 @@ export default function WhyChooseRootym() {
                   </div>
 
                   <h3 className="mt-8 min-h-[64px] text-2xl font-bold text-slate-900">
-                    {feature.title}
+                    {t(feature.title)}
                   </h3>
 
                   <p className="mt-4 leading-8 text-slate-600">
-                    {feature.description}
+                    {t(feature.description)}
                   </p>
                 </motion.div>
               );
@@ -142,67 +138,58 @@ export default function WhyChooseRootym() {
             <div className="grid gap-12 p-10 lg:grid-cols-2 lg:items-center lg:p-14">
               <div className="text-white">
                 <span className="rounded-full bg-white/15 px-4 py-2 text-sm font-semibold backdrop-blur">
-                  Built for Long-Term Partnerships
+                  {t("about.why.bottom.badge")}
                 </span>
 
                 <h3 className="mt-6 text-4xl font-bold leading-tight">
-                  More Than an Exporter.
+                  {t("about.why.bottom.title.line1")}
                   <br />
-                  A Reliable Business Partner.
+                  {t("about.why.bottom.title.line2")}
                 </h3>
 
                 <p className="mt-6 text-lg leading-8 text-green-50">
-                  At ROOTYM, we believe successful international trade is
-                  built on trust, consistency, and transparent communication.
-                  From sourcing premium agricultural products to managing
-                  export coordination, our focus is to deliver dependable
-                  solutions that help buyers build long-term supply
-                  relationships.
+                  {t("about.why.bottom.description")}
                 </p>
               </div>
 
               <div className="grid gap-5 sm:grid-cols-2">
                 <div className="rounded-2xl bg-white/10 p-6 backdrop-blur">
                   <h4 className="text-3xl font-bold text-white">
-                    Export Quality
+                    {t("about.why.bottom.stats.quality.title")}
                   </h4>
 
                   <p className="mt-3 text-green-100">
-                    Carefully sourced products supported by quality assurance
-                    and international standards.
+                    {t("about.why.bottom.stats.quality.description")}
                   </p>
                 </div>
 
                 <div className="rounded-2xl bg-white/10 p-6 backdrop-blur">
                   <h4 className="text-3xl font-bold text-white">
-                    Transparency
+                    {t("about.why.bottom.stats.transparency.title")}
                   </h4>
 
                   <p className="mt-3 text-green-100">
-                    Clear communication and honest business practices at every
-                    stage of the partnership.
+                    {t("about.why.bottom.stats.transparency.description")}
                   </p>
                 </div>
 
                 <div className="rounded-2xl bg-white/10 p-6 backdrop-blur">
                   <h4 className="text-3xl font-bold text-white">
-                    Reliable Execution
+                    {t("about.why.bottom.stats.execution.title")}
                   </h4>
 
                   <p className="mt-3 text-green-100">
-                    Dependable sourcing, documentation, and logistics support
-                    for smooth export operations.
+                    {t("about.why.bottom.stats.execution.description")}
                   </p>
                 </div>
 
                 <div className="rounded-2xl bg-white/10 p-6 backdrop-blur">
                   <h4 className="text-3xl font-bold text-white">
-                    Long-Term Growth
+                    {t("about.why.bottom.stats.growth.title")}
                   </h4>
 
                   <p className="mt-3 text-green-100">
-                    Creating sustainable value for buyers, suppliers, and
-                    farming communities.
+                    {t("about.why.bottom.stats.growth.description")}
                   </p>
                 </div>
               </div>

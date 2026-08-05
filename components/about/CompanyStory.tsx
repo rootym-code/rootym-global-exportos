@@ -5,9 +5,10 @@ import {
   ArrowRight,
   Building2,
   Globe2,
-  Leaf,
   Sprout,
 } from "lucide-react";
+
+import { useTranslation } from "@/lib/i18n/context";
 
 /* -------------------------------------------------------------------------- */
 /*                                Animations                                  */
@@ -38,6 +39,8 @@ const fadeUpVariants: Variants = {
 };
 
 export default function CompanyStory() {
+  const { t } = useTranslation();
+
   return (
     <section className="relative overflow-hidden bg-white py-24">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
@@ -56,56 +59,40 @@ export default function CompanyStory() {
             <div className="inline-flex items-center gap-2 rounded-full bg-[#2E7D32]/10 px-5 py-2 text-sm font-semibold text-[#2E7D32]">
               <Building2 className="h-4 w-4" />
 
-              Why Buyers Trust Us
+              {t("about.story.badge")}
             </div>
 
             <h2 className="mt-6 text-4xl font-black text-slate-900 md:text-5xl">
-              Built on Trust.
+              {t("about.story.title.line1")}
               <br />
-              Driven by Quality.
+              {t("about.story.title.line2")}
             </h2>
 
             <p className="mx-auto mt-6 max-w-3xl text-lg leading-8 text-slate-600">
-              Choosing the right export partner is just as important as
-              choosing the right product. ROOTYM combines disciplined
-              processes, quality assurance, and transparent business
-              practices to help international buyers source premium
-              Indian agricultural products with confidence.
+              {t("about.story.description")}
             </p>
           </motion.div>
 
           <div className="grid items-center gap-16 lg:grid-cols-2">
-            {/* Left Content */}
-
             <motion.div
               variants={fadeUpVariants}
               className="space-y-6"
             >
               <h3 className="text-3xl font-bold text-slate-900">
-                From Technology Leadership to Global Agriculture
+                {t("about.story.heading")}
               </h3>
-              <h3 className="text-3xl font-bold text-slate-900">
-  From Technology Leadership to Global Agriculture
-</h3>
-<motion.div
-  variants={fadeUpVariants}
-  className="grid gap-6"
-></motion.div>
-<div className="rounded-3xl border border-green-100 bg-gradient-to-br from-green-50 to-white p-8 shadow-lg transition-shadow duration-300 hover:shadow-xl">
+
+              <div className="rounded-3xl border border-green-100 bg-gradient-to-br from-green-50 to-white p-8 shadow-lg transition-shadow duration-300 hover:shadow-xl">
                 <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#2E7D32] text-white">
                   <Sprout className="h-7 w-7" />
                 </div>
 
                 <h3 className="text-2xl font-bold text-slate-900">
-                  Supporting Farmers
+                  {t("about.story.cards.farmers.title")}
                 </h3>
 
                 <p className="mt-4 leading-8 text-slate-600">
-                  Strong global supply chains begin at the source. We
-                  collaborate with farmers, producer groups, and trusted
-                  suppliers to encourage responsible sourcing,
-                  consistent quality, sustainable agricultural
-                  practices, and long-term value creation.
+                  {t("about.story.cards.farmers.description")}
                 </p>
               </div>
 
@@ -115,15 +102,11 @@ export default function CompanyStory() {
                 </div>
 
                 <h3 className="text-2xl font-bold text-slate-900">
-                  Building Global Partnerships
+                  {t("about.story.cards.global.title")}
                 </h3>
 
                 <p className="mt-4 leading-8 text-slate-600">
-                  We aim to become the preferred sourcing partner for
-                  importers, distributors, wholesalers, retailers, and
-                  food manufacturers by delivering premium Indian
-                  agricultural products with reliability, compliance,
-                  transparency, and responsive customer service.
+                  {t("about.story.cards.global.description")}
                 </p>
               </div>
 
@@ -131,16 +114,11 @@ export default function CompanyStory() {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <h3 className="text-2xl font-bold">
-                      Our Promise
+                      {t("about.story.promise.title")}
                     </h3>
 
                     <p className="mt-4 leading-8 text-green-100">
-                      Every shipment is handled with the same commitment
-                      to quality, compliance, ethical sourcing, and
-                      customer satisfaction that we would expect from our
-                      own global supply partners. Our success is measured
-                      by the long-term relationships we build with buyers
-                      around the world.
+                      {t("about.story.promise.description")}
                     </p>
                   </div>
 

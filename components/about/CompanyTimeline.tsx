@@ -8,6 +8,8 @@ import {
   Rocket,
 } from "lucide-react";
 
+import { useTranslation } from "@/lib/i18n/context";
+
 const containerVariants: Variants = {
   hidden: {},
   visible: {
@@ -36,34 +38,36 @@ const milestones = [
   {
     year: "Dec 2025",
     icon: Building2,
-    title: "ROOTYM Established",
+    title: "about.timeline.milestones.established.title",
     description:
-      "ROOTYM Agro Harvest Private Limited was established with the vision of connecting premium Indian agricultural products with international buyers through trusted sourcing and professional export services.",
+      "about.timeline.milestones.established.description",
   },
   {
     year: "2026",
     icon: FileBadge,
-    title: "Building Export Readiness",
+    title: "about.timeline.milestones.readiness.title",
     description:
-      "Strengthened export capabilities through essential registrations, regulatory compliance, and internationally aligned business processes.",
+      "about.timeline.milestones.readiness.description",
   },
   {
     year: "2026",
     icon: Globe2,
-    title: "Expanding Global Partnerships",
+    title: "about.timeline.milestones.partnerships.title",
     description:
-      "Building relationships with importers, logistics partners, manufacturers, and sourcing networks to support reliable international trade.",
+      "about.timeline.milestones.partnerships.description",
   },
   {
     year: "Future",
     icon: Rocket,
-    title: "Future Growth",
+    title: "about.timeline.milestones.future.title",
     description:
-      "Expanding our product portfolio, strengthening supply partnerships, and becoming a trusted sourcing partner for buyers across global markets.",
+      "about.timeline.milestones.future.description",
   },
 ];
 
 export default function CompanyTimeline() {
+  const { t } = useTranslation();
+
   return (
     <section className="relative overflow-hidden bg-white py-24">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.08),transparent_50%)]" />
@@ -80,23 +84,22 @@ export default function CompanyTimeline() {
             className="mx-auto max-w-3xl text-center"
           >
             <span className="inline-flex rounded-full border border-green-200 bg-green-50 px-4 py-2 text-sm font-semibold text-green-700">
-              ROOTYM Journey
+              {t("about.timeline.badge")}
             </span>
 
             <h2 className="mt-6 text-4xl font-bold tracking-tight text-slate-900 md:text-5xl">
-              Building Trust
+              {t("about.timeline.title.line1")}
 
               <span className="block text-green-700">
-                One Milestone at a Time
+                {t("about.timeline.title.line2")}
               </span>
             </h2>
 
             <p className="mt-6 text-lg leading-8 text-slate-600">
-              Every milestone reflects our commitment to building a trusted
-              agricultural export company through compliance, quality,
-              responsible sourcing, and long-term global partnerships.
+              {t("about.timeline.description")}
             </p>
           </motion.div>
+
           <div className="relative mt-20">
             <div className="absolute left-6 top-0 hidden h-full w-1 rounded-full bg-green-100 md:block" />
 
@@ -122,11 +125,11 @@ export default function CompanyTimeline() {
                       </span>
 
                       <h3 className="mt-5 text-2xl font-bold text-slate-900">
-                        {item.title}
+                        {t(item.title)}
                       </h3>
 
                       <p className="mt-4 leading-8 text-slate-600">
-                        {item.description}
+                        {t(item.description)}
                       </p>
                     </div>
                   </motion.div>
@@ -136,6 +139,7 @@ export default function CompanyTimeline() {
           </div>
 
           {/* Closing Vision Section */}
+
           <motion.div
             variants={fadeUpVariants}
             className="mt-20 overflow-hidden rounded-3xl border border-green-100 bg-gradient-to-r from-green-700 via-green-600 to-green-700 shadow-xl"
@@ -143,56 +147,50 @@ export default function CompanyTimeline() {
             <div className="grid gap-10 p-10 lg:grid-cols-2 lg:items-center lg:p-14">
               <div className="text-white">
                 <span className="rounded-full bg-white/15 px-4 py-2 text-sm font-semibold backdrop-blur">
-                  Our Future Vision
+                  {t("about.timeline.bottom.badge")}
                 </span>
 
                 <h3 className="mt-6 text-4xl font-bold leading-tight">
-                  Growing Together
+                  {t("about.timeline.bottom.title.line1")}
                   <br />
-                  with Our Global Partners
+                  {t("about.timeline.bottom.title.line2")}
+                  <br />
+                  {t("about.timeline.bottom.title.line3")}
                 </h3>
 
                 <p className="mt-6 text-lg leading-8 text-green-50">
-                  Our journey has only begun. ROOTYM continues to strengthen
-                  partnerships with farmers, manufacturers, logistics
-                  providers, and international buyers while focusing on
-                  consistent quality, responsible sourcing, and dependable
-                  export solutions for global markets.
+                  {t("about.timeline.bottom.description")}
                 </p>
               </div>
 
               <div className="space-y-5">
                 <div className="rounded-2xl bg-white/10 p-6 backdrop-blur">
                   <h4 className="text-2xl font-bold text-white">
-                    Expand Global Reach
+                    {t("about.timeline.bottom.cards.global.title")}
                   </h4>
 
                   <p className="mt-3 leading-7 text-green-100">
-                    Building stronger presence across international markets
-                    through trusted partnerships and reliable export
-                    capabilities.
+                    {t("about.timeline.bottom.cards.global.description")}
                   </p>
                 </div>
 
                 <div className="rounded-2xl bg-white/10 p-6 backdrop-blur">
                   <h4 className="text-2xl font-bold text-white">
-                    Strengthen Farming Communities
+                    {t("about.timeline.bottom.cards.farmers.title")}
                   </h4>
 
                   <p className="mt-3 leading-7 text-green-100">
-                    Creating sustainable opportunities for Indian farmers
-                    through responsible sourcing and long-term partnerships.
+                    {t("about.timeline.bottom.cards.farmers.description")}
                   </p>
                 </div>
 
                 <div className="rounded-2xl bg-white/10 p-6 backdrop-blur">
                   <h4 className="text-2xl font-bold text-white">
-                    Deliver Consistent Excellence
+                    {t("about.timeline.bottom.cards.excellence.title")}
                   </h4>
 
                   <p className="mt-3 leading-7 text-green-100">
-                    Providing export-quality products backed by transparency,
-                    compliance, and exceptional customer service.
+                    {t("about.timeline.bottom.cards.excellence.description")}
                   </p>
                 </div>
               </div>

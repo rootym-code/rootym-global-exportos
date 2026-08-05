@@ -8,6 +8,8 @@ import {
   Users,
 } from "lucide-react";
 
+import { useTranslation } from "@/lib/i18n/context";
+
 const containerVariants: Variants = {
   hidden: {},
   visible: {
@@ -36,34 +38,32 @@ const stats = [
   {
     icon: Building2,
     value: "2025",
-    title: "Founded",
-    description:
-      "Established with a clear vision to become a trusted global supplier of premium Indian agricultural products.",
+    title: "about.companyStats.stats.founded.title",
+    description: "about.companyStats.stats.founded.description",
   },
   {
     icon: Globe2,
     value: "Global",
-    title: "Market Reach",
-    description:
-      "Supporting importers, wholesalers, distributors, retailers, and food manufacturers across international markets.",
+    title: "about.companyStats.stats.market.title",
+    description: "about.companyStats.stats.market.description",
   },
   {
     icon: PackageCheck,
     value: "6+",
-    title: "Core Product Categories",
-    description:
-      "A curated portfolio of premium agricultural and food products prepared for global sourcing requirements.",
+    title: "about.companyStats.stats.products.title",
+    description: "about.companyStats.stats.products.description",
   },
   {
     icon: Users,
     value: "100%",
-    title: "Buyer Commitment",
-    description:
-      "Focused on transparency, responsive communication, and long-term partnerships built on trust.",
+    title: "about.companyStats.stats.buyers.title",
+    description: "about.companyStats.stats.buyers.description",
   },
 ];
 
 export default function CompanyStats() {
+  const { t } = useTranslation();
+
   return (
     <section className="relative overflow-hidden bg-slate-50 py-24">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(34,197,94,0.06),transparent_60%)]" />
@@ -80,23 +80,22 @@ export default function CompanyStats() {
             className="mx-auto max-w-3xl text-center"
           >
             <span className="inline-flex rounded-full border border-green-200 bg-green-50 px-4 py-2 text-sm font-semibold text-green-700">
-              Buyer Confidence
+              {t("about.companyStats.badge")}
             </span>
 
             <h2 className="mt-6 text-4xl font-bold tracking-tight text-slate-900 md:text-5xl">
-              Built for
+              {t("about.companyStats.title.line1")}
 
               <span className="block text-green-700">
-                Global Trade
+                {t("about.companyStats.title.line2")}
               </span>
             </h2>
 
             <p className="mt-6 text-lg leading-8 text-slate-600">
-              ROOTYM combines trusted sourcing, export-ready operations,
-              and customer-focused service to help international buyers
-              build reliable supply partnerships with India.
+              {t("about.companyStats.description")}
             </p>
           </motion.div>
+
           <div className="mt-16 grid gap-8 sm:grid-cols-2 xl:grid-cols-4">
             {stats.map((stat) => {
               const Icon = stat.icon;
@@ -116,11 +115,11 @@ export default function CompanyStats() {
                   </h3>
 
                   <h4 className="mt-4 min-h-[64px] text-2xl font-bold text-slate-900">
-                    {stat.title}
+                    {t(stat.title)}
                   </h4>
 
                   <p className="mt-4 leading-7 text-slate-600">
-                    {stat.description}
+                    {t(stat.description)}
                   </p>
                 </motion.div>
               );
@@ -128,6 +127,7 @@ export default function CompanyStats() {
           </div>
 
           {/* Bottom Achievement Banner */}
+
           <motion.div
             variants={fadeUpVariants}
             className="mt-20 overflow-hidden rounded-3xl border border-green-100 bg-gradient-to-r from-green-700 via-green-600 to-green-700 shadow-xl"
@@ -135,69 +135,60 @@ export default function CompanyStats() {
             <div className="grid gap-10 p-10 lg:grid-cols-2 lg:items-center lg:p-14">
               <div className="text-white">
                 <span className="rounded-full bg-white/15 px-4 py-2 text-sm font-semibold backdrop-blur">
-                  Growing with Our Global Partners
+                  {t("about.companyStats.bottom.badge")}
                 </span>
 
                 <h3 className="mt-6 text-4xl font-bold leading-tight">
-                  Building Confidence.
+                  {t("about.companyStats.bottom.title.line1")}
                   <br />
-                  Delivering Consistency.
+                  {t("about.companyStats.bottom.title.line2")}
                   <br />
-                  Growing Together.
+                  {t("about.companyStats.bottom.title.line3")}
                 </h3>
 
                 <p className="mt-6 text-lg leading-8 text-green-50">
-                  ROOTYM continues to strengthen its network of trusted
-                  farmers, manufacturers, logistics partners, and global
-                  buyers. Our focus is to deliver consistent quality,
-                  reliable supply, and transparent export solutions that
-                  create long-term value across the agricultural supply
-                  chain.
+                  {t("about.companyStats.bottom.description")}
                 </p>
               </div>
 
               <div className="grid gap-5 sm:grid-cols-2">
-                <div className="rounded-2xl bg-white/10 p-6 backdrop-blur">
+              <div className="rounded-2xl bg-white/10 p-6 backdrop-blur">
                   <h4 className="text-3xl font-bold text-white">
-                    Verified Sourcing
+                    {t("about.companyStats.bottom.cards.sourcing.title")}
                   </h4>
 
                   <p className="mt-3 text-green-100">
-                    Reliable sourcing through trusted suppliers and farming
-                    communities.
+                    {t("about.companyStats.bottom.cards.sourcing.description")}
                   </p>
                 </div>
 
                 <div className="rounded-2xl bg-white/10 p-6 backdrop-blur">
                   <h4 className="text-3xl font-bold text-white">
-                    Flexible Supply
+                    {t("about.companyStats.bottom.cards.supply.title")}
                   </h4>
 
                   <p className="mt-3 text-green-100">
-                    Scalable sourcing capabilities to support growing global
-                    requirements.
+                    {t("about.companyStats.bottom.cards.supply.description")}
                   </p>
                 </div>
 
                 <div className="rounded-2xl bg-white/10 p-6 backdrop-blur">
                   <h4 className="text-3xl font-bold text-white">
-                    Export Compliance
+                    {t("about.companyStats.bottom.cards.compliance.title")}
                   </h4>
 
                   <p className="mt-3 text-green-100">
-                    Focused on documentation, quality assurance, and
-                    international trade requirements.
+                    {t("about.companyStats.bottom.cards.compliance.description")}
                   </p>
                 </div>
 
                 <div className="rounded-2xl bg-white/10 p-6 backdrop-blur">
                   <h4 className="text-3xl font-bold text-white">
-                    Continuous Improvement
+                    {t("about.companyStats.bottom.cards.improvement.title")}
                   </h4>
 
                   <p className="mt-3 text-green-100">
-                    Investing in technology, innovation, and sustainable growth
-                    to serve customers worldwide.
+                    {t("about.companyStats.bottom.cards.improvement.description")}
                   </p>
                 </div>
               </div>

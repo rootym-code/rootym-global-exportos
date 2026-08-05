@@ -9,6 +9,8 @@ import {
   Ship,
 } from "lucide-react";
 
+import { useTranslation } from "@/lib/i18n/context";
+
 const containerVariants: Variants = {
   hidden: {},
   visible: {
@@ -34,15 +36,17 @@ const fadeUpVariants: Variants = {
 };
 
 const markets = [
-  "United Arab Emirates",
-  "Saudi Arabia",
-  "Sri Lanka",
-  "Europe",
-  "Africa",
-  "Asia-Pacific",
+  "uae",
+  "saudi",
+  "srilanka",
+  "europe",
+  "africa",
+  "asiaPacific",
 ];
 
 export default function GlobalPresence() {
+  const { t } = useTranslation();
+
   return (
     <section className="relative overflow-hidden bg-slate-50 py-24">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.08),transparent_50%)]" />
@@ -59,24 +63,22 @@ export default function GlobalPresence() {
             className="mx-auto max-w-3xl text-center"
           >
             <span className="inline-flex rounded-full border border-green-200 bg-green-50 px-4 py-2 text-sm font-semibold text-green-700">
-              Global Markets
+              {t("about.globalPresence.badge")}
             </span>
 
             <h2 className="mt-6 text-4xl font-bold tracking-tight text-slate-900 md:text-5xl">
-              Connecting Indian Agriculture
+              {t("about.globalPresence.title.line1")}
 
               <span className="block text-green-700">
-                to Global Markets
+                {t("about.globalPresence.title.line2")}
               </span>
             </h2>
 
             <p className="mt-6 text-lg leading-8 text-slate-600">
-              ROOTYM works with international buyers by delivering premium
-              Indian agricultural products through trusted sourcing,
-              export-ready processes, quality assurance, and dependable
-              logistics support.
+              {t("about.globalPresence.description")}
             </p>
           </motion.div>
+
           <div className="mt-16 grid gap-12 lg:grid-cols-2 lg:items-center">
             {/* Left */}
 
@@ -91,12 +93,11 @@ export default function GlobalPresence() {
 
                 <div>
                   <h3 className="text-3xl font-bold text-slate-900">
-                    Target Export Markets
+                    {t("about.globalPresence.left.title")}
                   </h3>
 
                   <p className="mt-2 text-slate-600">
-                    Building long-term partnerships across key international
-                    markets.
+                    {t("about.globalPresence.left.description")}
                   </p>
                 </div>
               </div>
@@ -110,7 +111,7 @@ export default function GlobalPresence() {
                     <MapPinned className="h-6 w-6 text-green-700" />
 
                     <span className="font-medium text-slate-800">
-                      {market}
+                      {t(`about.globalPresence.markets.${market}`)}
                     </span>
                   </div>
                 ))}
@@ -120,19 +121,18 @@ export default function GlobalPresence() {
                 href="/request-quote"
                 className="mt-10 inline-flex items-center gap-2 rounded-xl bg-green-700 px-6 py-4 font-semibold text-white transition hover:bg-green-800"
               >
-                Request an Export Quote
+                {t("about.globalPresence.left.button")}
 
                 <ArrowRight className="h-5 w-5" />
               </Link>
             </motion.div>
 
             {/* Right */}
+
             <motion.div
               variants={fadeUpVariants}
               className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-green-900 p-10 text-white shadow-2xl"
             >
-              {/* Decorative Background */}
-
               <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-green-500/10 blur-3xl" />
               <div className="absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-emerald-400/10 blur-3xl" />
 
@@ -148,13 +148,11 @@ export default function GlobalPresence() {
 
                       <div>
                         <h4 className="text-xl font-semibold">
-                          Export Logistics
+                          {t("about.globalPresence.right.logistics.title")}
                         </h4>
 
                         <p className="mt-2 leading-7 text-slate-300">
-                          Coordinated export logistics supported by trusted
-                          freight, documentation, and supply chain partners
-                          for reliable international deliveries.
+                          {t("about.globalPresence.right.logistics.description")}
                         </p>
                       </div>
                     </div>
@@ -166,13 +164,11 @@ export default function GlobalPresence() {
 
                       <div>
                         <h4 className="text-xl font-semibold">
-                          Buyer Partnerships
+                          {t("about.globalPresence.right.buyers.title")}
                         </h4>
 
                         <p className="mt-2 leading-7 text-slate-300">
-                          Building lasting relationships with importers,
-                          wholesalers, distributors, retailers, and food
-                          manufacturers across international markets.
+                          {t("about.globalPresence.right.buyers.description")}
                         </p>
                       </div>
                     </div>
@@ -184,13 +180,11 @@ export default function GlobalPresence() {
 
                       <div>
                         <h4 className="text-xl font-semibold">
-                          From India to the World
+                          {t("about.globalPresence.right.india.title")}
                         </h4>
 
                         <p className="mt-2 leading-7 text-slate-300">
-                          Delivering premium Indian agricultural products with
-                          a strong focus on quality, transparency, compliance,
-                          and customer satisfaction.
+                          {t("about.globalPresence.right.india.description")}
                         </p>
                       </div>
                     </div>
@@ -199,14 +193,11 @@ export default function GlobalPresence() {
 
                 <div className="mt-10 rounded-2xl border border-green-400/20 bg-green-500/10 p-6 text-center">
                   <h4 className="text-2xl font-bold">
-                    Rooted in India. Trusted Worldwide.
+                    {t("about.globalPresence.bottom.title")}
                   </h4>
 
                   <p className="mt-3 leading-7 text-green-100">
-                    We continue to expand our international footprint by
-                    delivering dependable sourcing, export-quality products,
-                    and responsive customer support for buyers around the
-                    world.
+                    {t("about.globalPresence.bottom.description")}
                   </p>
                 </div>
               </div>
