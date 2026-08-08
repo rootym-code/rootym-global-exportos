@@ -128,6 +128,38 @@
     "badge": "Trust & Compliance",
     "title": "Certified for International Trade",
     "description": "ROOTYM follows internationally accepted export practices backed by registrations, compliance and rigorous quality assurance.",
+   
+    "hero": {
+  "badge": "Trusted Exporter • Certified Operations • Global Trade Compliance",
+  "title": {
+    "line1": "Certified for",
+    "line2": "Global Agricultural Trade"
+  },
+  "description": "ROOTYM maintains internationally recognized registrations, export certifications, and food safety compliance to support seamless global trade. From regulatory documentation to quality assurance, we are committed to delivering reliable agricultural products that meet the expectations of importers, distributors, retailers, and food manufacturers worldwide.",
+  "buttons": {
+    "quote": "Request a Quote",
+    "contact": "Contact Our Team"
+  },
+  "trustStatement": "Committed to Quality • Regulatory Compliance • Transparent Documentation • Reliable Global Deliveries",
+  "highlights": {
+    "apeda": {
+      "value": "APEDA",
+      "label": "Registered Exporter"
+    },
+    "iec": {
+      "value": "IEC",
+      "label": "Import Export Code"
+    },
+    "fssai": {
+      "value": "FSSAI",
+      "label": "Food Safety & Regulatory Compliance"
+    },
+    "worldwide": {
+      "value": "Worldwide",
+      "label": "Export Ready Supply Chain"
+    }
+  }
+},
     "cards": {
       "apeda": {
         "title": "APEDA Registered",
@@ -153,8 +185,410 @@
         "title": "Trusted Worldwide",
         "description": "Building long-term relationships with importers through transparency and reliability."
       }
+    },
+    "overview": {
+  "badge": "Certifications & Registrations",
+  "title": {
+    "line1": "Building Trust Through",
+    "line2": "Compliance, Quality & Transparency"
+  },
+  "description": "At ROOTYM, regulatory compliance is an integral part of our business. Our registrations, certifications, and quality management practices demonstrate our commitment to responsible sourcing, food safety, transparent documentation, and reliable global agricultural exports.",
+  "cards": {
+    "apeda": {
+      "title": "APEDA Registration",
+      "subtitle": "Agricultural & Processed Food Products Export Development Authority",
+      "description": "ROOTYM is registered with APEDA, enabling the export of agricultural and processed food products while complying with India's export regulations and international trade requirements."
+    },
+    "iec": {
+      "title": "Import Export Code (IEC)",
+      "subtitle": "Director General of Foreign Trade (DGFT)",
+      "description": "Our Import Export Code authorizes us to conduct international trade, facilitating seamless import and export operations with buyers across global markets."
+    },
+    "fssai": {
+      "title": "FSSAI License",
+      "subtitle": "Food Safety & Standards Authority of India",
+      "description": "Our FSSAI license demonstrates compliance with India's food safety regulations and reinforces our commitment to delivering safe, hygienic, and high-quality agricultural products."
+    },
+    "msme": {
+      "title": "MSME Registration",
+      "subtitle": "Ministry of Micro, Small & Medium Enterprises",
+      "description": "As a registered MSME, ROOTYM is committed to innovation, sustainable growth, operational excellence, and delivering long-term value to customers and business partners."
+    },
+    "startup": {
+      "title": "Startup India Recognition",
+      "subtitle": "Department for Promotion of Industry & Internal Trade (DPIIT)",
+      "description": "Recognized under the Startup India initiative, ROOTYM leverages innovation, technology, and modern business practices to strengthen India's agricultural export ecosystem."
+    },
+    "quality": {
+      "title": "Quality Assurance",
+      "subtitle": "Inspection, Documentation & Export Readiness",
+      "description": "Every shipment undergoes quality verification, documentation review, and customer-specific compliance checks to ensure consistent product quality and smooth international deliveries."
     }
   },
+  "trustBanner": {
+    "title": "Compliance is the Foundation of Global Trade",
+    "description": "Every certification reflects our commitment to quality assurance, regulatory compliance, ethical sourcing, and transparent business practices. These standards help us build long-term partnerships with importers, distributors, retailers, food manufacturers, and wholesale buyers across international markets.",
+    "badges": {
+      "apeda": "APEDA Registered",
+      "iec": "IEC Certified",
+      "fssai": "FSSAI Licensed",
+      "msme": "MSME Registered",
+      "startup": "Startup India Recognized"
+    }
+  }
+},
+"compliance": {
+  "badge": "Compliance Standards",
+  "title": {
+    "line1": "Our Commitment to",
+    "line2": "Quality, Compliance & Trust"
+  },
+  "description": "Certifications are only one part of our commitment. At ROOTYM, we follow structured quality management, responsible sourcing, documentation excellence, and internationally aligned export practices to build lasting confidence with customers across global markets.",
+  "standards": {
+    "regulatory": {
+      "title": "Regulatory Compliance",
+      "description": "We comply with applicable export regulations, statutory requirements, and documentation standards to ensure smooth international trade and customs clearance."
+    },
+    "foodSafety": {
+      "title": "Food Safety & Hygiene",
+      "description": "Our products are sourced, handled, and processed with a strong focus on food safety, hygiene, and regulatory compliance, ensuring confidence for global buyers."
+    },
+    "quality": {
+      "title": "Quality Inspection",
+      "description": "Each shipment undergoes thorough quality verification to ensure consistency, product integrity, packaging accuracy, and customer satisfaction before dispatch."
+    },
+    "documentation": {
+      "title": "Export Documentation",
+      "description": "We prepare complete export documentation to support efficient customs processing, regulatory compliance, and timely international shipments."
+    },
+    "international": {
+      "title": "International Trade Standards",
+      "description": "ROOTYM continuously aligns its sourcing, packaging, quality management, and export practices with internationally accepted business and trade standards."
+    },
+    "improvement": {
+      "title": "Continuous Improvement",
+      "description": "We regularly enhance our operational processes, quality systems, and customer service to deliver consistent value and build long-term business relationships."
+    }
+  },
+  "commitments": {
+    "title": "What Every Global Buyer Can Expect",
+    "description": "Every export order is managed with a focus on consistency, transparency, quality assurance, and professional execution from enquiry through shipment.",
+    "items": {
+      "transparency": "Transparent Business Practices",
+      "ethicalSourcing": "Ethical & Responsible Sourcing",
+      "documentation": "Reliable Documentation",
+      "quality": "Consistent Product Quality",
+      "coordination": "On-Time Export Coordination",
+      "customerService": "Customer-Centric Service"
+    }
+  },
+  "banner": {
+    "title": "Excellence Through Consistency",
+    "description": "While certifications establish credibility, consistent execution builds lasting trust. ROOTYM is committed to maintaining high standards across sourcing, quality assurance, documentation, packaging, logistics, and customer service—ensuring dependable partnerships for importers, distributors, wholesalers, retailers, and food manufacturers worldwide.",
+    "badges": {
+      "exportReady": "Export Ready",
+      "foodSafety": "Food Safety Focused",
+      "quality": "Quality Assured",
+      "documentation": "Transparent Documentation",
+      "globalPartner": "Global Supply Partner"
+    }
+  }
+}
+  },
+
+  "exportAssurance": {
+  "badge": "Export Assurance",
+  "title": {
+    "line1": "Delivering Confidence",
+    "line2": "With Every Shipment"
+  },
+  "description": "Every export order represents our commitment to quality, compliance, reliability, and customer satisfaction. From sourcing to final delivery, our processes are designed to reduce risk, maintain product integrity, and build long-term partnerships with buyers across the world.",
+  "cards": {
+    "quality": {
+      "title": "Quality Assurance",
+      "description": "Every product is sourced from trusted suppliers and undergoes comprehensive quality verification to ensure consistency, freshness, and customer satisfaction before shipment."
+    },
+    "documentation": {
+      "title": "Complete Export Documentation",
+      "description": "We prepare accurate export documentation to facilitate efficient customs clearance, regulatory compliance, and hassle-free international trade operations."
+    },
+    "logistics": {
+      "title": "Reliable Export Logistics",
+      "description": "Working with experienced logistics partners, we coordinate secure, efficient, and timely shipments to customers across international markets."
+    },
+    "compliance": {
+      "title": "Regulatory Compliance",
+      "description": "Our export processes are aligned with applicable regulations, customer specifications, and international trade requirements to minimize risk and ensure confidence."
+    },
+    "market": {
+      "title": "Global Market Readiness",
+      "description": "ROOTYM is prepared to serve importers, distributors, wholesalers, retailers, and food manufacturers with dependable products and professional export services."
+    },
+    "packaging": {
+      "title": "Export-Ready Packaging",
+      "description": "Packaging solutions are designed to protect product quality throughout storage, handling, transportation, and international delivery while meeting buyer requirements."
+    }
+  },
+  "process": {
+    "title": "Our Export Assurance Process",
+    "description": "Every shipment follows a structured workflow to ensure product quality, regulatory compliance, documentation accuracy, and dependable international delivery.",
+    "steps": {
+      "supplierSelection": "Trusted Supplier Selection",
+      "qualityInspection": "Product Quality Inspection",
+      "packaging": "Professional Packaging",
+      "documentation": "Export Documentation",
+      "compliance": "Customs & Regulatory Compliance",
+      "shipping": "International Shipping"
+    }
+  },
+  "commitment": {
+    "title": "Our Commitment to Global Buyers",
+    "description": "At ROOTYM, exporting is more than delivering products across borders—it is about building trust through quality, regulatory compliance, transparent communication, and dependable service. Every shipment reflects our dedication to strengthening long-term partnerships and promoting premium Indian agricultural products in international markets.",
+    "tags": {
+      "qualityVerified": "Quality Verified",
+      "documentation": "Export Documentation",
+      "logistics": "Reliable Logistics",
+      "compliance": "Global Compliance",
+      "partnership": "Long-Term Partnership"
+    }
+  }
+},
+"certificationsCTA": {
+  "badge": "Trusted Export Partner • Certified Operations • Global Trade Ready",
+  "title": {
+    "line1": "Ready to Build a",
+    "line2": "Long-Term Global Partnership?"
+  },
+  "description": "ROOTYM combines regulatory compliance, quality assurance, ethical sourcing, and export expertise to deliver premium Indian agricultural products to international buyers. Whether you are an importer, distributor, wholesaler, retailer, or food manufacturer, our team is ready to support your sourcing requirements with dependable service and transparent communication.",
+  "buttons": {
+    "quote": "Request a Quote",
+    "contact": "Contact Our Team"
+  },
+  "trustStatement": "APEDA Registered • IEC Certified • FSSAI Licensed • MSME Registered • Startup India Recognized",
+  "cards": {
+    "email": {
+      "title": "Email Our Export Team",
+      "description": "Share your product requirements, destination country, and sourcing needs. Our export specialists will respond with detailed information and the next steps."
+    },
+    "specialists": {
+      "title": "Speak With Our Specialists",
+      "description": "Discuss bulk orders, private labeling, documentation, packaging, logistics, and long-term sourcing opportunities with our experienced team."
+    },
+    "response": {
+      "title": "Fast Business Response",
+      "description": "We aim to respond promptly to all business enquiries, helping importers and distributors move forward with confidence."
+    }
+  }
+},
+"marketsPage": {
+  "hero": {
+    "badge": "Global Export Network",
+    "title": {
+      "line1": "Connecting Indian Agriculture",
+      "line2": "With Global Markets"
+    },
+    "description": "ROOTYM connects international buyers with premium Indian agricultural products through trusted sourcing, export compliance, quality assurance and dependable global logistics.",
+    "buttons": {
+      "quote": "Request an Export Quote",
+      "contact": "Contact Our Team"
+    },
+    "highlights": {
+      "compliance": {
+        "title": "Export Compliance",
+        "description": "Documentation and regulatory support for international trade."
+      },
+      "quality": {
+        "title": "Quality Assured",
+        "description": "Products sourced and prepared with consistent quality standards."
+      },
+      "logistics": {
+        "title": "Global Logistics",
+        "description": "Reliable coordination for international shipments and delivery."
+      },
+      "supply": {
+        "title": "Trusted Supply",
+        "description": "Dependable sourcing relationships across key agricultural regions."
+      }
+    }
+  },
+
+  "regions": {
+    "badge": "Global Export Markets",
+    "title": {
+      "line1": "Serving Buyers Across",
+      "line2": "Key International Markets"
+    },
+    "description": "ROOTYM is building long-term export partnerships across major markets by connecting international buyers with reliable Indian agricultural supply.",
+    "cards": {
+      "middleEast": {
+        "title": "Middle East",
+        "countries": "UAE • Saudi Arabia • Qatar • Oman • Kuwait",
+        "description": "Supplying premium agricultural products to importers, distributors, wholesalers and food businesses across the Gulf region."
+      },
+      "europe": {
+        "title": "Europe",
+        "countries": "Germany • France • Netherlands",
+        "description": "Supporting European buyers seeking reliable Indian agricultural products and export-ready supply partnerships."
+      },
+      "uk": {
+        "title": "United Kingdom",
+        "countries": "United Kingdom",
+        "description": "Serving importers, distributors and food businesses looking for dependable Indian agricultural sourcing."
+      },
+      "northAmerica": {
+        "title": "North America",
+        "countries": "United States • Canada",
+        "description": "Expanding opportunities for Indian agricultural products across North American markets."
+      },
+      "southeastAsia": {
+        "title": "Southeast Asia",
+        "countries": "Sri Lanka • Singapore • Malaysia",
+        "description": "Connecting regional buyers with Indian agricultural products through efficient export sourcing and logistics."
+      },
+      "africa": {
+        "title": "Africa",
+        "countries": "Selected African Markets",
+        "description": "Building opportunities with importers and distributors seeking dependable agricultural products from India."
+      }
+    }
+  },
+
+  "indiaAdvantage": {
+    "badge": "The India Advantage",
+    "title": {
+      "line1": "Why Global Buyers Source",
+      "line2": "Agricultural Products from India"
+    },
+    "description": "India offers diverse agricultural production, established supplier networks and strong export capabilities. ROOTYM combines these advantages with disciplined sourcing and professional export management.",
+    "cards": {
+      "diversity": {
+        "title": "Agricultural Diversity",
+        "description": "Access to a wide range of agricultural products across India's major growing regions."
+      },
+      "supply": {
+        "title": "Strong Supplier Network",
+        "description": "Trusted farmer and supplier relationships support dependable product sourcing."
+      },
+      "readiness": {
+        "title": "Export Readiness",
+        "description": "Products are prepared with packaging, documentation and compliance requirements in mind."
+      },
+      "quality": {
+        "title": "Quality Focus",
+        "description": "Quality verification and responsible sourcing help maintain consistent buyer expectations."
+      }
+    }
+  },
+
+  "capabilities": {
+    "badge": "Export Capabilities",
+    "title": {
+      "line1": "Built for",
+      "line2": "International Buyers"
+    },
+    "description": "ROOTYM supports buyers throughout the sourcing and export journey with practical services designed for international trade.",
+    "cards": {
+      "bulk": {
+        "title": "Bulk Sourcing",
+        "description": "Support for wholesale and container-scale agricultural requirements."
+      },
+      "packaging": {
+        "title": "Flexible Packaging",
+        "description": "Retail, wholesale, bulk and customized packaging options based on buyer requirements."
+      },
+      "quality": {
+        "title": "Quality Assurance",
+        "description": "Quality checks and product verification before shipment."
+      },
+      "documentation": {
+        "title": "Export Documentation",
+        "description": "Professional documentation support for international shipments."
+      },
+      "logistics": {
+        "title": "Shipment Coordination",
+        "description": "Coordination with logistics and shipping partners for reliable deliveries."
+      },
+      "assistance": {
+        "title": "Buyer Assistance",
+        "description": "Responsive support for product specifications, sourcing and export requirements."
+      },
+      "market": {
+        "title": "Market Understanding",
+        "description": "Support for buyers evaluating suitable Indian products for their target markets."
+      },
+      "partnership": {
+        "title": "Long-Term Partnerships",
+        "description": "A relationship-driven approach focused on dependable supply and buyer success."
+      }
+    }
+  },
+
+  "journey": {
+    "badge": "Global Export Journey",
+    "title": {
+      "line1": "From Indian Farms",
+      "line2": "To Global Buyers"
+    },
+    "description": "ROOTYM follows a structured export journey designed to provide transparency, quality assurance and dependable execution.",
+    "steps": {
+      "enquiry": {
+        "title": "Enquiry",
+        "description": "Share your product, quantity, destination and business requirements."
+      },
+      "selection": {
+        "title": "Product Selection",
+        "description": "Identify suitable products and sourcing options for your market."
+      },
+      "approval": {
+        "title": "Confirmation",
+        "description": "Finalize specifications, pricing, packaging and commercial terms."
+      },
+      "shipment": {
+        "title": "Shipment",
+        "description": "Products are prepared, documented and coordinated for international shipment."
+      },
+      "delivery": {
+        "title": "Delivery",
+        "description": "Reliable logistics coordination supports successful delivery to the buyer."
+      }
+    }
+  },
+
+  "coCaptain": {
+    "badge": "ROOTYM CO-CAPTAIN",
+    "title": {
+      "line1": "Meet ROOTYM CO-CAPTAIN",
+      "line2": "Intelligent Export Assistance"
+    },
+    "description": "ROOTYM CO-CAPTAIN is our intelligent AI platform designed to work alongside importers, distributors, wholesalers and food businesses throughout the global sourcing journey. From product discovery and market insights to export documentation and shipment planning, CO-CAPTAIN helps buyers make faster, smarter and more confident decisions.",
+    "features": {
+      "marketAdvisor": {
+        "title": "Market Advisor",
+        "description": "Understand suitable products and opportunities for your target international market."
+      },
+      "productMatching": {
+        "title": "Product Matching",
+        "description": "Identify suitable Indian agricultural products based on buyer requirements."
+      },
+      "exportCoCaptain": {
+        "title": "Export Co-Captain",
+        "description": "Get intelligent assistance throughout sourcing, documentation and shipment planning."
+      }
+    }
+  },
+
+  "finalCta": {
+    "title": {
+      "line1": "Ready to Source from India?",
+      "line2": "Let's Build Your Global Supply"
+    },
+    "description": "Connect with ROOTYM for product enquiries, bulk sourcing, export requirements and long-term international supply partnerships.",
+    "buttons": {
+      "enquiry": "Request an Export Quote",
+      "contact": "Contact Our Team"
+    }
+  }
+},
   "globalMarkets": {
     "badge": "Global Presence",
     "title": "Serving Buyers Across International Markets",
@@ -197,6 +631,8 @@
       }
     }
   },
+
+  
   "testimonials": {
     "badge": "Client Trust",
     "title": "What Our International Buyers Say",
@@ -931,11 +1367,6 @@
     "contact": "Contact Us"
   },
 
-  "contact": {
-    "email": "Email",
-    "business": "Business Enquiries",
-    "support": "Export Enquiries & Buyer Support"
-  },
 
   "partner": {
     "title": "Why Partner with ROOTYM?",
@@ -948,5 +1379,426 @@
     }
   }
 }
+  },
+  "products": {
+  "hero": {
+    "badge": "Export Ready Agricultural Products",
+    "title": {
+      "line1": "Premium Indian Agricultural Products",
+      "line2": "Built for Global Trade"
+    },
+    "description": "ROOTYM connects international buyers with carefully sourced Indian agricultural products backed by quality assurance, export compliance, transparent sourcing and dependable logistics.",
+    "buttons": {
+      "quote": "Request Export Quote",
+      "explore": "Explore Products"
+    },
+    "cards": {
+      "quality": {
+        "title": "Quality Assured",
+        "subtitle": "Inspection & Compliance"
+      },
+      "export": {
+        "title": "Export Ready",
+        "subtitle": "Documentation Support"
+      },
+      "logistics": {
+        "title": "Reliable Logistics",
+        "subtitle": "Global Shipping"
+      },
+      "trade": {
+        "title": "International Trade",
+        "subtitle": "Trusted Export Partner"
+      }
+    }
+  },
+
+  "portfolio": {
+  "badge": "Product Portfolio",
+  "title": "Agricultural Products Prepared for International Buyers",
+  "description": "Every product is sourced through trusted supplier networks, prepared with export-quality standards, and supported by documentation that simplifies international trade.",
+  "viewDetails": "View Export Details"
+},
+"buyerConfidence": {
+  "badge": "Buyer Confidence",
+  "title": "Why International Buyers Choose ROOTYM",
+  "description": "We don't simply export products—we build long-term international business relationships through transparency, quality assurance, reliable communication and dependable logistics.",
+  "cards": {
+    "verified": {
+      "title": "Verified Sourcing",
+      "description": "Products are sourced through trusted farmer and supplier networks with complete traceability."
+    },
+    "quality": {
+      "title": "Quality Assurance",
+      "description": "Every shipment follows export quality standards with inspection and documentation support."
+    },
+    "packaging": {
+      "title": "Flexible Packaging",
+      "description": "Retail, wholesale and bulk export packaging tailored to international buyer requirements."
+    },
+    "logistics": {
+      "title": "Export Logistics",
+      "description": "Support for container planning, shipping coordination and international documentation."
+    },
+    "global": {
+      "title": "Global Trade Focus",
+      "description": "Serving importers, distributors, retailers and food businesses across international markets."
+    },
+    "ai": {
+      "title": "AI-Powered Future",
+      "description": "ROOTYM Brain will assist buyers with intelligent product recommendations and sourcing decisions."
+    }
   }
+},
+"exportJourney": {
+  "badge": "Export Journey",
+  "title": "From Indian Farms to Global Markets",
+  "description": "ROOTYM manages every stage of the export journey with a focus on transparency, compliance and dependable execution.",
+  "steps": {
+    "sourcing": {
+      "title": "Sourcing",
+      "description": "Trusted farmer and supplier network."
+    },
+    "inspection": {
+      "title": "Inspection",
+      "description": "Quality verification and grading."
+    },
+    "packaging": {
+      "title": "Packaging",
+      "description": "Export-ready packaging solutions."
+    },
+    "documentation": {
+      "title": "Documentation",
+      "description": "Export compliance and paperwork."
+    },
+    "shipment": {
+      "title": "Shipment",
+      "description": "Reliable international logistics."
+    },
+    "delivery": {
+      "title": "Delivery",
+      "description": "Successful arrival to global buyers."
+    }
+  }
+},
+"aiFuture": {
+  "badge": "ROOTYM Brain",
+  "title": {
+    "line1": "Intelligent Export Decisions",
+    "line2": "Powered by AI"
+  },
+  "description": "In the future, ROOTYM Brain will help international buyers identify suitable products based on their country, market requirements, quantity, packaging preferences and business objectives.",
+  "cards": {
+    "market": {
+      "title": "Market Understanding",
+      "description": "Identify suitable Indian agricultural products for your target market."
+    },
+    "recommendation": {
+      "title": "Product Recommendation",
+      "description": "Receive intelligent recommendations based on buyer requirements."
+    },
+    "assistance": {
+      "title": "Export Assistance",
+      "description": "Get guidance on packaging, documentation and shipment planning."
+    }
+  }
+},
+"cta": {
+  "title": "Ready to Source Premium Indian Products?",
+  "description": "Connect with ROOTYM for export enquiries, product specifications, bulk requirements, and long-term sourcing partnerships.",
+  "buttons": {
+    "quote": "Request Export Quote",
+    "contact": "Contact ROOTYM Team"
+  }
+}
+},
+"contact": {
+  "email": "Email",
+  "business": "Business Enquiries",
+
+  "hero": {
+    "badge": "Global Export Enquiries • Bulk Orders • Strategic Partnerships",
+    "title": {
+      "line1": "Let's Grow Your",
+      "line2": "Global Business Together"
+    },
+    "description": "Whether you're an importer, distributor, wholesaler, retailer, or food manufacturer, ROOTYM is ready to become your trusted sourcing partner for premium Indian agricultural products. Our experienced team is committed to providing responsive communication, consistent quality, and reliable export solutions tailored to your business.",
+    "buttons": {
+      "quote": "Request a Quote",
+      "enquiry": "Send an Enquiry"
+    },
+   "supportingText": "We welcome enquiries from importers, distributors, retailers, private label brands, and international sourcing partners.",
+"highlights": {
+  "response": {
+    "value": "Fast Response",
+    "label": "Within 1 Business Day"
+  },
+  "support": {
+    "value": "Export Support",
+    "label": "Dedicated Buyer Assistance"
+  },
+  "assistance": {
+    "value": "Direct Communication",
+    "label": "Professional Business Support"
+  },
+  "partnerships": {
+    "value": "Long-Term Partnerships",
+    "label": "Built on Trust & Reliability"
+  }
+}
+  },
+
+  "information": {
+    "badge": "Contact Information",
+    "title": {
+      "line1": "Let's Connect and",
+      "line2": "Build Long-Term Partnerships"
+    },
+    "description": "Whether you are looking for premium agricultural products, bulk sourcing, OEM/private label solutions, or long-term export partnerships, our experienced team is ready to assist you with responsive communication and reliable support.",
+    "trust": {
+      "title": "Trusted Export Partner",
+      "description": "ROOTYM is committed to transparency, regulatory compliance, and delivering premium-quality agricultural products that meet the expectations of customers across global markets."
+    },
+    "cards": {
+      "registeredOffice": {
+        "title": "Registered Office",
+        "details": {
+          "company": "ROOTYM Agro Harvest Private Limited",
+          "location": "Pune, Maharashtra, India",
+          "type": "Corporate Headquarters"
+        }
+      },
+      "operationsOffice": {
+        "title": "Operations Office",
+        "details": {
+          "location": "Kaimur, Bihar, India",
+          "operations": "Agricultural Sourcing & Procurement",
+          "network": "Farmer Network Operations"
+        }
+      },
+      "businessEmail": {
+        "title": "Business Email",
+        "details": {
+          "email": "sales@rootym.com",
+          "enquiries": "Export Enquiries",
+          "partnerships": "Partnership Opportunities"
+        }
+      },
+      "businessSupport": {
+        "title": "Business Support",
+        "details": {
+          "phone": "+91 98735 29752",
+          "assistance": "Import & Export Assistance",
+          "hours": "Monday - Saturday"
+        }
+      }
+    },
+    "registrations": {
+  "apeda": {
+    "title": "APEDA Registered",
+    "description": "Registered agricultural exporter committed to international quality standards and responsible export practices."
+  },
+  "iec": {
+    "title": "IEC Certified",
+    "description": "Authorized Import Export Code (IEC) holder, enabling seamless global trade and international shipments."
+  },
+  "global": {
+    "title": "Global Trade Partner",
+    "description": "Supporting importers, distributors, wholesalers, retailers, and private label brands across international markets."
+  }
+}
+  },
+
+  "support": {
+    "badge": "Business Support",
+    "title": {
+      "line1": "Always Ready To",
+      "line2": "Support Your Requirements"
+    },
+    "description": "Our team works closely with customers, suppliers and global partners to provide timely communication and reliable export support throughout the business journey.",
+    "question": {
+      "title": "Have a Question?",
+      "description": "Whether you need product specifications, export documentation, pricing details or partnership information, our team is available to guide you."
+    },
+
+"cards": {
+  "hours": {
+    "title": "Business Hours",
+    "description": "Monday to Saturday • 9:00 AM – 6:00 PM (IST) with prompt assistance for international enquiries."
+  },
+  "response": {
+    "title": "Fast Response",
+    "description": "Most export and sourcing enquiries receive an initial response within one business day."
+  },
+  "team": {
+    "title": "Dedicated Export Team",
+    "description": "Specialized assistance for importers, distributors, wholesalers, retailers, and private label partners."
+  },
+  "communication": {
+    "title": "Professional Communication",
+    "description": "Transparent quotations, reliable documentation, and long-term business relationships built on trust."
+  }
+}
+
+  },
+
+  "locations": {
+    "badge": "Our Locations",
+    "title": {
+      "line1": "Serving Customers",
+      "line2": "Across India & Worldwide"
+    },
+    "description": "ROOTYM operates from strategically located offices that support efficient sourcing, quality management and international export operations.",
+    "map": {
+      "title": "Interactive Map",
+      "description": "Google Maps integration will be added in Sprint 10"
+    },
+    "global": {
+      "title": "Global Export Network",
+      "description": "From our operations in Maharashtra and Bihar, ROOTYM serves international buyers by connecting India's agricultural excellence with markets around the world through reliable sourcing, documentation and export management."
+    },
+  
+    "offices": {
+      "registered": {
+        "title": "Registered Office",
+        "location": "Pune, Maharashtra, India",
+        "description": "Corporate headquarters responsible for business operations, export management, customer relationships and strategic planning.",
+        "highlights": {
+          "corporate": "Corporate Office",
+          "business": "Export Management",
+          "support": "Business Development",
+          "export": "Customer Support"
+        }
+      },
+      "branch": {
+        "title": "Branch Office",
+        "location": "Kaimur, Bihar, India",
+        "description": "Strategically located close to agricultural sourcing regions, supporting procurement, supplier coordination and quality assurance.",
+        "highlights": {
+          "sourcing": "Product Sourcing",
+          "farmer": "Farmer Network",
+          "quality": "Quality Inspection",
+          "supply": "Supply Chain"
+        }
+      }
+    }
+  },
+
+"form": {
+  "badge": "Business Enquiry",
+  "title": {
+    "line1": "Let's Discuss Your",
+    "line2": "Export Requirements"
+  },
+  "description": "Send your enquiry directly to the ROOTYM export team. Whether you are an importer, distributor, wholesaler, retailer, or food manufacturer, we will work to provide a sourcing solution suited to your business.",
+  "benefits": {
+    "consultation": "Expert Export Consultation",
+    "bulkOrders": "Bulk Order Support",
+    "privateLabel": "Private Label Solutions",
+    "sourcing": "Reliable Product Sourcing"
+  },
+  "why": {
+    "title": "Why Contact ROOTYM?",
+    "apeda": "APEDA Registered Exporter",
+    "support": "International Buyer Support",
+    "sourcing": "Trusted Sourcing Network",
+    "communication": "Transparent Communication",
+    "quality": "Product Quality Assurance"
+  },
+  "success": {
+    "title": "Enquiry Submitted Successfully"
+  },
+  "errors": {
+    "submit": "Unable to submit your enquiry."
+  },
+  "fields": {
+    "contactPerson": "Contact Person *",
+    "companyName": "Company Name *",
+    "email": "Business Email *",
+    "phone": "Phone Number",
+    "country": "Country *",
+    "product": "Product *",
+    "quantity": "Estimated Quantity",
+    "unit": "Unit",
+    "requirement": "Business Requirement *"
+  },
+  "placeholders": {
+    "contactPerson": "Enter your name",
+    "companyName": "Enter company name",
+    "email": "Enter business email",
+    "phone": "Enter phone number",
+    "country": "Enter country",
+    "quantity": "Enter estimated quantity",
+    "requirement": "Describe your product requirements, destination, quantity, packaging, and other business requirements."
+  },
+  "options": {
+    "selectProduct": "Select Product",
+    "selectUnit": "Select Unit"
+  },
+  "requirementHint": "Minimum 10 characters. The more information you provide, the faster we can prepare an accurate response.",
+  "security": {
+    "title": "Your Information Is Secure",
+    "description": "Your enquiry is sent directly to the ROOTYM enquiry management system and reviewed by our export team. We do not share your information with third parties."
+  },
+  "buttons": {
+  "submit": "Submit Enquiry"
+},
+"privacyNotice": "Your information is kept confidential and used only to respond to your enquiry."
+},
+
+
+
+"faq": {
+  "badge": "Frequently Asked Questions",
+  "title": {
+    "line1": "Before You",
+    "line2": "Contact Us"
+  },
+  "description": "Find answers to common questions about our export services, products and business partnerships.",
+  "questions": {
+    "quotation": {
+      "question": "How do I request a quotation from ROOTYM?",
+      "answer": "Simply complete the enquiry form with your product requirements, destination country, estimated quantity, and packaging preferences. Our export team will review your enquiry and respond with a suitable quotation and next steps."
+    },
+    "products": {
+      "question": "Which products are available for export?",
+      "answer": "ROOTYM supplies premium Indian agricultural products including Makhana (Fox Nuts), dehydrated onion products, rice, wheat, potato products, and other export-ready commodities. Product availability may vary based on season and sourcing."
+    },
+    "bulkOrders": {
+      "question": "Do you handle bulk and container-load orders?",
+      "answer": "Yes. We specialize in bulk supply for importers, distributors, wholesalers, retailers, food manufacturers, and private label businesses. Both palletized and container-load shipments can be discussed based on your requirements."
+    },
+    "countries": {
+      "question": "Which countries does ROOTYM export to?",
+      "answer": "We welcome enquiries from buyers across the UAE, Middle East, Sri Lanka, Europe, Africa, Asia, and other international markets, subject to product availability and destination-country requirements."
+    },
+    "documentation": {
+      "question": "Can you provide export documentation and certifications?",
+      "answer": "Yes. Depending on the destination country and product, we can provide the required export documentation and applicable certifications to support customs clearance and regulatory compliance."
+    },
+    "packaging": {
+      "question": "Can I request customized packaging or private labeling?",
+      "answer": "Yes. We support OEM and private label opportunities for eligible products. Packaging formats, branding requirements, and minimum order quantities can be discussed with our export team."
+    }
+  }
+},
+
+  "cta": {
+    "badge": "Trusted by Global Buyers • Built for Long-Term Partnerships",
+    "title": {
+      "line1": "Ready to Import Premium",
+      "line2": "Indian Agricultural Products?"
+    },
+    "description": "From premium Makhana and dehydrated onion products to rice, wheat, potato products, and customized sourcing solutions, ROOTYM helps importers, distributors, wholesalers, retailers, and food manufacturers build reliable long-term supply partnerships backed by quality, transparency, and export expertise.",
+    "buttons": {
+      "quote": "Request a Quote",
+      "products": "Explore Products"
+    },
+    "features": {
+  "network": "Worldwide Export Network",
+  "response": "24-Hour Business Response",
+  "specialists": "Dedicated Export Specialists"
+}
+  }
+}
+
 }

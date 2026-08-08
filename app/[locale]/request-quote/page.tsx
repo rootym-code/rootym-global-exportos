@@ -4,6 +4,8 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 
 import ExportInquiryForm from "@/components/forms/ExportInquiryForm";
+import { ProductStatus } from "@/lib/generated/prisma";
+import { listProducts } from "@/lib/services/product.service";
 
 export const metadata: Metadata = {
   title: "Request a Quote | ROOTYM",
@@ -50,7 +52,13 @@ const benefits = [
   },
 ];
 
-export default function RequestQuotePage() {
+export default async function RequestQuotePage() {
+  const { items: products } = await listProducts({
+    status: ProductStatus.PUBLISHED,
+    page: 1,
+    pageSize: 100,
+  });
+  
   return (
     <>
       <Navbar />
@@ -167,7 +175,7 @@ export default function RequestQuotePage() {
             </div>
 
             <div className="mx-auto max-w-5xl">
-              <ExportInquiryForm />
+            <ExportInquiryForm products={products} />
             </div>
           </div>
         </section>

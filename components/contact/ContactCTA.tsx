@@ -10,6 +10,8 @@ import {
   Phone,
 } from "lucide-react";
 
+import { useTranslation } from "@/lib/i18n/context";
+
 const containerVariants: Variants = {
   hidden: {},
   visible: {
@@ -37,19 +39,21 @@ const itemVariants: Variants = {
 const features = [
   {
     icon: Globe2,
-    title: "Worldwide Export Network",
+    title: "contact.cta.features.network",
   },
   {
     icon: Mail,
-    title: "24-Hour Business Response",
+    title: "contact.cta.features.response",
   },
   {
     icon: Phone,
-    title: "Dedicated Export Specialists",
+    title: "contact.cta.features.specialists",
   },
 ];
 
 export default function ContactCTA() {
+  const { t } = useTranslation();
+
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-green-950 via-green-900 to-emerald-950 py-24">
       {/* Background */}
@@ -73,7 +77,8 @@ export default function ContactCTA() {
           <motion.div variants={itemVariants}>
             <span className="inline-flex items-center gap-2 rounded-full border border-green-400/30 bg-white/10 px-5 py-2 text-sm font-semibold text-green-100 backdrop-blur-md">
               <MessageCircle className="h-4 w-4 text-green-300" />
-              Trusted by Global Buyers • Built for Long-Term Partnerships
+
+              {t("contact.cta.badge")}
             </span>
           </motion.div>
 
@@ -81,9 +86,10 @@ export default function ContactCTA() {
             variants={itemVariants}
             className="mt-8 text-4xl font-bold tracking-tight text-white md:text-6xl"
           >
-            Ready to Import Premium 
+            {t("contact.cta.title.line1")}
+
             <span className="block bg-gradient-to-r from-green-300 via-emerald-200 to-lime-300 bg-clip-text text-transparent">
-            Indian Agricultural Products?
+              {t("contact.cta.title.line2")}
             </span>
           </motion.h2>
 
@@ -91,7 +97,7 @@ export default function ContactCTA() {
             variants={itemVariants}
             className="mx-auto mt-8 max-w-3xl text-lg leading-8 text-green-100/90"
           >
-            From premium Makhana and dehydrated onion products to rice, wheat, potato products, and customized sourcing solutions, ROOTYM helps importers, distributors, wholesalers, retailers, and food manufacturers build reliable long-term supply partnerships backed by quality, transparency, and export expertise.
+            {t("contact.cta.description")}
           </motion.p>
 
           {/* CTA Buttons */}
@@ -104,15 +110,16 @@ export default function ContactCTA() {
               href="/request-quote"
               className="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 font-semibold text-green-900 shadow-xl transition-all duration-300 hover:scale-105 hover:bg-green-50"
             >
-              Request a Quote
+              {t("contact.cta.buttons.quote")}
+
               <ArrowRight className="h-5 w-5" />
             </Link>
 
             <Link
-          href="/request-quote"
+              href="/request-quote"
               className="inline-flex items-center rounded-xl border border-white/20 bg-white/10 px-8 py-4 font-semibold text-white backdrop-blur-md transition-all duration-300 hover:bg-white/20"
             >
-              Explore Products
+              {t("contact.cta.buttons.products")}
             </Link>
           </motion.div>
 
@@ -134,7 +141,7 @@ export default function ContactCTA() {
                   <Icon className="mx-auto h-10 w-10 text-green-300" />
 
                   <h3 className="mt-5 text-xl font-semibold text-white">
-                    {feature.title}
+                    {t(feature.title)}
                   </h3>
                 </motion.div>
               );

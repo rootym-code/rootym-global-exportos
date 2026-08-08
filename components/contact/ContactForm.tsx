@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 
 import type { InquiryInput } from "@/lib/validations/inquiry";
+import { useTranslation } from "@/lib/i18n/context";
 
 const containerVariants: Variants = {
   hidden: {},
@@ -46,10 +47,10 @@ const itemVariants: Variants = {
 };
 
 const benefits = [
-  "Dedicated export consultation",
-  "Bulk order assistance",
-  "Private label & OEM discussions",
-  "Global sourcing support",
+  "contact.form.benefits.consultation",
+  "contact.form.benefits.bulkOrders",
+  "contact.form.benefits.privateLabel",
+  "contact.form.benefits.sourcing",
 ];
 
 const productOptions = [
@@ -83,6 +84,8 @@ const initialForm: InquiryInput = {
 };
 
 export default function ContactForm() {
+  const { t } = useTranslation();
+
   const [form, setForm] =
     useState<InquiryInput>(initialForm);
 
@@ -143,7 +146,7 @@ export default function ContactForm() {
       if (!response.ok || !result.success) {
         throw new Error(
           result.message ??
-            "Unable to submit inquiry.",
+            t("contact.form.errors.submit"),
         );
       }
 
@@ -154,7 +157,7 @@ export default function ContactForm() {
       setError(
         err instanceof Error
           ? err.message
-          : "Unable to submit inquiry.",
+          : t("contact.form.errors.submit"),
       );
     } finally {
       setSubmitting(false);
@@ -181,25 +184,19 @@ export default function ContactForm() {
 
           <motion.div variants={itemVariants}>
             <span className="inline-flex rounded-full bg-green-100 px-4 py-1 text-sm font-semibold text-green-700">
-              Business Enquiry
+              {t("contact.form.badge")}
             </span>
 
             <h2 className="mt-6 text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
-              Let's Discuss Your
+              {t("contact.form.title.line1")}
+
               <span className="block text-green-700">
-                Export Requirements
+                {t("contact.form.title.line2")}
               </span>
             </h2>
 
             <p className="mt-6 text-lg leading-8 text-gray-600">
-              Submit your enquiry directly to
-              the ROOTYM export team. Whether
-              you're an importer,
-              distributor, wholesaler,
-              retailer, or food
-              manufacturer, we'll respond
-              with the right sourcing
-              solution for your business.
+              {t("contact.form.description")}
             </p>
 
             <div className="mt-10 space-y-5">
@@ -211,7 +208,7 @@ export default function ContactForm() {
                   <CheckCircle2 className="h-5 w-5 text-green-700" />
 
                   <span className="text-gray-700">
-                    {benefit}
+                    {t(benefit)}
                   </span>
                 </div>
               ))}
@@ -222,24 +219,23 @@ export default function ContactForm() {
                 <ShieldCheck className="h-6 w-6 text-green-700" />
 
                 <h3 className="text-lg font-semibold text-gray-900">
-                  Why Contact ROOTYM?
+                  {t("contact.form.why.title")}
                 </h3>
               </div>
 
               <ul className="mt-5 space-y-3 text-gray-600">
-                <li>• APEDA registered exporter</li>
-                <li>• International buyer support</li>
-                <li>• Reliable sourcing network</li>
-                <li>• Transparent communication</li>
-                <li>• Premium quality assurance</li>
+                <li>• {t("contact.form.why.apeda")}</li>
+                <li>• {t("contact.form.why.support")}</li>
+                <li>• {t("contact.form.why.sourcing")}</li>
+                <li>• {t("contact.form.why.communication")}</li>
+                <li>• {t("contact.form.why.quality")}</li>
               </ul>
             </div>
           </motion.div>
 
-          {/* Form begins in Part 2 */}
-                    {/* Form */}
+          {/* Form */}
 
-                    <motion.div
+          <motion.div
             variants={itemVariants}
             className="rounded-3xl border border-gray-200 bg-white p-8 shadow-xl lg:p-10"
           >
@@ -250,7 +246,7 @@ export default function ContactForm() {
 
                   <div>
                     <h3 className="font-semibold text-green-900">
-                      Inquiry Submitted Successfully
+                      {t("contact.form.success.title")}
                     </h3>
 
                     <p className="mt-1 text-sm text-green-700">
@@ -276,7 +272,7 @@ export default function ContactForm() {
               <div className="grid gap-6 md:grid-cols-2">
                 <div>
                   <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Contact Person *
+                    {t("contact.form.fields.contactPerson")}
                   </label>
 
                   <div className="relative">
@@ -292,7 +288,9 @@ export default function ContactForm() {
                           e.target.value,
                         )
                       }
-                      placeholder="John Smith"
+                      placeholder={t(
+                        "contact.form.placeholders.contactPerson",
+                      )}
                       className="w-full rounded-xl border border-gray-200 py-3 pl-12 pr-4 outline-none transition focus:border-green-600"
                     />
                   </div>
@@ -300,7 +298,7 @@ export default function ContactForm() {
 
                 <div>
                   <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Company Name *
+                    {t("contact.form.fields.companyName")}
                   </label>
 
                   <div className="relative">
@@ -316,7 +314,9 @@ export default function ContactForm() {
                           e.target.value,
                         )
                       }
-                      placeholder="ABC Imports Ltd."
+                      placeholder={t(
+                        "contact.form.placeholders.companyName",
+                      )}
                       className="w-full rounded-xl border border-gray-200 py-3 pl-12 pr-4 outline-none transition focus:border-green-600"
                     />
                   </div>
@@ -326,7 +326,7 @@ export default function ContactForm() {
               <div className="grid gap-6 md:grid-cols-2">
                 <div>
                   <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Business Email *
+                    {t("contact.form.fields.email")}
                   </label>
 
                   <div className="relative">
@@ -342,7 +342,9 @@ export default function ContactForm() {
                           e.target.value,
                         )
                       }
-                      placeholder="buyer@company.com"
+                      placeholder={t(
+                        "contact.form.placeholders.email",
+                      )}
                       className="w-full rounded-xl border border-gray-200 py-3 pl-12 pr-4 outline-none transition focus:border-green-600"
                     />
                   </div>
@@ -350,7 +352,7 @@ export default function ContactForm() {
 
                 <div>
                   <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Phone
+                    {t("contact.form.fields.phone")}
                   </label>
 
                   <div className="relative">
@@ -365,7 +367,9 @@ export default function ContactForm() {
                           e.target.value,
                         )
                       }
-                      placeholder="+91 98735 29752"
+                      placeholder={t(
+                        "contact.form.placeholders.phone",
+                      )}
                       className="w-full rounded-xl border border-gray-200 py-3 pl-12 pr-4 outline-none transition focus:border-green-600"
                     />
                   </div>
@@ -375,7 +379,7 @@ export default function ContactForm() {
               <div className="grid gap-6 md:grid-cols-2">
                 <div>
                   <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Country *
+                    {t("contact.form.fields.country")}
                   </label>
 
                   <div className="relative">
@@ -391,7 +395,9 @@ export default function ContactForm() {
                           e.target.value,
                         )
                       }
-                      placeholder="United Arab Emirates"
+                      placeholder={t(
+                        "contact.form.placeholders.country",
+                      )}
                       className="w-full rounded-xl border border-gray-200 py-3 pl-12 pr-4 outline-none transition focus:border-green-600"
                     />
                   </div>
@@ -399,7 +405,7 @@ export default function ContactForm() {
 
                 <div>
                   <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Product *
+                    {t("contact.form.fields.product")}
                   </label>
 
                   <div className="relative">
@@ -417,7 +423,9 @@ export default function ContactForm() {
                       className="w-full appearance-none rounded-xl border border-gray-200 bg-white py-3 pl-12 pr-4 outline-none transition focus:border-green-600"
                     >
                       <option value="">
-                        Select Product
+                        {t(
+                          "contact.form.options.selectProduct",
+                        )}
                       </option>
 
                       {productOptions.map(
@@ -435,11 +443,10 @@ export default function ContactForm() {
                 </div>
               </div>
 
-              {/* Continues in Part 3 */}
               <div className="grid gap-6 md:grid-cols-2">
                 <div>
                   <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Estimated Quantity
+                    {t("contact.form.fields.quantity")}
                   </label>
 
                   <div className="relative">
@@ -454,7 +461,9 @@ export default function ContactForm() {
                           e.target.value,
                         )
                       }
-                      placeholder="e.g. 25"
+                      placeholder={t(
+                        "contact.form.placeholders.quantity",
+                      )}
                       className="w-full rounded-xl border border-gray-200 py-3 pl-12 pr-4 outline-none transition focus:border-green-600"
                     />
                   </div>
@@ -462,7 +471,7 @@ export default function ContactForm() {
 
                 <div>
                   <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Unit
+                    {t("contact.form.fields.unit")}
                   </label>
 
                   <div className="relative">
@@ -479,7 +488,9 @@ export default function ContactForm() {
                       className="w-full appearance-none rounded-xl border border-gray-200 bg-white py-3 pl-12 pr-4 outline-none transition focus:border-green-600"
                     >
                       <option value="">
-                        Select Unit
+                        {t(
+                          "contact.form.options.selectUnit",
+                        )}
                       </option>
 
                       {unitOptions.map((unit) => (
@@ -497,7 +508,7 @@ export default function ContactForm() {
 
               <div>
                 <label className="mb-2 block text-sm font-medium text-gray-700">
-                  Business Requirement *
+                  {t("contact.form.fields.requirement")}
                 </label>
 
                 <div className="relative">
@@ -513,14 +524,15 @@ export default function ContactForm() {
                         e.target.value,
                       )
                     }
-                    placeholder="Please describe your product requirements, destination country, quantity, packaging preference, delivery timeline, certifications required, or any other information that will help our export team prepare an accurate quotation."
+                    placeholder={t(
+                      "contact.form.placeholders.requirement",
+                    )}
                     className="w-full rounded-xl border border-gray-200 py-3 pl-12 pr-4 outline-none transition focus:border-green-600"
                   />
                 </div>
 
                 <p className="mt-2 text-sm text-gray-500">
-                  Minimum 10 characters. The more information you provide,
-                  the faster we can prepare an accurate response.
+                  {t("contact.form.requirementHint")}
                 </p>
               </div>
 
@@ -530,20 +542,16 @@ export default function ContactForm() {
 
                   <div>
                     <h4 className="font-semibold text-gray-900">
-                      Your information is secure
+                      {t("contact.form.security.title")}
                     </h4>
 
                     <p className="mt-1 text-sm leading-6 text-gray-600">
-                      Your enquiry is submitted directly to the ROOTYM
-                      inquiry management system and reviewed by our export
-                      team. We do not share your information with third
-                      parties.
+                      {t("contact.form.security.description")}
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* Continues in Part 4 */}
               <div className="space-y-4">
                 <button
                   type="submit"
@@ -553,21 +561,26 @@ export default function ContactForm() {
                   {submitting ? (
                     <>
                       <Loader2 className="h-5 w-5 animate-spin" />
-                      Submitting Inquiry...
+
+                      {t(
+                        "contact.form.buttons.submitting",
+                      )}
                     </>
                   ) : (
                     <>
                       <Send className="h-5 w-5" />
-                      Submit Inquiry
+
+                      {t(
+                        "contact.form.buttons.submit",
+                      )}
                     </>
                   )}
                 </button>
 
                 <p className="text-center text-sm leading-6 text-gray-500">
-                  By submitting this enquiry, you agree that ROOTYM Agro
-                  Harvest Private Limited may contact you regarding your
-                  business requirements. Our export team typically responds
-                  within one business day.
+                  {t(
+                    "contact.form.privacyNotice",
+                  )}
                 </p>
               </div>
             </form>
@@ -577,5 +590,3 @@ export default function ContactForm() {
     </section>
   );
 }
-
- 

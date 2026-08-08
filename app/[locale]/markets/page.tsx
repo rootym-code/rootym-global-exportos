@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import {
   ArrowRight,
   Globe2,
@@ -14,6 +13,9 @@ import {
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/Button";
+import Link from "@/lib/i18n/Link";
+import { getDictionary } from "@/lib/i18n/get-dictionary";
+import type { Locale } from "@/lib/i18n/config";
 
 export const metadata: Metadata = {
   title: "Global Markets | ROOTYM Agro Harvest Private Limited",
@@ -29,7 +31,30 @@ export const metadata: Metadata = {
   ],
 };
 
-export default function MarketsPage() {
+export default async function MarketsPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+
+  const dictionary = await getDictionary(locale as Locale);
+
+  const t = (key: string): string => {
+    const keys = key.split(".");
+    let value: any = dictionary;
+
+    for (const k of keys) {
+      if (value && typeof value === "object" && k in value) {
+        value = value[k];
+      } else {
+        return key;
+      }
+    }
+
+    return typeof value === "string" ? value : key;
+  };
+
   return (
     <>
       <Navbar />
@@ -49,36 +74,31 @@ export default function MarketsPage() {
           <div className="relative mx-auto max-w-7xl px-6 text-center">
             <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-green-200 bg-white px-5 py-2 text-sm font-semibold text-[#2E7D32] shadow-sm">
               <Globe2 className="h-4 w-4" />
-              Global Export Network
+              {t("marketsPage.hero.badge")}
             </div>
 
             <h1 className="mx-auto mt-8 max-w-5xl text-5xl font-bold tracking-tight text-gray-900 md:text-7xl">
-              Connecting Indian Agriculture
+              {t("marketsPage.hero.title.line1")}
               <span className="block bg-gradient-to-r from-[#2E7D32] via-green-600 to-emerald-500 bg-clip-text text-transparent">
-                With Global Markets
+                {t("marketsPage.hero.title.line2")}
               </span>
             </h1>
 
             <p className="mx-auto mt-8 max-w-3xl text-lg leading-8 text-gray-600 md:text-xl">
-              ROOTYM helps international buyers source premium Indian
-              agricultural products through transparent sourcing, export
-              compliance, quality assurance and reliable global logistics.
+              {t("marketsPage.hero.description")}
             </p>
 
             <div className="mt-12 flex flex-col justify-center gap-4 sm:flex-row">
               <Link href="/request-quote">
                 <Button className="px-8 py-3">
-                  Request Export Quote
+                  {t("marketsPage.hero.buttons.quote")}
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
 
               <Link href="/contact">
-                <Button
-                  variant="secondary"
-                  className="px-8 py-3"
-                >
-                  Contact Export Team
+                <Button variant="secondary" className="px-8 py-3">
+                  {t("marketsPage.hero.buttons.contact")}
                 </Button>
               </Link>
             </div>
@@ -86,435 +106,482 @@ export default function MarketsPage() {
             <div className="mx-auto mt-16 grid max-w-5xl gap-6 md:grid-cols-4">
               <MarketHighlight
                 icon={<ShieldCheck />}
-                title="Export Compliance"
-                description="Documentation and regulatory support."
+                title={t(
+                  "marketsPage.hero.highlights.compliance.title"
+                )}
+                description={t(
+                  "marketsPage.hero.highlights.compliance.description"
+                )}
               />
 
               <MarketHighlight
                 icon={<PackageCheck />}
-                title="Quality Assurance"
-                description="Reliable sourcing and inspection."
+                title={t(
+                  "marketsPage.hero.highlights.quality.title"
+                )}
+                description={t(
+                  "marketsPage.hero.highlights.quality.description"
+                )}
               />
 
               <MarketHighlight
                 icon={<Ship />}
-                title="Global Logistics"
-                description="Shipment coordination worldwide."
+                title={t(
+                  "marketsPage.hero.highlights.logistics.title"
+                )}
+                description={t(
+                  "marketsPage.hero.highlights.logistics.description"
+                )}
               />
 
               <MarketHighlight
                 icon={<TrendingUp />}
-                title="Long-Term Supply"
-                description="Partnership-focused approach."
+                title={t(
+                  "marketsPage.hero.highlights.supply.title"
+                )}
+                description={t(
+                  "marketsPage.hero.highlights.supply.description"
+                )}
               />
             </div>
           </div>
         </section>
-                {/* -------------------------------------------------------------------------- */}
+
+        {/* -------------------------------------------------------------------------- */}
         {/* Global Markets Section */}
         {/* -------------------------------------------------------------------------- */}
 
         <section className="py-24">
           <div className="mx-auto max-w-7xl px-6">
-
             <div className="mx-auto max-w-3xl text-center">
               <span className="inline-flex items-center gap-2 rounded-full bg-green-100 px-5 py-2 text-sm font-semibold text-[#2E7D32]">
                 <MapPin className="h-4 w-4" />
-                Markets We Serve
+                {t("marketsPage.regions.badge")}
               </span>
 
               <h2 className="mt-6 text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
-                Indian Agricultural Products
+                {t("marketsPage.regions.title.line1")}
                 <span className="block text-[#2E7D32]">
-                  For Global Buyers
+                  {t("marketsPage.regions.title.line2")}
                 </span>
               </h2>
 
               <p className="mt-6 text-lg leading-8 text-gray-600">
-                ROOTYM is building trusted trade relationships with importers,
-                distributors, retailers and food businesses across multiple
-                international markets.
+                {t("marketsPage.regions.description")}
               </p>
             </div>
 
-
             <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-
               <RegionCard
-                title="Middle East"
-                countries="UAE • Saudi Arabia • Qatar • Oman • Kuwait"
-                description="Serving growing demand for premium Indian food products among importers, distributors and retail networks."
+                title={t(
+                  "marketsPage.regions.cards.middleEast.title"
+                )}
+                countries={t(
+                  "marketsPage.regions.cards.middleEast.countries"
+                )}
+                description={t(
+                  "marketsPage.regions.cards.middleEast.description"
+                )}
               />
 
-
               <RegionCard
-                title="Europe"
-                countries="EU Countries • Specialty Food Markets"
-                description="Supporting buyers looking for reliable agricultural sourcing with quality documentation and compliance."
+                title={t(
+                  "marketsPage.regions.cards.europe.title"
+                )}
+                countries={t(
+                  "marketsPage.regions.cards.europe.countries"
+                )}
+                description={t(
+                  "marketsPage.regions.cards.europe.description"
+                )}
               />
 
-
               <RegionCard
-                title="United Kingdom"
-                countries="UK Importers • Ethnic Food Retailers"
-                description="Connecting Indian agricultural products with established food distribution channels."
+                title={t("marketsPage.regions.cards.uk.title")}
+                countries={t(
+                  "marketsPage.regions.cards.uk.countries"
+                )}
+                description={t(
+                  "marketsPage.regions.cards.uk.description"
+                )}
               />
 
-
               <RegionCard
-                title="North America"
-                countries="USA • Canada"
-                description="Helping international buyers access authentic Indian agricultural products with dependable supply."
+                title={t(
+                  "marketsPage.regions.cards.northAmerica.title"
+                )}
+                countries={t(
+                  "marketsPage.regions.cards.northAmerica.countries"
+                )}
+                description={t(
+                  "marketsPage.regions.cards.northAmerica.description"
+                )}
               />
 
-
               <RegionCard
-                title="Southeast Asia"
-                countries="Singapore • Malaysia • Sri Lanka"
-                description="Building regional partnerships through flexible sourcing and export support."
+                title={t(
+                  "marketsPage.regions.cards.southeastAsia.title"
+                )}
+                countries={t(
+                  "marketsPage.regions.cards.southeastAsia.countries"
+                )}
+                description={t(
+                  "marketsPage.regions.cards.southeastAsia.description"
+                )}
               />
 
-
               <RegionCard
-                title="Africa"
-                countries="Emerging Food Markets"
-                description="Supporting growing markets with scalable agricultural product supply solutions."
+                title={t(
+                  "marketsPage.regions.cards.africa.title"
+                )}
+                countries={t(
+                  "marketsPage.regions.cards.africa.countries"
+                )}
+                description={t(
+                  "marketsPage.regions.cards.africa.description"
+                )}
               />
-
             </div>
-
           </div>
         </section>
-
 
         {/* -------------------------------------------------------------------------- */}
         {/* Why India Section */}
         {/* -------------------------------------------------------------------------- */}
 
         <section className="bg-[#F8FBF8] py-24">
-
           <div className="mx-auto max-w-7xl px-6">
-
             <div className="grid gap-14 lg:grid-cols-2 lg:items-center">
-
-
               <div>
-
                 <span className="rounded-full bg-green-100 px-5 py-2 text-sm font-semibold text-[#2E7D32]">
-                  India Advantage
+                  {t("marketsPage.indiaAdvantage.badge")}
                 </span>
 
-
                 <h2 className="mt-6 text-4xl font-bold text-gray-900 md:text-5xl">
-                  Why Global Buyers
+                  {t("marketsPage.indiaAdvantage.title.line1")}
                   <span className="block text-[#2E7D32]">
-                    Source From India
+                    {t("marketsPage.indiaAdvantage.title.line2")}
                   </span>
                 </h2>
 
-
                 <p className="mt-6 text-lg leading-8 text-gray-600">
-                  India offers one of the world's most diverse agricultural
-                  ecosystems. ROOTYM combines this strength with professional
-                  export practices to deliver consistent value to global
-                  customers.
+                  {t("marketsPage.indiaAdvantage.description")}
                 </p>
-
-
               </div>
-
 
               <div className="grid gap-5 sm:grid-cols-2">
-
                 <AdvantageCard
-                  title="Agricultural Diversity"
-                  description="Wide range of premium crops and food products."
+                  title={t(
+                    "marketsPage.indiaAdvantage.cards.diversity.title"
+                  )}
+                  description={t(
+                    "marketsPage.indiaAdvantage.cards.diversity.description"
+                  )}
                 />
 
                 <AdvantageCard
-                  title="Competitive Supply"
-                  description="Efficient sourcing from trusted Indian producers."
+                  title={t(
+                    "marketsPage.indiaAdvantage.cards.supply.title"
+                  )}
+                  description={t(
+                    "marketsPage.indiaAdvantage.cards.supply.description"
+                  )}
                 />
 
                 <AdvantageCard
-                  title="Export Readiness"
-                  description="Documentation and compliance support."
+                  title={t(
+                    "marketsPage.indiaAdvantage.cards.readiness.title"
+                  )}
+                  description={t(
+                    "marketsPage.indiaAdvantage.cards.readiness.description"
+                  )}
                 />
 
                 <AdvantageCard
-                  title="Quality Focus"
-                  description="Inspection and quality-first approach."
+                  title={t(
+                    "marketsPage.indiaAdvantage.cards.quality.title"
+                  )}
+                  description={t(
+                    "marketsPage.indiaAdvantage.cards.quality.description"
+                  )}
                 />
-
               </div>
-
-
             </div>
-
           </div>
-
         </section>
-                {/* -------------------------------------------------------------------------- */}
+
+        {/* -------------------------------------------------------------------------- */}
         {/* Export Capability Section */}
         {/* -------------------------------------------------------------------------- */}
 
         <section className="py-24">
           <div className="mx-auto max-w-7xl px-6">
-
             <div className="mx-auto max-w-3xl text-center">
-
               <span className="inline-flex items-center gap-2 rounded-full bg-green-100 px-5 py-2 text-sm font-semibold text-[#2E7D32]">
                 <Sparkles className="h-4 w-4" />
-                Export Capabilities
+                {t("marketsPage.capabilities.badge")}
               </span>
 
-
               <h2 className="mt-6 text-4xl font-bold text-gray-900 md:text-5xl">
-                Complete Support
+                {t("marketsPage.capabilities.title.line1")}
                 <span className="block text-[#2E7D32]">
-                  From Farm To Final Destination
+                  {t("marketsPage.capabilities.title.line2")}
                 </span>
               </h2>
 
-
               <p className="mt-6 text-lg leading-8 text-gray-600">
-                ROOTYM provides end-to-end export support so buyers can source
-                confidently with transparency at every stage.
+                {t("marketsPage.capabilities.description")}
               </p>
-
             </div>
-
 
             <div className="mt-16 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-
               <CapabilityCard
-                title="Bulk Supply"
-                description="Large quantity sourcing for importers and distributors."
+                title={t(
+                  "marketsPage.capabilities.cards.bulk.title"
+                )}
+                description={t(
+                  "marketsPage.capabilities.cards.bulk.description"
+                )}
               />
 
               <CapabilityCard
-                title="Custom Packaging"
-                description="Retail packs, bulk packs and private label solutions."
+                title={t(
+                  "marketsPage.capabilities.cards.packaging.title"
+                )}
+                description={t(
+                  "marketsPage.capabilities.cards.packaging.description"
+                )}
               />
 
               <CapabilityCard
-                title="Quality Inspection"
-                description="Quality checks before shipment."
+                title={t(
+                  "marketsPage.capabilities.cards.quality.title"
+                )}
+                description={t(
+                  "marketsPage.capabilities.cards.quality.description"
+                )}
               />
 
               <CapabilityCard
-                title="Documentation"
-                description="Export paperwork and compliance assistance."
+                title={t(
+                  "marketsPage.capabilities.cards.documentation.title"
+                )}
+                description={t(
+                  "marketsPage.capabilities.cards.documentation.description"
+                )}
               />
 
               <CapabilityCard
-                title="Logistics Support"
-                description="Coordination with shipping and freight partners."
+                title={t(
+                  "marketsPage.capabilities.cards.logistics.title"
+                )}
+                description={t(
+                  "marketsPage.capabilities.cards.logistics.description"
+                )}
               />
 
               <CapabilityCard
-                title="Buyer Assistance"
-                description="Dedicated support throughout the trade journey."
+                title={t(
+                  "marketsPage.capabilities.cards.assistance.title"
+                )}
+                description={t(
+                  "marketsPage.capabilities.cards.assistance.description"
+                )}
               />
 
               <CapabilityCard
-                title="Market Understanding"
-                description="Products aligned with international demand."
+                title={t(
+                  "marketsPage.capabilities.cards.market.title"
+                )}
+                description={t(
+                  "marketsPage.capabilities.cards.market.description"
+                )}
               />
 
               <CapabilityCard
-                title="Long-Term Partnership"
-                description="Building reliable global relationships."
+                title={t(
+                  "marketsPage.capabilities.cards.partnership.title"
+                )}
+                description={t(
+                  "marketsPage.capabilities.cards.partnership.description"
+                )}
               />
-
             </div>
-
           </div>
         </section>
-
-
 
         {/* -------------------------------------------------------------------------- */}
         {/* Export Journey Section */}
         {/* -------------------------------------------------------------------------- */}
 
-
         <section className="bg-gradient-to-br from-green-950 via-green-900 to-emerald-950 py-24">
-
           <div className="mx-auto max-w-7xl px-6">
-
             <div className="mx-auto max-w-3xl text-center text-white">
-
               <span className="rounded-full border border-green-300/30 bg-white/10 px-5 py-2 text-sm font-semibold text-green-100">
-                Global Export Journey
+                {t("marketsPage.journey.badge")}
               </span>
 
-
               <h2 className="mt-8 text-4xl font-bold md:text-5xl">
-                A Transparent Process
+                {t("marketsPage.journey.title.line1")}
                 <span className="block text-green-300">
-                  Built For Trust
+                  {t("marketsPage.journey.title.line2")}
                 </span>
               </h2>
 
-
               <p className="mt-6 text-lg leading-8 text-green-100">
-                Every export order follows a structured process designed to
-                provide clarity, confidence and smooth international delivery.
+                {t("marketsPage.journey.description")}
               </p>
-
             </div>
 
-
             <div className="mt-16 grid gap-6 md:grid-cols-3 lg:grid-cols-5">
-
               <JourneyStep
                 number="01"
-                title="Buyer Enquiry"
-                description="Understand product requirements."
+                title={t(
+                  "marketsPage.journey.steps.enquiry.title"
+                )}
+                description={t(
+                  "marketsPage.journey.steps.enquiry.description"
+                )}
               />
 
               <JourneyStep
                 number="02"
-                title="Product Selection"
-                description="Recommend suitable products."
+                title={t(
+                  "marketsPage.journey.steps.selection.title"
+                )}
+                description={t(
+                  "marketsPage.journey.steps.selection.description"
+                )}
               />
 
               <JourneyStep
                 number="03"
-                title="Quality Approval"
-                description="Confirm specifications."
+                title={t(
+                  "marketsPage.journey.steps.approval.title"
+                )}
+                description={t(
+                  "marketsPage.journey.steps.approval.description"
+                )}
               />
 
               <JourneyStep
                 number="04"
-                title="Shipment"
-                description="Manage export process."
+                title={t(
+                  "marketsPage.journey.steps.shipment.title"
+                )}
+                description={t(
+                  "marketsPage.journey.steps.shipment.description"
+                )}
               />
 
               <JourneyStep
                 number="05"
-                title="Delivery"
-                description="Complete global delivery."
+                title={t(
+                  "marketsPage.journey.steps.delivery.title"
+                )}
+                description={t(
+                  "marketsPage.journey.steps.delivery.description"
+                )}
               />
-
             </div>
-
           </div>
-
         </section>
-                {/* -------------------------------------------------------------------------- */}
-        {/* ROOTYM Brain Section */}
+
+        {/* -------------------------------------------------------------------------- */}
+        {/* ROOTYM CO-CAPTAIN Section */}
         {/* -------------------------------------------------------------------------- */}
 
         <section className="py-24">
-
           <div className="mx-auto max-w-7xl px-6">
-
             <div className="rounded-3xl bg-gradient-to-r from-[#2E7D32] to-[#43A047] px-8 py-14 text-center shadow-2xl md:px-16">
-
               <div className="mx-auto max-w-5xl">
-
                 <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 py-2 text-sm font-semibold text-white">
                   <Sparkles className="h-4 w-4" />
-                  ROOTYM CO-CAPTAIN
+                  {t("marketsPage.coCaptain.badge")}
                 </div>
 
-
                 <h2 className="mt-8 text-4xl font-bold text-white md:text-5xl">
-                Meet ROOTYM CO-CAPTAIN
+                  {t("marketsPage.coCaptain.title.line1")}
                   <span className="block text-green-100">
-                  Your Intelligent Export Partner
+                    {t("marketsPage.coCaptain.title.line2")}
                   </span>
                 </h2>
 
-
                 <p className="mx-auto mt-6 max-w-3xl text-lg leading-8 text-green-50">
-                ROOTYM CO-CAPTAIN is our intelligent AI platform designed to work alongside importers, distributors, wholesalers and food businesses throughout the global sourcing journey. From product discovery and market insights to export documentation and shipment planning, CO-CAPTAIN helps buyers make faster, smarter and more confident decisions.
+                  {t("marketsPage.coCaptain.description")}
                 </p>
 
-
                 <div className="mt-12 grid gap-6 md:grid-cols-3">
-
                   <AIBox
-                    title="Global Market Advisor"
-                    description="Discover market opportunities, buyer trends and sourcing insights across international regions."
+                    title={t(
+                      "marketsPage.coCaptain.features.marketAdvisor.title"
+                    )}
+                    description={t(
+                      "marketsPage.coCaptain.features.marketAdvisor.description"
+                    )}
                   />
 
                   <AIBox
-                    title="Smart Product Matching"
-                    description="Receive intelligent product recommendations based on destination, quality expectations and business requirements."
+                    title={t(
+                      "marketsPage.coCaptain.features.productMatching.title"
+                    )}
+                    description={t(
+                      "marketsPage.coCaptain.features.productMatching.description"
+                    )}
                   />
 
                   <AIBox
-                    title="Export Co-Captain"
-                    description="Get AI-powered guidance for documentation, packaging, logistics and export planning from enquiry to delivery."
+                    title={t(
+                      "marketsPage.coCaptain.features.exportCoCaptain.title"
+                    )}
+                    description={t(
+                      "marketsPage.coCaptain.features.exportCoCaptain.description"
+                    )}
                   />
-
                 </div>
-
               </div>
-
             </div>
-
           </div>
-
         </section>
-
-
 
         {/* -------------------------------------------------------------------------- */}
         {/* Final CTA */}
         {/* -------------------------------------------------------------------------- */}
 
         <section className="bg-[#F8FBF8] py-24">
-
           <div className="mx-auto max-w-7xl px-6">
-
             <div className="rounded-3xl border border-green-100 bg-white p-10 text-center shadow-xl md:p-16">
-
               <h2 className="text-4xl font-bold text-gray-900 md:text-5xl">
-                Ready To Build A Global
+                {t("marketsPage.finalCta.title.line1")}
                 <span className="block text-[#2E7D32]">
-                  Sourcing Partnership?
+                  {t("marketsPage.finalCta.title.line2")}
                 </span>
               </h2>
 
-
               <p className="mx-auto mt-6 max-w-3xl text-lg leading-8 text-gray-600">
-                Whether you are an importer, distributor, retailer or food
-                manufacturer, ROOTYM is ready to support your agricultural
-                sourcing requirements from India.
+                {t("marketsPage.finalCta.description")}
               </p>
 
-
               <div className="mt-10 flex flex-col justify-center gap-4 sm:flex-row">
-
                 <Link href="/request-quote">
                   <Button className="px-8 py-3">
-                    Start Your Enquiry
+                    {t("marketsPage.finalCta.buttons.enquiry")}
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
-
 
                 <Link href="/contact">
                   <Button
                     variant="secondary"
                     className="px-8 py-3"
                   >
-                    Contact ROOTYM
+                    {t("marketsPage.finalCta.buttons.contact")}
                   </Button>
                 </Link>
-
               </div>
-
             </div>
-
           </div>
-
         </section>
-
       </main>
 
       <Footer />
@@ -522,11 +589,9 @@ export default function MarketsPage() {
   );
 }
 
-
 /* -------------------------------------------------------------------------- */
 /* Helper Components */
 /* -------------------------------------------------------------------------- */
-
 
 function MarketHighlight({
   icon,
@@ -539,7 +604,6 @@ function MarketHighlight({
 }) {
   return (
     <div className="rounded-2xl border border-green-100 bg-white p-6 shadow-sm">
-
       <div className="flex justify-center text-[#2E7D32]">
         {icon}
       </div>
@@ -551,11 +615,9 @@ function MarketHighlight({
       <p className="mt-2 text-center text-sm text-gray-600">
         {description}
       </p>
-
     </div>
   );
 }
-
 
 function RegionCard({
   title,
@@ -568,7 +630,6 @@ function RegionCard({
 }) {
   return (
     <div className="rounded-3xl border border-green-100 bg-white p-8 shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-xl">
-
       <Globe2 className="h-8 w-8 text-[#2E7D32]" />
 
       <h3 className="mt-6 text-2xl font-bold text-gray-900">
@@ -582,11 +643,9 @@ function RegionCard({
       <p className="mt-4 leading-7 text-gray-600">
         {description}
       </p>
-
     </div>
   );
 }
-
 
 function AdvantageCard({
   title,
@@ -597,7 +656,6 @@ function AdvantageCard({
 }) {
   return (
     <div className="rounded-2xl border border-green-100 bg-white p-6 shadow-sm">
-
       <h3 className="font-bold text-gray-900">
         {title}
       </h3>
@@ -605,11 +663,9 @@ function AdvantageCard({
       <p className="mt-3 text-sm leading-6 text-gray-600">
         {description}
       </p>
-
     </div>
   );
 }
-
 
 function CapabilityCard({
   title,
@@ -620,7 +676,6 @@ function CapabilityCard({
 }) {
   return (
     <div className="rounded-3xl border border-green-100 bg-white p-6 shadow-sm">
-
       <h3 className="text-xl font-bold text-gray-900">
         {title}
       </h3>
@@ -628,11 +683,9 @@ function CapabilityCard({
       <p className="mt-3 text-gray-600">
         {description}
       </p>
-
     </div>
   );
 }
-
 
 function JourneyStep({
   number,
@@ -645,7 +698,6 @@ function JourneyStep({
 }) {
   return (
     <div className="rounded-3xl border border-white/10 bg-white/10 p-6 text-center backdrop-blur-md">
-
       <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white/20 font-bold text-white">
         {number}
       </div>
@@ -657,11 +709,9 @@ function JourneyStep({
       <p className="mt-3 text-sm leading-6 text-green-100">
         {description}
       </p>
-
     </div>
   );
 }
-
 
 function AIBox({
   title,
@@ -672,7 +722,6 @@ function AIBox({
 }) {
   return (
     <div className="rounded-3xl border border-white/10 bg-white/10 p-8 backdrop-blur-md">
-
       <h3 className="text-xl font-bold text-white">
         {title}
       </h3>
@@ -680,9 +729,6 @@ function AIBox({
       <p className="mt-4 leading-7 text-green-100">
         {description}
       </p>
-
     </div>
   );
 }
-
- 

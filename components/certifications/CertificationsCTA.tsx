@@ -10,6 +10,8 @@ import {
   Phone,
 } from "lucide-react";
 
+import { useTranslation } from "@/lib/i18n/context";
+
 const containerVariants: Variants = {
   hidden: {},
   visible: {
@@ -34,28 +36,24 @@ const itemVariants: Variants = {
   },
 };
 
-const contactCards = [
+const contactCardKeys = [
   {
     icon: Mail,
-    title: "Email Our Export Team",
-    description:
-      "Share your product requirements, destination country, and sourcing needs. Our export specialists will respond with detailed information and the next steps.",
+    key: "email",
   },
   {
     icon: Phone,
-    title: "Speak With Our Specialists",
-    description:
-      "Discuss bulk orders, private labeling, documentation, packaging, logistics, and long-term sourcing opportunities with our experienced team.",
+    key: "specialists",
   },
   {
     icon: MessageSquareText,
-    title: "Fast Business Response",
-    description:
-      "We aim to respond promptly to all business enquiries, helping importers and distributors move forward with confidence.",
+    key: "response",
   },
 ];
 
 export default function CertificationsCTA() {
+  const { t } = useTranslation();
+
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-green-950 via-green-900 to-emerald-950 py-24">
       {/* Background Effects */}
@@ -87,7 +85,8 @@ export default function CertificationsCTA() {
             className="inline-flex items-center gap-2 rounded-full border border-green-400/30 bg-white/10 px-5 py-2 text-sm font-semibold text-green-100 backdrop-blur-md"
           >
             <Globe2 className="h-4 w-4 text-green-300" />
-            Trusted Export Partner • Certified Operations • Global Trade Ready
+
+            {t("certificationsCTA.badge")}
           </motion.div>
 
           {/* Heading */}
@@ -96,9 +95,10 @@ export default function CertificationsCTA() {
             variants={itemVariants}
             className="mt-8 text-4xl font-bold tracking-tight text-white md:text-6xl"
           >
-            Ready to Build a
+            {t("certificationsCTA.title.line1")}
+
             <span className="block bg-gradient-to-r from-green-300 via-emerald-200 to-lime-300 bg-clip-text text-transparent">
-              Long-Term Global Partnership?
+              {t("certificationsCTA.title.line2")}
             </span>
           </motion.h2>
 
@@ -108,12 +108,7 @@ export default function CertificationsCTA() {
             variants={itemVariants}
             className="mx-auto mt-8 max-w-3xl text-lg leading-8 text-green-100/90"
           >
-            ROOTYM combines regulatory compliance, quality assurance, ethical
-            sourcing, and export expertise to deliver premium Indian
-            agricultural products to international buyers. Whether you are an
-            importer, distributor, wholesaler, retailer, or food manufacturer,
-            our team is ready to support your sourcing requirements with
-            dependable service and transparent communication.
+            {t("certificationsCTA.description")}
           </motion.p>
 
           {/* CTA Buttons */}
@@ -126,7 +121,8 @@ export default function CertificationsCTA() {
               href="/request-quote"
               className="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 font-semibold text-green-900 shadow-xl transition-all duration-300 hover:scale-105 hover:bg-green-50"
             >
-              Request a Quote
+              {t("certificationsCTA.buttons.quote")}
+
               <ArrowRight className="h-5 w-5" />
             </Link>
 
@@ -134,7 +130,7 @@ export default function CertificationsCTA() {
               href="/contact"
               className="inline-flex items-center rounded-xl border border-white/20 bg-white/10 px-8 py-4 font-semibold text-white backdrop-blur-md transition-all duration-300 hover:bg-white/20"
             >
-              Contact Our Team
+              {t("certificationsCTA.buttons.contact")}
             </Link>
           </motion.div>
 
@@ -144,8 +140,7 @@ export default function CertificationsCTA() {
             variants={itemVariants}
             className="mx-auto mt-8 max-w-4xl text-sm font-medium tracking-wide text-green-200/80 md:text-base"
           >
-            APEDA Registered • IEC Certified • FSSAI Licensed • MSME Registered
-            • Startup India Recognized
+            {t("certificationsCTA.trustStatement")}
           </motion.p>
 
           {/* Contact Cards */}
@@ -154,23 +149,23 @@ export default function CertificationsCTA() {
             variants={containerVariants}
             className="mt-20 grid gap-6 md:grid-cols-3"
           >
-            {contactCards.map((card) => {
+            {contactCardKeys.map((card) => {
               const Icon = card.icon;
 
               return (
                 <motion.div
-                  key={card.title}
+                  key={card.key}
                   variants={itemVariants}
                   className="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-md transition-all duration-300 hover:border-green-400/30 hover:bg-white/10"
                 >
                   <Icon className="mx-auto h-10 w-10 text-green-300" />
 
                   <h3 className="mt-5 text-xl font-semibold text-white">
-                    {card.title}
+                    {t(`certificationsCTA.cards.${card.key}.title`)}
                   </h3>
 
                   <p className="mt-4 leading-7 text-green-100/80">
-                    {card.description}
+                    {t(`certificationsCTA.cards.${card.key}.description`)}
                   </p>
                 </motion.div>
               );
@@ -181,5 +176,3 @@ export default function CertificationsCTA() {
     </section>
   );
 }
-
- 

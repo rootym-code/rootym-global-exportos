@@ -42,17 +42,26 @@ const Navbar = () => {
   const pathname = usePathname();
   const router = useRouter();
 
-  const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleLanguageChange = (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
     const newLocale = e.target.value;
+  
     if (!pathname) return;
-
+  
     const segments = pathname.split("/");
+  
     if (locales.includes(segments[1] as any)) {
       segments[1] = newLocale;
     } else {
       segments.splice(1, 0, newLocale);
     }
-    router.push(segments.join("/") || "/");
+  
+    const newPath = segments.join("/") || "/";
+  
+    router.push(newPath);
+  
+    router.refresh();
   };
 
   const menuRef = useRef<HTMLDivElement>(null);

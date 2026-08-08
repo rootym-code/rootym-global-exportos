@@ -35,11 +35,18 @@ export default async function ProductPage({
 }: PageProps) {
   const { slug } = await params;
 
+
   const product = await getProductBySlug(slug);
 
+  console.log("========== PRODUCT PAGE ==========");
+  console.log("Slug:", slug);
+  console.log("Product:", product);
+  
   if (!product) {
+    console.log("NOT FOUND CALLED");
     notFound();
   }
+
 
   const imageUrl = getProductImageUrl(
     product.featuredImage?.fileUrl
@@ -83,6 +90,7 @@ export default async function ProductPage({
   sizes="(max-width: 768px) 100vw, 50vw"
   className="object-contain"
   priority
+  unoptimized
 />
 
             </div>

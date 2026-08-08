@@ -10,6 +10,8 @@ import {
   Phone,
 } from "lucide-react";
 
+import { useTranslation } from "@/lib/i18n/context";
+
 const containerVariants: Variants = {
   hidden: {},
   visible: {
@@ -37,27 +39,29 @@ const itemVariants: Variants = {
 const contactHighlights = [
   {
     icon: Mail,
-    value: "< 24 Hrs",
-    label: "Average Response Time",
+    value: "contact.hero.highlights.response.value",
+    label: "contact.hero.highlights.response.label",
   },
   {
     icon: Globe2,
-    value: "Worldwide",
-    label: "Export Support",
+    value: "contact.hero.highlights.support.value",
+    label: "contact.hero.highlights.support.label",
   },
   {
     icon: Phone,
-    value: "B2B",
-    label: "Dedicated Buyer Assistance",
+    value: "contact.hero.highlights.assistance.value",
+    label: "contact.hero.highlights.assistance.label",
   },
   {
     icon: MessageCircle,
-    value: "Long-Term",
-    label: "Business Partnerships",
+    value: "contact.hero.highlights.partnerships.value",
+    label: "contact.hero.highlights.partnerships.label",
   },
 ];
 
 export default function ContactHero() {
+  const { t } = useTranslation();
+
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-green-950 via-green-900 to-emerald-950">
       {/* Background */}
@@ -88,7 +92,8 @@ export default function ContactHero() {
             className="mb-8 inline-flex items-center gap-2 rounded-full border border-green-400/30 bg-white/10 px-5 py-2 text-sm font-medium text-green-100 backdrop-blur-md"
           >
             <MessageCircle className="h-4 w-4 text-green-300" />
-            Global Export Enquiries • Bulk Orders • Strategic Partnerships
+
+            {t("contact.hero.badge")}
           </motion.div>
 
           {/* Heading */}
@@ -97,9 +102,10 @@ export default function ContactHero() {
             variants={itemVariants}
             className="text-4xl font-extrabold leading-tight tracking-tight text-white md:text-6xl lg:text-7xl"
           >
-            Let's Grow Your
+            {t("contact.hero.title.line1")}
+
             <span className="block bg-gradient-to-r from-green-300 via-emerald-200 to-lime-300 bg-clip-text text-transparent">
-              Global Business Together
+              {t("contact.hero.title.line2")}
             </span>
           </motion.h1>
 
@@ -109,11 +115,7 @@ export default function ContactHero() {
             variants={itemVariants}
             className="mx-auto mt-8 max-w-3xl text-lg leading-8 text-green-100/90 md:text-xl"
           >
-            Whether you're an importer, distributor, wholesaler, retailer, or
-            food manufacturer, ROOTYM is ready to become your trusted sourcing
-            partner for premium Indian agricultural products. Our experienced
-            team is committed to providing responsive communication, consistent
-            quality, and reliable export solutions tailored to your business.
+            {t("contact.hero.description")}
           </motion.p>
 
           {/* CTA */}
@@ -126,7 +128,8 @@ export default function ContactHero() {
               href="/request-quote"
               className="inline-flex items-center gap-2 rounded-xl bg-white px-7 py-4 font-semibold text-green-900 shadow-xl transition-all duration-300 hover:scale-105 hover:bg-green-50"
             >
-              Request a Quote
+              {t("contact.hero.buttons.quote")}
+
               <ArrowRight className="h-5 w-5" />
             </Link>
 
@@ -134,7 +137,7 @@ export default function ContactHero() {
               href="#contact-form"
               className="inline-flex items-center rounded-xl border border-white/20 bg-white/10 px-7 py-4 font-semibold text-white backdrop-blur-md transition-all duration-300 hover:bg-white/20"
             >
-              Send an Enquiry
+              {t("contact.hero.buttons.enquiry")}
             </Link>
           </motion.div>
 
@@ -142,8 +145,7 @@ export default function ContactHero() {
             variants={itemVariants}
             className="mt-5 text-sm text-green-200/80"
           >
-            We welcome enquiries from importers, distributors, retailers,
-            private label brands, and international sourcing partners.
+            {t("contact.hero.supportingText")}
           </motion.p>
 
           {/* Highlights */}
@@ -165,11 +167,11 @@ export default function ContactHero() {
                   </div>
 
                   <h3 className="mt-5 text-2xl font-bold text-white">
-                    {item.value}
+                    {t(item.value)}
                   </h3>
 
                   <p className="mt-2 text-sm leading-6 text-green-100/80">
-                    {item.label}
+                    {t(item.label)}
                   </p>
                 </div>
               );

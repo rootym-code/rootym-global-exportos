@@ -41,15 +41,6 @@ const initialForm: InquiryFormState = {
   requirements: "",
 };
 
-const productOptions = [
-  "Makhana (Fox Nuts)",
-  "Dehydrated Onion Powder",
-  "Frozen French Fries",
-  "Potato Starch",
-  "Non-Basmati Rice",
-  "Wheat",
-  "Other Agricultural Products",
-];
 
 const incotermOptions = [
   "FOB",
@@ -85,7 +76,17 @@ const trustPoints = [
   },
 ];
 
-export default function ExportInquiryForm() {
+type ExportInquiryFormProps = {
+  products: {
+    id: string;
+    name: string;
+    slug: string;
+  }[];
+};
+
+export default function ExportInquiryForm({
+  products,
+}: ExportInquiryFormProps) {
   const [form, setForm] =
     useState<InquiryFormState>(initialForm);
 
@@ -335,14 +336,14 @@ ${form.requirements || "-"}
                   Select Product
                 </option>
 
-                {productOptions.map((product) => (
-                  <option
-                    key={product}
-                    value={product}
-                  >
-                    {product}
-                  </option>
-                ))}
+                {products.map((product) => (
+  <option
+    key={product.id}
+    value={product.name}
+  >
+    {product.name}
+  </option>
+))}
               </select>
             </div>
 

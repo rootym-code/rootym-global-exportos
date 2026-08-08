@@ -10,6 +10,8 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
+import { useTranslation } from "@/lib/i18n/context";
+
 const containerVariants: Variants = {
   hidden: {},
   visible: {
@@ -38,26 +40,28 @@ const highlights = [
   {
     icon: Award,
     value: "APEDA",
-    label: "Registered Exporter",
+    label: "certifications.hero.highlights.apeda.label",
   },
   {
     icon: BadgeCheck,
     value: "IEC",
-    label: "Import Export Code",
+    label: "certifications.hero.highlights.iec.label",
   },
   {
     icon: ShieldCheck,
     value: "FSSAI",
-    label: "Food Safety & Regulatory Compliance",
+    label: "certifications.hero.highlights.fssai.label",
   },
   {
     icon: Globe2,
-    value: "Worldwide",
-    label: "Export Ready Supply Chain",
+    value: "certifications.hero.highlights.worldwide.value",
+    label: "certifications.hero.highlights.worldwide.label",
   },
 ];
 
 export default function CertificationsHero() {
+  const { t } = useTranslation();
+
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-green-950 via-green-900 to-emerald-950">
       {/* Background Effects */}
@@ -88,7 +92,8 @@ export default function CertificationsHero() {
             className="mb-8 inline-flex items-center gap-2 rounded-full border border-green-400/30 bg-white/10 px-5 py-2 text-sm font-medium text-green-100 backdrop-blur-md"
           >
             <Award className="h-4 w-4 text-green-300" />
-            Trusted Exporter • Certified Operations • Global Trade Compliance
+
+            {t("certifications.hero.badge")}
           </motion.div>
 
           {/* Heading */}
@@ -97,9 +102,10 @@ export default function CertificationsHero() {
             variants={itemVariants}
             className="text-4xl font-extrabold leading-tight tracking-tight text-white md:text-6xl lg:text-7xl"
           >
-            Certified for
+            {t("certifications.hero.title.line1")}
+
             <span className="block bg-gradient-to-r from-green-300 via-emerald-200 to-lime-300 bg-clip-text text-transparent">
-              Global Agricultural Trade
+              {t("certifications.hero.title.line2")}
             </span>
           </motion.h1>
 
@@ -109,12 +115,7 @@ export default function CertificationsHero() {
             variants={itemVariants}
             className="mx-auto mt-8 max-w-3xl text-lg leading-8 text-green-100/90 md:text-xl"
           >
-            ROOTYM maintains internationally recognized registrations, export
-            certifications, and food safety compliance to support seamless
-            global trade. From regulatory documentation to quality assurance,
-            we are committed to delivering reliable agricultural products that
-            meet the expectations of importers, distributors, retailers, and
-            food manufacturers worldwide.
+            {t("certifications.hero.description")}
           </motion.p>
 
           {/* CTA Buttons */}
@@ -127,7 +128,8 @@ export default function CertificationsHero() {
               href="/request-quote"
               className="inline-flex items-center gap-2 rounded-xl bg-white px-7 py-4 font-semibold text-green-900 shadow-xl transition-all duration-300 hover:scale-105 hover:bg-green-50"
             >
-              Request a Quote
+              {t("certifications.hero.buttons.quote")}
+
               <ArrowRight className="h-5 w-5" />
             </Link>
 
@@ -135,7 +137,7 @@ export default function CertificationsHero() {
               href="/contact"
               className="inline-flex items-center rounded-xl border border-white/20 bg-white/10 px-7 py-4 font-semibold text-white backdrop-blur-md transition-all duration-300 hover:bg-white/20"
             >
-              Contact Our Team
+              {t("certifications.hero.buttons.contact")}
             </Link>
           </motion.div>
 
@@ -145,8 +147,7 @@ export default function CertificationsHero() {
             variants={itemVariants}
             className="mx-auto mt-8 max-w-4xl text-sm font-medium tracking-wide text-green-200/80 md:text-base"
           >
-            Committed to Quality • Regulatory Compliance • Transparent
-            Documentation • Reliable Global Deliveries
+            {t("certifications.hero.trustStatement")}
           </motion.p>
 
           {/* Certification Highlights */}
@@ -168,11 +169,13 @@ export default function CertificationsHero() {
                   </div>
 
                   <h3 className="mt-5 text-2xl font-bold text-white">
-                    {item.value}
+                    {item.value.startsWith("certifications.")
+                      ? t(item.value)
+                      : item.value}
                   </h3>
 
                   <p className="mt-2 text-sm leading-6 text-green-100/80">
-                    {item.label}
+                    {t(item.label)}
                   </p>
                 </div>
               );

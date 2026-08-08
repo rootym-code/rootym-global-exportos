@@ -11,39 +11,50 @@ import PremiumTestimonials from "@/components/home/PremiumTestimonials";
 import PremiumFAQ from "@/components/home/PremiumFAQ";
 import PremiumCTA from "@/components/home/PremiumCTA";
 
-export default function Home() {
+import { ProductStatus } from "@/lib/generated/prisma";
+import { listProducts } from "@/lib/services/product.service";
+
+export default async function Home() {
+  const { items: products } = await listProducts({
+    status: ProductStatus.PUBLISHED,
+    page: 1,
+    pageSize: 6,
+  });
+
   return (
-    <main className="min-h-screen overflow-x-hidden bg-background">
+    <>
       <Navbar />
 
-      {/* Hero */}
-      <PremiumHero />
+      <main className="overflow-x-hidden bg-white">
+        {/* Hero */}
+        <PremiumHero />
 
-      {/* Featured Products */}
-      <ProductShowcase />
+        {/* Featured Products */}
+        <ProductShowcase products={products} />
 
-      {/* Why ROOTYM */}
-      <PremiumFeatures />
+        {/* Why ROOTYM */}
+        <PremiumFeatures />
 
-      {/* Export Process */}
-      <PremiumExportProcess />
+        {/* Export Process */}
+        <PremiumExportProcess />
 
-      {/* Certifications */}
-      <PremiumCertifications />
+        {/* Certifications */}
+        <PremiumCertifications />
 
-      {/* Global Presence */}
-      <PremiumGlobalMarkets />
+        {/* Global Presence */}
+        <PremiumGlobalMarkets />
 
-      {/* Testimonials */}
-      <PremiumTestimonials />
+        {/* Testimonials */}
+        <PremiumTestimonials />
 
-      {/* FAQ */}
-      <PremiumFAQ />
+        {/* FAQ */}
+        <PremiumFAQ />
 
-      {/* Call To Action */}
-      <PremiumCTA />
+        {/* Call To Action */}
+        <PremiumCTA />
+      </main>
 
       <Footer />
-    </main>
+    </>
   );
 }

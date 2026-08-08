@@ -18,7 +18,27 @@ import {
 import { Button } from "@/components/ui/Button";
 import Section from "@/components/ui/section";
 import SectionHeader from "@/components/ui/section-header";
-import { products } from "@/data/products";
+interface ProductShowcaseProps {
+  products: {
+    id: string;
+    name: string;
+    slug: string;
+    category: string | null;
+    origin: string | null;
+    defaultUnit: string | null;
+    featuredImage?: {
+      fileUrl: string;
+    } | null;
+  }[];
+}
+
+function getProductImageUrl(fileUrl?: string | null) {
+  if (!fileUrl) {
+    return "/images/products/placeholder.png";
+  }
+
+  return fileUrl;
+}
 
 const sectionVariants: Variants = {
   hidden: {
@@ -55,8 +75,10 @@ const itemVariants: Variants = {
 
 
 
-export default function ProductShowcase() {
-  const { t } = useTranslation();
+export default function ProductShowcase({
+  products,
+}: ProductShowcaseProps) {
+  const { t, locale } = useTranslation();
 
   return (
 <Section
@@ -114,7 +136,9 @@ export default function ProductShowcase() {
          
 
         <div className="mt-16 grid gap-8 md:grid-cols-2 xl:grid-cols-3">
-{products.map((product, index) => (
+        {products
+  .filter((product) => product.id && product.slug && product.name)
+  .map((product, index) => (
     
 <motion.div
   key={product.id}
@@ -186,7 +210,7 @@ export default function ProductShowcase() {
                   }}
                   className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-[#2E7D32]"
                 >
-                  ● {product.availability}
+      ● {t("productsSection.badges.readyForExport")}
                 </motion.span>
 
                 <motion.span
@@ -195,11 +219,11 @@ export default function ProductShowcase() {
                   }}
                   className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600"
                 >
-                  {product.category}
+                {product.category ?? "Agricultural Product"}
                 </motion.span>
               </div>
 
-              <Link href={`/products/${product.slug}`}>
+              <Link href={`/${locale}/products/${product.slug}`}>
                 <div className="relative h-72 cursor-pointer overflow-hidden bg-gradient-to-br from-emerald-50 via-white to-lime-50">
                   <motion.div
      whileHover={{
@@ -212,18 +236,20 @@ export default function ProductShowcase() {
                     }}
                     className="h-full w-full"
                   >
-                    <Image
-                      src={product.image}
-                      alt={product.name}
-                      fill
-                      className="object-contain p-8"
-                    />
+<Image
+  loading={index === 0 ? "eager" : "lazy"}
+  src={getProductImageUrl(product.featuredImage?.fileUrl)}
+  alt={product.name}
+  fill
+  sizes="(max-width:768px) 100vw, 33vw"
+  className="object-contain p-8"
+/>
                   </motion.div>
                 </div>
               </Link>
 
               <div className="relative p-8 space-y-2">
-                <Link href={`/products/${product.slug}`}>
+              <Link href={`/${locale}/products/${product.slug}`}>
                   <motion.h3
                     whileHover={{
                       x: 4,
@@ -249,7 +275,7 @@ export default function ProductShowcase() {
                       </p>
 
                       <p className="font-semibold text-gray-800">
-                        {product.origin}
+                      {product.origin ?? "India"}
                       </p>
                     </div>
                   </motion.div>
@@ -267,7 +293,9 @@ export default function ProductShowcase() {
                       </p>
 
                       <p className="font-semibold text-gray-800">
-                        {product.packaging}
+                      {product.defaultUnit
+  ? `Available in ${product.defaultUnit}`
+  : "Export Packaging"}
                       </p>
                     </div>
                   </motion.div>
@@ -328,7 +356,7 @@ className="rounded-full border border-sky-200 bg-sky-50 px-4 py-1.5 text-xs font
                       scale: 0.97,
                     }}
                   >
-                    <Link href={`/products/${product.slug}`}>
+               <Link href={`/${locale}/products/${product.slug}`}>
                     <Button
   variant="secondary"
   className="h-12 w-full rounded-xl font-semibold transition-all duration-300 hover:shadow-lg"
@@ -346,9 +374,11 @@ className="rounded-full border border-sky-200 bg-sky-50 px-4 py-1.5 text-xs font
                       scale: 0.97,
                     }}
                   >
-                  <Button className="h-12 w-full rounded-xl bg-gradient-to-r from-primary to-emerald-600 font-semibold shadow-lg transition-all duration-300 hover:shadow-xl">
-                  {t("productsSection.buttons.quote")}
-                    </Button>
+ <Link href={`/${locale}/request-quote`}>
+  <Button className="h-12 w-full rounded-xl bg-gradient-to-r from-primary to-emerald-600 font-semibold shadow-lg transition-all duration-300 hover:shadow-xl">
+    {t("productsSection.buttons.quote")}
+  </Button>
+</Link>
                   </motion.div>
                 </div>
 
