@@ -13,6 +13,19 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+
+  /**
+   * PDF generation uses @resvg/resvg-js,
+   * which contains a platform-specific native binary.
+   *
+   * Keep these packages external to the Next.js/Turbopack
+   * server bundle so Node.js can resolve the native module
+   * at runtime.
+   */
+  serverExternalPackages: [
+    "@resvg/resvg-js",
+    "@resvg/resvg-js-win32-x64-msvc",
+  ],
 };
 
 export default nextConfig;

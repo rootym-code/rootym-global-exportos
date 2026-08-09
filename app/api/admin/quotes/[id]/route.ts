@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ============================================================================
  * Project      : ROOTYM Global Export Platform
  * Organization : ROOTYM AGRO HARVEST PRIVATE LIMITED
@@ -44,12 +44,12 @@ interface RouteContext {
  *
  * Returns a single quotation together with:
  *
- * • Inquiry
- * • Quote Items
- * • Product Details
- * • Created By
- * • Updated By
- * • Revision History
+ * â€¢ Inquiry
+ * â€¢ Quote Items
+ * â€¢ Product Details
+ * â€¢ Created By
+ * â€¢ Updated By
+ * â€¢ Revision History
  *
  * ============================================================================
  */
@@ -64,29 +64,29 @@ export async function GET(
         const auth = await authenticateAdmin(request);
 
         if (!auth.authenticated || !auth.admin) {
-        
+
             return NextResponse.json(
-        
+
                 {
-        
+
                     success: false,
-        
+
                     message:
                         auth.error ?? "Unauthorized",
-        
+
                 },
-        
+
                 {
-        
+
                     status:
                         auth.status ?? 401,
-        
+
                 },
-        
+
             );
-        
+
         }
-        
+
         const admin = auth.admin;
 
 
@@ -122,20 +122,26 @@ export async function GET(
         }
 
         const revisions =
-            await QuoteBusinessService.getRevisions(
-                id
-            );
+            await QuoteBusinessService.getRevisions( id);
+                const proformaInvoice =
+    await prisma.proformaInvoice.findUnique({
+        where: {
+            quoteId: id,
+        },
+        select: {
+            id: true,
+            piNumber: true,
+        },
+    });
 
         return NextResponse.json({
 
             success: true,
 
             data: {
-
                 quote,
-
                 revisions,
-
+                proformaInvoice,
             },
 
         });
@@ -486,24 +492,24 @@ const admin =
       if (quote.status === QuoteStatus.ACCEPTED) {
 
         return NextResponse.json(
-    
+
             {
-    
+
                 success: false,
-    
+
                 message:
                     "Accepted quotations cannot be deleted.",
-    
+
             },
-    
+
             {
-    
+
                 status: 409,
-    
+
             },
-    
+
         );
-    
+
     }
 
 
@@ -515,25 +521,25 @@ const admin =
       await prisma.$transaction(async (tx) => {
 
         await tx.quoteItem.deleteMany({
-    
+
             where: {
-    
+
                 quoteId: id,
-    
+
             },
-    
+
         });
-    
+
         await tx.quote.delete({
-    
+
             where: {
-    
+
                 id,
-    
+
             },
-    
+
         });
-    
+
     });
 
       /* ============================================================
@@ -605,10 +611,10 @@ const admin =
 * ----
 * Retrieve a quotation with:
 *
-*  • Inquiry
-*  • Items
-*  • Product Details
-*  • Revision History
+*  â€¢ Inquiry
+*  â€¢ Items
+*  â€¢ Product Details
+*  â€¢ Revision History
 *
 * PUT
 * ----
@@ -620,20 +626,20 @@ const admin =
 *
 * Future Enhancement:
 *
-*  • Archive Quote
-*  • Restore Quote
-*  • Permanent Delete
+*  â€¢ Archive Quote
+*  â€¢ Restore Quote
+*  â€¢ Permanent Delete
 *
 * ============================================================================
 *
 * Sprint 9 Completion
 *
-* ✅ GET Quote
-* ✅ UPDATE Quote
-* ✅ DELETE Quote
-* ✅ Authentication
-* ✅ Business Layer Integration
-* ✅ Enterprise Ready
+* âœ… GET Quote
+* âœ… UPDATE Quote
+* âœ… DELETE Quote
+* âœ… Authentication
+* âœ… Business Layer Integration
+* âœ… Enterprise Ready
 *
 * ============================================================================
 */

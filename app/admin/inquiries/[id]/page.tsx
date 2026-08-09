@@ -6,6 +6,13 @@ import {
   useState,
 } from "react";
 
+import { useRouter } from "next/navigation";
+
+import {
+  FileText,
+  Loader2,
+} from "lucide-react";
+
 import InquiryStatusBadge from "@/components/admin/InquiryStatusBadge";
 
 import WhatsAppConversationCard from "@/components/admin/communication/WhatsAppConversationCard";
@@ -94,6 +101,7 @@ export default function InquiryDetailsPage({
   }>;
 }) {
   const { id } = use(params);
+  const router = useRouter();
 
   const [loading, setLoading] =
     useState(true);
@@ -105,6 +113,9 @@ export default function InquiryDetailsPage({
     useState(false);
 
   const [savingNote, setSavingNote] =
+    useState(false);
+
+  const [creatingQuote, setCreatingQuote] =
     useState(false);
 
   const [loadingWhatsApp, setLoadingWhatsApp] =
@@ -459,6 +470,148 @@ export default function InquiryDetailsPage({
 
 
   // ===== END OF PART 2 =====
+  async function createQuotation() {
+    if (!inquiry || creatingQuote) return;
+
+    try {
+      setCreatingQuote(true);
+
+      /*
+       * The Inquiry stores the requested product as text, while QuoteItem
+       * requires a real Product relation. Resolve the inquiry product before
+       * creating the draft quotation.
+       */
+      const productResponse = await fetch(
+        `/api/admin/products?search=${encodeURIComponent(
+          inquiry.product
+        )}&page=1&pageSize=20`,
+        {
+          credentials: "include",
+          cache: "no-store",
+        }
+      );
+
+      const productResult =
+        await productResponse.json();
+
+      if (!productResponse.ok || !productResult.success) {
+        throw new Error(
+          productResult.message ??
+            "Unable to find the requested product."
+        );
+      }
+
+      const products = Array.isArray(productResult.items)
+        ? productResult.items
+        : [];
+
+      const requestedProduct = inquiry.product
+        .trim()
+        .toLowerCase();
+
+      const product =
+        products.find(
+          (item: { name?: string }) =>
+            item.name?.trim().toLowerCase() ===
+            requestedProduct
+        ) ??
+        products.find(
+          (item: { name?: string }) =>
+            item.name?.trim().toLowerCase().includes(
+              requestedProduct
+            )
+        );
+
+      if (!product?.id) {
+        throw new Error(
+          `Product "${inquiry.product}" was not found in the ROOTYM product catalogue.`
+        );
+      }
+
+      const quantityMatch =
+        inquiry.quantity.match(/[0-9]+(?:\.[0-9]+)?/);
+
+      const quantity = quantityMatch
+        ? Number(quantityMatch[0])
+        : 1;
+
+      if (!Number.isFinite(quantity) || quantity <= 0) {
+        throw new Error(
+          "The inquiry quantity is invalid. Please correct the inquiry before creating a quotation."
+        );
+      }
+
+      const unitMatch = inquiry.quantity
+        .match(/[a-zA-Z]+(?:\s+[a-zA-Z]+)*/);
+
+      const unit =
+        unitMatch?.[0]?.trim() ||
+        product.defaultUnit ||
+        "KG";
+
+      const response = await fetch(
+        "/api/admin/quotes",
+        {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            inquiryId: inquiry.id,
+            companyName: inquiry.companyName,
+            contactPerson: inquiry.contactPerson,
+            email: inquiry.email,
+            phone: inquiry.phone,
+            country: inquiry.country,
+            currency: "USD",
+            items: [
+              {
+                productId: product.id,
+                description: inquiry.product,
+                quantity,
+                unit,
+                unitPrice: 0,
+              },
+            ],
+            discount: 0,
+            freight: 0,
+            insurance: 0,
+            tax: 0,
+            validityDays: 15,
+            notes: inquiry.message || undefined,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success || !result.data?.id) {
+        throw new Error(
+          result.message ??
+            "Unable to create the quotation."
+        );
+      }
+
+      router.push(
+        `/admin/quotes/${result.data.id}/edit`
+      );
+    } catch (error) {
+      console.error(
+        "Failed to create quotation:",
+        error
+      );
+
+      window.alert(
+        error instanceof Error
+          ? error.message
+          : "Unable to create the quotation."
+      );
+    } finally {
+      setCreatingQuote(false);
+    }
+  }
+
   async function addNote() {
     if (!note.trim()) return;
 
@@ -526,9 +679,28 @@ export default function InquiryDetailsPage({
             </p>
           </div>
 
-          <InquiryStatusBadge
-            status={inquiry.status}
-          />
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={createQuotation}
+              disabled={creatingQuote}
+              className="inline-flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {creatingQuote ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FileText className="h-4 w-4" />
+              )}
+
+              {creatingQuote
+                ? "Creating..."
+                : "Create Quotation"}
+            </button>
+
+            <InquiryStatusBadge
+              status={inquiry.status}
+            />
+          </div>
         </div>
       </div>
 

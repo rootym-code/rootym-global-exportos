@@ -1,14 +1,15 @@
 /**
  * ============================================================
- * ROOTYM PDF Quote Template
- * File: lib/pdf/quote-template.ts
+ * ROOTYM PDF Proforma Invoice Template
+ * File: lib/pdf/proforma-invoice-template.ts
  * Sprint 8.1
  *
- * Premium ROOTYM quotation PDF template.
+ * Premium ROOTYM Proforma Invoice PDF template.
  *
  * Uses:
  * - pdf-lib for PDF generation
  * - @resvg/resvg-js for SVG -> PNG logo rendering
+ * - Existing ROOTYM PDF assets/theme
  * ============================================================
  */
 
@@ -17,9 +18,9 @@ import path from "node:path";
 
 import {
   PDFDocument,
+  PDFImage,
   PDFPage,
   PDFFont,
-  PDFImage,
   StandardFonts,
   rgb,
 } from "pdf-lib";
@@ -30,7 +31,6 @@ import {
   DEFAULT_DELIVERY_TERMS,
   DEFAULT_INCOTERMS,
   DEFAULT_PAYMENT_TERMS,
-  PDF_FOOTER,
   PDF_THEME,
   ROOTYM_COMPANY,
 } from "./assets";
@@ -40,7 +40,7 @@ import {
  * ============================================================
  */
 
-export interface QuotePdfItem {
+export interface ProformaInvoicePdfItem {
   description: string;
   quantity: number;
   unit: string;
@@ -48,10 +48,12 @@ export interface QuotePdfItem {
   lineTotal: number;
 }
 
-export interface QuotePdfData {
-  quoteNumber: string;
-  quoteDate: string;
-  validUntil: string;
+export interface ProformaInvoicePdfData {
+  piNumber: string;
+  issueDate: string;
+  paymentDueDate?: string;
+
+  quoteNumber?: string;
 
   buyerName: string;
   buyerCompany?: string;
@@ -60,7 +62,7 @@ export interface QuotePdfData {
 
   currency: string;
 
-  items: QuotePdfItem[];
+  items: ProformaInvoicePdfItem[];
 
   subtotal: number;
   discount: number;
@@ -88,14 +90,21 @@ const CONTENT_WIDTH =
 
 const FOOTER_Y = 32;
 
+/* ============================================================
+ * COLORS
+ * ============================================================
+ */
+
 const COLORS = {
   primary: PDF_THEME.primary,
   secondary: PDF_THEME.secondary,
   border: PDF_THEME.border,
   text: PDF_THEME.text,
   muted: PDF_THEME.muted,
+
   white: rgb(1, 1, 1),
   black: rgb(0, 0, 0),
+
   lightGray: rgb(0.96, 0.97, 0.97),
   mediumGray: rgb(0.88, 0.89, 0.89),
 };
@@ -122,27 +131,27 @@ function formatMoney(
 }
 
 function formatQuantity(
-  value: number,
-  unit: string
+  value: number
 ): string {
-  const quantity = new Intl.NumberFormat("en-IN", {
+  return new Intl.NumberFormat("en-IN", {
     maximumFractionDigits: 2,
   }).format(value);
-
-  return unit ? `${quantity} ${unit}` : quantity;
 }
 
 function wrapText(
   text: string,
   maxCharacters: number
 ): string[] {
-  const normalized = (text || "").trim();
+  const normalized =
+    (text || "").trim();
 
   if (!normalized) {
     return [""];
   }
 
-  const words = normalized.split(/\s+/);
+  const words =
+    normalized.split(/\s+/);
+
   const lines: string[] = [];
 
   let current = "";
@@ -153,7 +162,8 @@ function wrapText(
       : word;
 
     if (
-      candidate.length > maxCharacters &&
+      candidate.length >
+        maxCharacters &&
       current
     ) {
       lines.push(current);
@@ -175,7 +185,7 @@ function wrapText(
  * ============================================================
  */
 
-export class QuoteTemplate {
+export class ProformaInvoiceTemplate {
   private pdf!: PDFDocument;
 
   private page!: PDFPage;
@@ -188,7 +198,8 @@ export class QuoteTemplate {
 
   private pageNumber = 1;
 
-  private y = PAGE_HEIGHT - 40;
+  private y =
+    PAGE_HEIGHT - 40;
 
   /* ==========================================================
    * PUBLIC RENDER
@@ -196,17 +207,20 @@ export class QuoteTemplate {
    */
 
   async render(
-    data: QuotePdfData
+    data: ProformaInvoicePdfData
   ): Promise<Uint8Array> {
-    this.pdf = await PDFDocument.create();
+    this.pdf =
+      await PDFDocument.create();
 
-    this.font = await this.pdf.embedFont(
-      StandardFonts.Helvetica
-    );
+    this.font =
+      await this.pdf.embedFont(
+        StandardFonts.Helvetica
+      );
 
-    this.bold = await this.pdf.embedFont(
-      StandardFonts.HelveticaBold
-    );
+    this.bold =
+      await this.pdf.embedFont(
+        StandardFonts.HelveticaBold
+      );
 
     await this.loadLogo();
 
@@ -214,7 +228,9 @@ export class QuoteTemplate {
 
     this.drawHeader(data);
 
-    this.drawBuyerAndQuoteInfo(data);
+    this.drawBuyerAndPiInfo(
+      data
+    );
 
     this.drawItems(data);
 
@@ -235,10 +251,11 @@ export class QuoteTemplate {
    */
 
   private addPage() {
-    this.page = this.pdf.addPage([
-      PAGE_WIDTH,
-      PAGE_HEIGHT,
-    ]);
+    this.page =
+      this.pdf.addPage([
+        PAGE_WIDTH,
+        PAGE_HEIGHT,
+      ]);
 
     this.pageNumber =
       this.pdf.getPageCount();
@@ -255,7 +272,9 @@ export class QuoteTemplate {
       70
     ) {
       this.drawFooter();
+
       this.addPage();
+
       this.drawContinuationHeader();
     }
   }
@@ -267,38 +286,45 @@ export class QuoteTemplate {
 
   private async loadLogo() {
     try {
-      const logoPath = path.join(
-        process.cwd(),
-        "public",
-        "images",
-        "rootym-logo.svg"
-      );
+      const logoPath =
+        path.join(
+          process.cwd(),
+          "public",
+          "images",
+          "rootym-logo.svg"
+        );
 
-      const svg = await fs.readFile(
-        logoPath,
-        "utf8"
-      );
+      const svg =
+        await fs.readFile(
+          logoPath,
+          "utf8"
+        );
 
-      const renderer = new Resvg(svg, {
-        fitTo: {
-          mode: "width",
-          value: 500,
-        },
-      });
+      const renderer =
+        new Resvg(svg, {
+          fitTo: {
+            mode: "width",
+            value: 500,
+          },
+        });
 
-      const png = renderer
-        .render()
-        .asPng();
+      const png =
+        renderer
+          .render()
+          .asPng();
 
       this.logo =
-        await this.pdf.embedPng(png);
+        await this.pdf.embedPng(
+          png
+        );
     } catch (error) {
       console.warn(
         "ROOTYM PDF logo could not be loaded:",
         error
       );
 
-      this.logo = undefined;
+      this.logo =
+        undefined;
     }
   }
 
@@ -308,13 +334,11 @@ export class QuoteTemplate {
    */
 
   private drawHeader(
-    data: QuotePdfData
+    data: ProformaInvoicePdfData
   ) {
-    const top = PAGE_HEIGHT - 42;
+    const top =
+      PAGE_HEIGHT - 42;
 
-    /*
-     * Green top accent.
-     */
     this.page.drawRectangle({
       x: 0,
       y: PAGE_HEIGHT - 7,
@@ -323,20 +347,22 @@ export class QuoteTemplate {
       color: COLORS.primary,
     });
 
-    /*
-     * Logo.
-     */
     if (this.logo) {
       const logoDims =
-        this.logo.scaleToFit(180, 64);
+        this.logo.scaleToFit(
+          180,
+          64
+        );
 
       this.page.drawImage(
         this.logo,
         {
           x: MARGIN_LEFT,
           y: top - 48,
-          width: logoDims.width,
-          height: logoDims.height,
+          width:
+            logoDims.width,
+          height:
+            logoDims.height,
         }
       );
     } else {
@@ -350,9 +376,6 @@ export class QuoteTemplate {
       );
     }
 
-    /*
-     * Tagline.
-     */
     this.text(
       ROOTYM_COMPANY.tagline,
       MARGIN_LEFT,
@@ -362,12 +385,10 @@ export class QuoteTemplate {
       COLORS.muted
     );
 
-    /*
-     * Right title.
-     */
     this.textRight(
-      "EXPORT QUOTATION",
-      PAGE_WIDTH - MARGIN_RIGHT,
+      "PROFORMA INVOICE",
+      PAGE_WIDTH -
+        MARGIN_RIGHT,
       top - 15,
       18,
       true,
@@ -375,37 +396,34 @@ export class QuoteTemplate {
     );
 
     this.textRight(
-      "Commercial Quotation",
-      PAGE_WIDTH - MARGIN_RIGHT,
+      "Export Commercial Document",
+      PAGE_WIDTH -
+        MARGIN_RIGHT,
       top - 34,
       8,
       false,
       COLORS.muted
     );
 
-    /*
-     * Divider.
-     */
     this.page.drawLine({
       start: {
         x: MARGIN_LEFT,
         y: top - 66,
       },
       end: {
-        x: PAGE_WIDTH - MARGIN_RIGHT,
+        x:
+          PAGE_WIDTH -
+          MARGIN_RIGHT,
         y: top - 66,
       },
       thickness: 1,
       color: COLORS.mediumGray,
     });
 
-    this.y = top - 88;
+    this.y =
+      top - 88;
 
-    /*
-     * Keep quote number referenced to avoid unused-data
-     * concerns in future template changes.
-     */
-    void data.quoteNumber;
+    void data.piNumber;
   }
 
   private drawContinuationHeader() {
@@ -427,8 +445,9 @@ export class QuoteTemplate {
     );
 
     this.textRight(
-      "EXPORT QUOTATION",
-      PAGE_WIDTH - MARGIN_RIGHT,
+      "PROFORMA INVOICE",
+      PAGE_WIDTH -
+        MARGIN_RIGHT,
       PAGE_HEIGHT - 42,
       12,
       true,
@@ -441,27 +460,32 @@ export class QuoteTemplate {
         y: PAGE_HEIGHT - 55,
       },
       end: {
-        x: PAGE_WIDTH - MARGIN_RIGHT,
+        x:
+          PAGE_WIDTH -
+          MARGIN_RIGHT,
         y: PAGE_HEIGHT - 55,
       },
       thickness: 0.7,
       color: COLORS.mediumGray,
     });
 
-    this.y = PAGE_HEIGHT - 78;
+    this.y =
+      PAGE_HEIGHT - 78;
   }
 
   /* ==========================================================
-   * BUYER + QUOTE INFORMATION
+   * BUYER + PI INFORMATION
    * ==========================================================
    */
 
-  private drawBuyerAndQuoteInfo(
-    data: QuotePdfData
+  private drawBuyerAndPiInfo(
+    data: ProformaInvoicePdfData
   ) {
-    const cardTop = this.y;
+    const cardTop =
+      this.y;
 
-    const leftX = MARGIN_LEFT;
+    const leftX =
+      MARGIN_LEFT;
 
     const rightX = 335;
 
@@ -469,17 +493,17 @@ export class QuoteTemplate {
 
     this.page.drawRectangle({
       x: MARGIN_LEFT,
-      y: cardTop - cardHeight,
+      y:
+        cardTop -
+        cardHeight,
       width: CONTENT_WIDTH,
       height: cardHeight,
       color: COLORS.lightGray,
-      borderColor: COLORS.mediumGray,
+      borderColor:
+        COLORS.mediumGray,
       borderWidth: 0.7,
     });
 
-    /*
-     * Left section.
-     */
     this.text(
       "BILL TO / BUYER",
       leftX + 14,
@@ -493,28 +517,26 @@ export class QuoteTemplate {
       cardTop - 40;
 
     const company =
-      data.buyerCompany?.trim() || "";
+      data.buyerCompany
+        ?.trim() || "";
 
     const contact =
-      data.buyerName?.trim() || "";
+      data.buyerName
+        ?.trim() || "";
 
     const address =
-      data.buyerAddress?.trim() || "";
+      data.buyerAddress
+        ?.trim() || "";
 
     const country =
-      data.buyerCountry?.trim() || "";
+      data.buyerCountry
+        ?.trim() || "";
 
-    /*
-     * Build the buyer block as a single ordered list.
-     *
-     * This deliberately de-duplicates values across company,
-     * contact, address and country. Quote data can contain the
-     * same customer name in multiple fields, and rendering those
-     * fields independently can create overlapping/duplicate text.
-     */
-    const normalize = (value: string) =>
+    const normalize = (
+      value: string
+    ) =>
       value
-        .replace(/\\s+/g, " ")
+        .replace(/\s+/g, " ")
         .trim()
         .toLowerCase();
 
@@ -525,7 +547,8 @@ export class QuoteTemplate {
       color: typeof COLORS.text;
     }> = [];
 
-    const seen = new Set<string>();
+    const seen =
+      new Set<string>();
 
     const addBuyerLine = (
       value: string,
@@ -535,13 +558,15 @@ export class QuoteTemplate {
         color: typeof COLORS.text;
       }
     ) => {
-      const cleaned = value.trim();
+      const cleaned =
+        value.trim();
 
       if (!cleaned) {
         return;
       }
 
-      const key = normalize(cleaned);
+      const key =
+        normalize(cleaned);
 
       if (seen.has(key)) {
         return;
@@ -555,52 +580,72 @@ export class QuoteTemplate {
       });
     };
 
-    // Company is the primary buyer identity.
-    addBuyerLine(company || contact || "-", {
-      size: 11,
-      bold: true,
-      color: COLORS.text,
-    });
+    addBuyerLine(
+      company ||
+        contact ||
+        "-",
+      {
+        size: 11,
+        bold: true,
+        color: COLORS.text,
+      }
+    );
 
-    // Only show the contact when it is genuinely different.
     if (
       company &&
       contact &&
-      normalize(company) !== normalize(contact)
+      normalize(company) !==
+        normalize(contact)
     ) {
-      addBuyerLine(`Attn: ${contact}`, {
-        size: 8.5,
-        bold: false,
-        color: COLORS.muted,
-      });
-    }
-
-    // Address may contain the same text as company/contact.
-    // The de-duplication above prevents it from appearing twice.
-    if (address) {
-      const addressLines = wrapText(
-        address,
-        38
-      );
-
-      for (const line of addressLines.slice(0, 2)) {
-        addBuyerLine(line, {
-          size: 8,
+      addBuyerLine(
+        `Attn: ${contact}`,
+        {
+          size: 8.5,
           bold: false,
           color: COLORS.muted,
-        });
+        }
+      );
+    }
+
+    if (address) {
+      const addressLines =
+        wrapText(
+          address,
+          38
+        );
+
+      for (
+        const line of
+          addressLines.slice(
+            0,
+            2
+          )
+      ) {
+        addBuyerLine(
+          line,
+          {
+            size: 8,
+            bold: false,
+            color: COLORS.muted,
+          }
+        );
       }
     }
 
     if (country) {
-      addBuyerLine(country, {
-        size: 8,
-        bold: true,
-        color: COLORS.muted,
-      });
+      addBuyerLine(
+        country,
+        {
+          size: 8,
+          bold: true,
+          color: COLORS.muted,
+        }
+      );
     }
 
-    for (const line of buyerLines) {
+    for (
+      const line of buyerLines
+    ) {
       this.text(
         line.text,
         leftX + 14,
@@ -610,12 +655,12 @@ export class QuoteTemplate {
         line.color
       );
 
-      buyerY -= line.bold ? 16 : 12;
+      buyerY -=
+        line.bold
+          ? 16
+          : 12;
     }
 
-    /*
-     * Vertical divider.
-     */
     this.page.drawLine({
       start: {
         x: 315,
@@ -623,17 +668,17 @@ export class QuoteTemplate {
       },
       end: {
         x: 315,
-        y: cardTop - cardHeight + 12,
+        y:
+          cardTop -
+          cardHeight +
+          12,
       },
       thickness: 0.6,
       color: COLORS.mediumGray,
     });
 
-    /*
-     * Right quote details.
-     */
     this.text(
-      "QUOTE DETAILS",
+      "PI DETAILS",
       rightX,
       cardTop - 21,
       8,
@@ -642,35 +687,56 @@ export class QuoteTemplate {
     );
 
     this.metaRow(
-      "Quote Number",
-      data.quoteNumber,
+      "PI Number",
+      data.piNumber,
       rightX,
       cardTop - 43
     );
 
     this.metaRow(
-      "Quote Date",
-      data.quoteDate,
+      "Issue Date",
+      data.issueDate,
       rightX,
       cardTop - 62
     );
 
-    this.metaRow(
-      "Valid Until",
-      data.validUntil,
-      rightX,
-      cardTop - 81
-    );
+    if (
+      data.paymentDueDate
+    ) {
+      this.metaRow(
+        "Payment Due",
+        data.paymentDueDate,
+        rightX,
+        cardTop - 81
+      );
 
-    this.metaRow(
-      "Currency",
-      data.currency,
-      rightX,
-      cardTop - 100
-    );
+      this.metaRow(
+        "Currency",
+        data.currency,
+        rightX,
+        cardTop - 100
+      );
+    } else {
+      this.metaRow(
+        "Original Quote",
+        data.quoteNumber ??
+          "-",
+        rightX,
+        cardTop - 81
+      );
+
+      this.metaRow(
+        "Currency",
+        data.currency,
+        rightX,
+        cardTop - 100
+      );
+    }
 
     this.y =
-      cardTop - cardHeight - 22;
+      cardTop -
+      cardHeight -
+      22;
   }
 
   private metaRow(
@@ -690,7 +756,9 @@ export class QuoteTemplate {
 
     this.textRight(
       value || "-",
-      PAGE_WIDTH - MARGIN_RIGHT - 14,
+      PAGE_WIDTH -
+        MARGIN_RIGHT -
+        14,
       y,
       8,
       true,
@@ -704,23 +772,22 @@ export class QuoteTemplate {
    */
 
   private drawItems(
-    data: QuotePdfData
+    data: ProformaInvoicePdfData
   ) {
     this.ensureSpace(100);
 
     this.sectionTitle(
-      "QUOTE LINE ITEMS"
+      "PI LINE ITEMS"
     );
 
-    const tableX = MARGIN_LEFT;
+    const tableX =
+      MARGIN_LEFT;
 
-    const tableWidth = CONTENT_WIDTH;
+    const tableWidth =
+      CONTENT_WIDTH;
 
     const headerHeight = 28;
 
-    /*
-     * Column positions.
-     */
     const descriptionX =
       tableX + 12;
 
@@ -731,14 +798,15 @@ export class QuoteTemplate {
     const priceRight = 455;
 
     const totalRight =
-      PAGE_WIDTH - MARGIN_RIGHT - 12;
+      PAGE_WIDTH -
+      MARGIN_RIGHT -
+      12;
 
-    /*
-     * Header.
-     */
     this.page.drawRectangle({
       x: tableX,
-      y: this.y - headerHeight,
+      y:
+        this.y -
+        headerHeight,
       width: tableWidth,
       height: headerHeight,
       color: COLORS.primary,
@@ -789,18 +857,17 @@ export class QuoteTemplate {
       COLORS.white
     );
 
-    this.y -= headerHeight;
+    this.y -=
+      headerHeight;
 
-    /*
-     * Rows.
-     */
     if (!data.items.length) {
       this.page.drawRectangle({
         x: tableX,
         y: this.y - 40,
         width: tableWidth,
         height: 40,
-        borderColor: COLORS.mediumGray,
+        borderColor:
+          COLORS.mediumGray,
         borderWidth: 0.6,
       });
 
@@ -826,39 +893,44 @@ export class QuoteTemplate {
             38
           );
 
-        const rowHeight = Math.max(
-          34,
-          descriptionLines.length * 11 +
-            18
-        );
+        const rowHeight =
+          Math.max(
+            34,
+            descriptionLines.length *
+              11 +
+              18
+          );
 
         this.ensureSpace(
           rowHeight + 5
         );
 
-        /*
-         * Alternating row background.
-         */
-        if (index % 2 === 0) {
-          this.page.drawRectangle({
-            x: tableX,
-            y: this.y - rowHeight,
-            width: tableWidth,
-            height: rowHeight,
-            color: rgb(
-              0.985,
-              0.985,
-              0.985
-            ),
-          });
+        if (
+          index % 2 ===
+          0
+        ) {
+          this.page.drawRectangle(
+            {
+              x: tableX,
+              y:
+                this.y -
+                rowHeight,
+              width: tableWidth,
+              height: rowHeight,
+              color: rgb(
+                0.985,
+                0.985,
+                0.985
+              ),
+            }
+          );
         }
 
-        /*
-         * Row border.
-         */
         this.page.drawRectangle({
           x: tableX,
-          y: this.y - rowHeight,
+          y:
+            this.y -
+            rowHeight,
           width: tableWidth,
           height: rowHeight,
           borderColor:
@@ -886,12 +958,9 @@ export class QuoteTemplate {
         );
 
         this.textRight(
-          new Intl.NumberFormat(
-            "en-IN",
-            {
-              maximumFractionDigits: 2,
-            }
-          ).format(item.quantity),
+          formatQuantity(
+            item.quantity
+          ),
           qtyRight,
           this.y - 17,
           8,
@@ -932,7 +1001,8 @@ export class QuoteTemplate {
           COLORS.text
         );
 
-        this.y -= rowHeight;
+        this.y -=
+          rowHeight;
       }
     );
 
@@ -945,7 +1015,7 @@ export class QuoteTemplate {
    */
 
   private drawTotals(
-    data: QuotePdfData
+    data: ProformaInvoicePdfData
   ) {
     this.ensureSpace(210);
 
@@ -956,20 +1026,21 @@ export class QuoteTemplate {
       MARGIN_RIGHT -
       boxWidth;
 
-    const boxTop = this.y;
+    const boxTop =
+      this.y;
 
     const boxHeight = 174;
 
-    /*
-     * Outer card.
-     */
     this.page.drawRectangle({
       x: boxX,
-      y: boxTop - boxHeight,
+      y:
+        boxTop -
+        boxHeight,
       width: boxWidth,
       height: boxHeight,
       color: COLORS.lightGray,
-      borderColor: COLORS.mediumGray,
+      borderColor:
+        COLORS.mediumGray,
       borderWidth: 0.7,
     });
 
@@ -1039,16 +1110,14 @@ export class QuoteTemplate {
       y
     );
 
-    /*
-     * Grand total separator.
-     */
     this.page.drawLine({
       start: {
         x: boxX + 12,
         y: y - 12,
       },
       end: {
-        x: boxX +
+        x:
+          boxX +
           boxWidth -
           12,
         y: y - 12,
@@ -1083,7 +1152,9 @@ export class QuoteTemplate {
     );
 
     this.y =
-      boxTop - boxHeight - 22;
+      boxTop -
+      boxHeight -
+      22;
   }
 
   private totalRow(
@@ -1130,9 +1201,11 @@ export class QuoteTemplate {
    */
 
   private drawNotes(
-    data: QuotePdfData
+    data: ProformaInvoicePdfData
   ) {
-    if (!data.notes?.trim()) {
+    if (
+      !data.notes?.trim()
+    ) {
       return;
     }
 
@@ -1143,7 +1216,8 @@ export class QuoteTemplate {
       );
 
     const requiredHeight =
-      32 + lines.length * 12;
+      32 +
+      lines.length * 12;
 
     this.ensureSpace(
       requiredHeight
@@ -1155,7 +1229,8 @@ export class QuoteTemplate {
 
     this.page.drawRectangle({
       x: MARGIN_LEFT,
-      y: this.y -
+      y:
+        this.y -
         lines.length * 12 -
         18,
       width: CONTENT_WIDTH,
@@ -1163,14 +1238,17 @@ export class QuoteTemplate {
         lines.length * 12 +
         18,
       color: COLORS.lightGray,
-      borderColor: COLORS.mediumGray,
+      borderColor:
+        COLORS.mediumGray,
       borderWidth: 0.6,
     });
 
     let y =
       this.y - 16;
 
-    for (const line of lines) {
+    for (
+      const line of lines
+    ) {
       this.text(
         line,
         MARGIN_LEFT + 12,
@@ -1205,15 +1283,22 @@ export class QuoteTemplate {
       DEFAULT_PAYMENT_TERMS,
       DEFAULT_DELIVERY_TERMS,
       `Incoterms: ${DEFAULT_INCOTERMS}`,
-      ...PDF_FOOTER,
+      "This Proforma Invoice is confidential and intended only for the recipient.",
+      "Prices are subject to change without prior notice unless otherwise agreed.",
+      "Goods remain subject to availability.",
     ];
 
     let y =
       this.y - 4;
 
-    for (const term of terms) {
+    for (
+      const term of terms
+    ) {
       const lines =
-        wrapText(term, 94);
+        wrapText(
+          term,
+          94
+        );
 
       for (
         let index = 0;
@@ -1262,11 +1347,15 @@ export class QuoteTemplate {
 
     this.page.drawLine({
       start: {
-        x: MARGIN_LEFT + 112,
+        x:
+          MARGIN_LEFT +
+          112,
         y: this.y + 2,
       },
       end: {
-        x: PAGE_WIDTH - MARGIN_RIGHT,
+        x:
+          PAGE_WIDTH -
+          MARGIN_RIGHT,
         y: this.y + 2,
       },
       thickness: 0.6,
@@ -1282,7 +1371,8 @@ export class QuoteTemplate {
    */
 
   private drawFooter() {
-    const y = FOOTER_Y + 18;
+    const y =
+      FOOTER_Y + 18;
 
     this.page.drawLine({
       start: {
@@ -1290,7 +1380,9 @@ export class QuoteTemplate {
         y,
       },
       end: {
-        x: PAGE_WIDTH - MARGIN_RIGHT,
+        x:
+          PAGE_WIDTH -
+          MARGIN_RIGHT,
         y,
       },
       thickness: 0.6,
@@ -1315,7 +1407,9 @@ export class QuoteTemplate {
     ].filter(Boolean);
 
     this.text(
-      contactParts.join("  |  "),
+      contactParts.join(
+        "  |  "
+      ),
       MARGIN_LEFT,
       FOOTER_Y - 11,
       6.5,
@@ -1325,7 +1419,8 @@ export class QuoteTemplate {
 
     this.textRight(
       `Page ${this.pageNumber}`,
-      PAGE_WIDTH - MARGIN_RIGHT,
+      PAGE_WIDTH -
+        MARGIN_RIGHT,
       FOOTER_Y,
       7,
       true,
@@ -1376,9 +1471,10 @@ export class QuoteTemplate {
       return;
     }
 
-    const font = bold
-      ? this.bold
-      : this.font;
+    const font =
+      bold
+        ? this.bold
+        : this.font;
 
     const width =
       font.widthOfTextAtSize(
@@ -1389,7 +1485,8 @@ export class QuoteTemplate {
     this.page.drawText(
       value,
       {
-        x: rightX - width,
+        x:
+          rightX - width,
         y,
         size,
         font,

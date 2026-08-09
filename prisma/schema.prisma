@@ -133,42 +133,42 @@ model Admin {
 }
 
 model FollowUp {
-  id               String             @id @default(cuid())
+  id               String  @id @default(cuid())
   inquiryId        String
   assignedToId     String?
   completedById    String?
   parentFollowUpId String?
 
-  sequence         Int                @default(1)
+  sequence Int @default(1)
 
-  title            String
-  description      String?
-  notes            String?
+  title       String
+  description String?
+  notes       String?
 
-  actionType       FollowUpActionType
-  category         FollowUpCategory
-  priority         FollowUpPriority   @default(MEDIUM)
+  actionType FollowUpActionType
+  category   FollowUpCategory
+  priority   FollowUpPriority   @default(MEDIUM)
 
-  status           FollowUpStatus     @default(PENDING)
-  result           FollowUpResult?
+  status FollowUpStatus  @default(PENDING)
+  result FollowUpResult?
 
-  scheduledAt      DateTime
-  dueAt            DateTime?
+  scheduledAt DateTime
+  dueAt       DateTime?
 
   estimatedMinutes Int?
   actualMinutes    Int?
 
-  completedAt      DateTime?
+  completedAt DateTime?
 
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  assignedTo       Admin?             @relation("AssignedFollowUps", fields: [assignedToId], references: [id])
-  completedBy      Admin?             @relation("CompletedFollowUps", fields: [completedById], references: [id])
-  inquiry          Inquiry            @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  assignedTo  Admin?  @relation("AssignedFollowUps", fields: [assignedToId], references: [id])
+  completedBy Admin?  @relation("CompletedFollowUps", fields: [completedById], references: [id])
+  inquiry     Inquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
 
-  parentFollowUp   FollowUp?          @relation("FollowUpChain", fields: [parentFollowUpId], references: [id])
-  childFollowUps   FollowUp[]         @relation("FollowUpChain")
+  parentFollowUp FollowUp?  @relation("FollowUpChain", fields: [parentFollowUpId], references: [id])
+  childFollowUps FollowUp[] @relation("FollowUpChain")
 
   @@index([inquiryId])
   @@index([assignedToId])
@@ -180,25 +180,26 @@ model FollowUp {
 }
 
 model Product {
-  id               String           @id @default(cuid())
-  sku              String           @unique
-  name             String
-  slug             String           @unique
-  shortDescription String?
-  description      String?
-  category         String?
-  origin           String?
-  hsCode           String?
-  defaultUnit      String
-  minOrderQty      Decimal?         @db.Decimal(18, 3)
-  maxOrderQty      Decimal?         @db.Decimal(18, 3)
-  status           ProductStatus    @default(DRAFT)
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-  featuredImageId  String?
-  featuredImage    Media?           @relation("ProductFeaturedImage", fields: [featuredImageId], references: [id])
-  pricing          ProductPricing[]
-  quoteItems       QuoteItem[]
+  id                   String                @id @default(cuid())
+  sku                  String                @unique
+  name                 String
+  slug                 String                @unique
+  shortDescription     String?
+  description          String?
+  category             String?
+  origin               String?
+  hsCode               String?
+  defaultUnit          String
+  minOrderQty          Decimal?              @db.Decimal(18, 3)
+  maxOrderQty          Decimal?              @db.Decimal(18, 3)
+  status               ProductStatus         @default(DRAFT)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  featuredImageId      String?
+  featuredImage        Media?                @relation("ProductFeaturedImage", fields: [featuredImageId], references: [id])
+  pricing              ProductPricing[]
+  quoteItems           QuoteItem[]
+  proformaInvoiceItems ProformaInvoiceItem[]
 
   @@index([status])
   @@index([category])
@@ -225,37 +226,38 @@ model ProductPricing {
 }
 
 model Quote {
-  id            String      @id @default(cuid())
-  quoteNumber   String      @unique
-  inquiryId     String?
-  companyName   String
-  contactPerson String
-  email         String
-  phone         String?
-  country       String
-  currency      String
-  subtotal      Decimal     @default(0) @db.Decimal(18, 2)
-  discount      Decimal     @default(0) @db.Decimal(18, 2)
-  freight       Decimal     @default(0) @db.Decimal(18, 2)
-  insurance     Decimal     @default(0) @db.Decimal(18, 2)
-  tax           Decimal     @default(0) @db.Decimal(18, 2)
-  grandTotal    Decimal     @default(0) @db.Decimal(18, 2)
-  validityDays  Int         @default(15)
-  status        QuoteStatus @default(DRAFT)
-  notes         String?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  createdById   String?
-  updatedById   String?
-  parentQuoteId String?
-  validUntil    DateTime?
-  version       Int         @default(1)
-  createdBy     Admin?      @relation("QuoteCreatedBy", fields: [createdById], references: [id])
-  inquiry       Inquiry?    @relation(fields: [inquiryId], references: [id])
-  parentQuote   Quote?      @relation("QuoteRevisions", fields: [parentQuoteId], references: [id])
-  revisions     Quote[]     @relation("QuoteRevisions")
-  updatedBy     Admin?      @relation("QuoteUpdatedBy", fields: [updatedById], references: [id])
-  items         QuoteItem[]
+  id              String           @id @default(cuid())
+  quoteNumber     String           @unique
+  inquiryId       String?
+  companyName     String
+  contactPerson   String
+  email           String
+  phone           String?
+  country         String
+  currency        String
+  subtotal        Decimal          @default(0) @db.Decimal(18, 2)
+  discount        Decimal          @default(0) @db.Decimal(18, 2)
+  freight         Decimal          @default(0) @db.Decimal(18, 2)
+  insurance       Decimal          @default(0) @db.Decimal(18, 2)
+  tax             Decimal          @default(0) @db.Decimal(18, 2)
+  grandTotal      Decimal          @default(0) @db.Decimal(18, 2)
+  validityDays    Int              @default(15)
+  status          QuoteStatus      @default(DRAFT)
+  notes           String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  createdById     String?
+  updatedById     String?
+  parentQuoteId   String?
+  validUntil      DateTime?
+  version         Int              @default(1)
+  createdBy       Admin?           @relation("QuoteCreatedBy", fields: [createdById], references: [id])
+  inquiry         Inquiry?         @relation(fields: [inquiryId], references: [id])
+  parentQuote     Quote?           @relation("QuoteRevisions", fields: [parentQuoteId], references: [id])
+  revisions       Quote[]          @relation("QuoteRevisions")
+  updatedBy       Admin?           @relation("QuoteUpdatedBy", fields: [updatedById], references: [id])
+  items           QuoteItem[]
+  proformaInvoice ProformaInvoice?
 
   @@index([quoteNumber])
   @@index([status])
@@ -281,6 +283,64 @@ model QuoteItem {
   quote       Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
 
   @@index([quoteId])
+  @@index([productId])
+}
+
+model ProformaInvoice {
+  id             String    @id @default(cuid())
+  piNumber       String    @unique
+  quoteId        String    @unique
+  issueDate      DateTime  @default(now())
+  paymentDueDate DateTime?
+
+  companyName   String
+  contactPerson String
+  email         String
+  phone         String?
+  country       String
+  currency      String
+
+  subtotal   Decimal @default(0) @db.Decimal(18, 2)
+  discount   Decimal @default(0) @db.Decimal(18, 2)
+  freight    Decimal @default(0) @db.Decimal(18, 2)
+  insurance  Decimal @default(0) @db.Decimal(18, 2)
+  tax        Decimal @default(0) @db.Decimal(18, 2)
+  grandTotal Decimal @default(0) @db.Decimal(18, 2)
+
+  paymentTerms String?
+  incoterms    String?
+  notes        String?
+  status       ProformaInvoiceStatus @default(DRAFT)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  quote Quote                 @relation(fields: [quoteId], references: [id])
+  items ProformaInvoiceItem[]
+
+  @@index([quoteId])
+  @@index([status])
+  @@index([companyName])
+  @@index([country])
+  @@index([issueDate])
+}
+
+model ProformaInvoiceItem {
+  id                String   @id @default(cuid())
+  proformaInvoiceId String
+  productId         String
+  description       String?
+  quantity          Decimal  @db.Decimal(18, 3)
+  unit              String
+  unitPrice         Decimal  @db.Decimal(18, 2)
+  lineTotal         Decimal  @db.Decimal(18, 2)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  proformaInvoice ProformaInvoice @relation(fields: [proformaInvoiceId], references: [id], onDelete: Cascade)
+  product         Product         @relation(fields: [productId], references: [id])
+
+  @@index([proformaInvoiceId])
   @@index([productId])
 }
 
@@ -655,6 +715,7 @@ enum PricingType {
 enum QuoteStatus {
   DRAFT
   SENT
+  APPROVED
   ACCEPTED
   REJECTED
   EXPIRED
@@ -685,8 +746,18 @@ enum NumberSequenceType {
   ORDER
   SHIPMENT
   INVOICE
+  PROFORMA_INVOICE
   CUSTOMER
   SUPPLIER
+}
+
+enum ProformaInvoiceStatus {
+  DRAFT
+  SENT
+  PAYMENT_PENDING
+  PARTIALLY_PAID
+  PAID
+  CANCELLED
 }
 
 enum CmsPageStatus {

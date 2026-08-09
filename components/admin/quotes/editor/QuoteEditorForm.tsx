@@ -20,6 +20,19 @@ interface Props {
   onChange: (quote: QuoteEditorModel) => void;
 }
 
+const CURRENCIES = [
+  { code: "USD", name: "US Dollar" },
+  { code: "AED", name: "UAE Dirham" },
+  { code: "EUR", name: "Euro" },
+  { code: "GBP", name: "British Pound" },
+  { code: "INR", name: "Indian Rupee" },
+  { code: "SAR", name: "Saudi Riyal" },
+  { code: "QAR", name: "Qatari Riyal" },
+  { code: "OMR", name: "Omani Rial" },
+  { code: "KWD", name: "Kuwaiti Dinar" },
+  { code: "BHD", name: "Bahraini Dinar" },
+] as const;
+
 function currency(
   amount: number,
   code: string
@@ -64,15 +77,21 @@ export default function QuoteEditorForm({
 
   useEffect(() => {
     // Keep line totals in sync
-    const updatedItems = value.items.map((item) => ({
-      ...item,
-      total: item.quantity * item.unitPrice,
-    }));
-
-    const changed = updatedItems.some(
-      (item, index) =>
-        item.total !== value.items[index].total
+    const updatedItems = value.items.map(
+      (item) => ({
+        ...item,
+        total:
+          item.quantity *
+          item.unitPrice,
+      })
     );
+
+    const changed =
+      updatedItems.some(
+        (item, index) =>
+          item.total !==
+          value.items[index].total
+      );
 
     if (changed) {
       onChange({
@@ -103,7 +122,9 @@ export default function QuoteEditorForm({
     });
   }
 
-  function update<K extends keyof QuoteEditorModel>(
+  function update<
+    K extends keyof QuoteEditorModel
+  >(
     key: K,
     newValue: QuoteEditorModel[K]
   ) {
@@ -116,9 +137,63 @@ export default function QuoteEditorForm({
   return (
     <div className="grid gap-6 xl:grid-cols-3">
 
-      {/* LEFT */}
+      {/* ======================================================
+       * LEFT
+       * ==================================================== */}
 
       <div className="space-y-6 xl:col-span-2">
+
+        {/* ====================================================
+         * CUSTOMER / BUYER INFORMATION
+         * ================================================== */}
+
+        <section className="rounded-xl border bg-background">
+
+          <div className="border-b px-6 py-4">
+            <h2 className="font-semibold">
+              Customer / Buyer Information
+            </h2>
+
+            <p className="mt-1 text-sm text-muted-foreground">
+              Correct the customer business name for this
+              quotation. The original inquiry remains unchanged.
+            </p>
+          </div>
+
+          <div className="p-6">
+
+            <label
+              htmlFor="quote-company-name"
+              className="mb-2 block text-sm font-medium"
+            >
+              Company / Business Name
+            </label>
+
+            <input
+              id="quote-company-name"
+              type="text"
+              value={value.companyName}
+              onChange={(e) =>
+                update(
+                  "companyName",
+                  e.target.value
+                )
+              }
+              placeholder="Enter customer's correct company or business name"
+              className="h-11 w-full rounded-lg border bg-background px-3 outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
+            />
+
+            <p className="mt-2 text-xs text-muted-foreground">
+              This name will appear on the quotation and PDF.
+            </p>
+
+          </div>
+
+        </section>
+
+        {/* ====================================================
+         * QUOTE INFORMATION
+         * ================================================== */}
 
         <section className="rounded-xl border bg-background">
 
@@ -144,6 +219,39 @@ export default function QuoteEditorForm({
 
             <div>
               <label className="mb-2 block text-sm font-medium">
+                Currency
+              </label>
+
+              <select
+                value={value.currency}
+                onChange={(e) =>
+                  update(
+                    "currency",
+                    e.target.value
+                  )
+                }
+                className="h-11 w-full rounded-lg border bg-background px-3"
+              >
+                {CURRENCIES.map(
+                  (currencyOption) => (
+                    <option
+                      key={
+                        currencyOption.code
+                      }
+                      value={
+                        currencyOption.code
+                      }
+                    >
+                      {currencyOption.code} —{" "}
+                      {currencyOption.name}
+                    </option>
+                  )
+                )}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium">
                 Valid Until
               </label>
 
@@ -163,6 +271,10 @@ export default function QuoteEditorForm({
           </div>
 
         </section>
+
+        {/* ====================================================
+         * QUOTE LINE ITEMS
+         * ================================================== */}
 
         <section className="rounded-xl border bg-background">
 
@@ -208,6 +320,7 @@ export default function QuoteEditorForm({
                       key={item.id}
                       className="border-t"
                     >
+
                       <td className="px-5 py-4">
 
                         <div className="font-medium">
@@ -227,12 +340,15 @@ export default function QuoteEditorForm({
                           value={item.quantity}
                           min={0}
                           onChange={(e) =>
-                            updateItem(index, {
-                              quantity:
-                                Number(
-                                  e.target.value
-                                ) || 0,
-                            })
+                            updateItem(
+                              index,
+                              {
+                                quantity:
+                                  Number(
+                                    e.target.value
+                                  ) || 0,
+                              }
+                            )
                           }
                           className="h-10 w-24 rounded border px-2 text-right"
                         />
@@ -247,12 +363,15 @@ export default function QuoteEditorForm({
                           step="0.01"
                           min={0}
                           onChange={(e) =>
-                            updateItem(index, {
-                              unitPrice:
-                                Number(
-                                  e.target.value
-                                ) || 0,
-                            })
+                            updateItem(
+                              index,
+                              {
+                                unitPrice:
+                                  Number(
+                                    e.target.value
+                                  ) || 0,
+                              }
+                            )
                           }
                           className="h-10 w-32 rounded border px-2 text-right"
                         />
@@ -277,6 +396,10 @@ export default function QuoteEditorForm({
           </div>
 
         </section>
+
+        {/* ====================================================
+         * INTERNAL NOTES
+         * ================================================== */}
 
         <section className="rounded-xl border bg-background">
 
@@ -307,7 +430,9 @@ export default function QuoteEditorForm({
 
       </div>
 
-      {/* RIGHT */}
+      {/* ======================================================
+       * RIGHT
+       * ==================================================== */}
 
       <div>
 
@@ -384,6 +509,11 @@ export default function QuoteEditorForm({
   );
 }
 
+/* ============================================================
+ * NUMBER FIELD
+ * ============================================================
+ */
+
 interface NumberFieldProps {
   label: string;
   value: number;
@@ -419,6 +549,11 @@ function NumberField({
   );
 }
 
+/* ============================================================
+ * SUMMARY ROW
+ * ============================================================
+ */
+
 interface SummaryRowProps {
   label: string;
   value: string;
@@ -433,10 +568,13 @@ function SummaryRow({
   return (
     <div
       className={`flex items-center justify-between py-2 ${
-        bold ? "text-lg font-bold" : ""
+        bold
+          ? "text-lg font-bold"
+          : ""
       }`}
     >
       <span>{label}</span>
+
       <span>{value}</span>
     </div>
   );

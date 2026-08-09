@@ -14,3 +14,5 @@ export * from "./formatter";
 export * from "./table";
 export * from "./quote-template";
 export * from "./quote-generator";
+export * from "./proforma-invoice-template";
+export * from "./proforma-invoice-generator";

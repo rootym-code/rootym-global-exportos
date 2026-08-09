@@ -1,18 +1,23 @@
 /**
  * ============================================================
  * ROOTYM
- * File: app/api/admin/quotes/[id]/pdf/route.ts
+ * File: app/api/admin/proforma-invoices/[id]/pdf/route.ts
  * Sprint 8.1
  *
- * Generates and downloads the production ROOTYM quotation PDF.
+ * Generates and downloads the production ROOTYM
+ * Proforma Invoice PDF.
  * ============================================================
  */
 
 import { NextRequest, NextResponse } from "next/server";
 
 import { authenticateAdmin } from "@/lib/auth";
-import QuoteBusinessService from "@/lib/services/quote-business.service";
-import { quoteGenerator } from "@/lib/pdf";
+import {
+  proformaInvoiceRepository,
+} from "@/lib/repositories/proforma-invoice.repository";
+import {
+  proformaInvoiceGenerator,
+} from "@/lib/pdf";
 
 interface RouteContext {
   params: Promise<{
@@ -22,7 +27,17 @@ interface RouteContext {
 
 /**
  * ============================================================
- * GET /api/admin/quotes/:id/pdf
+ * GET /api/admin/proforma-invoices/:id/pdf
+ * ============================================================
+ *
+ * Generates the PDF for an existing Proforma Invoice.
+ *
+ * Business rules:
+ *
+ * 1. Admin must be authenticated.
+ * 2. Proforma Invoice must exist.
+ * 3. The PI is read-only for PDF generation.
+ * 4. The original quotation is never modified.
  * ============================================================
  */
 
@@ -35,56 +50,57 @@ export async function GET(
      * Authentication
      * ======================================================== */
 
-    const auth =
-      await authenticateAdmin(request);
+    const auth = await authenticateAdmin(request);
 
-    if (
-      !auth.authenticated ||
-      !auth.admin
-    ) {
+    if (!auth.authenticated || !auth.admin) {
       return NextResponse.json(
         {
           success: false,
-          message:
-            auth.error ??
-            "Unauthorized.",
+          message: auth.error ?? "Unauthorized.",
         },
         {
-          status:
-            auth.status ?? 401,
+          status: auth.status ?? 401,
         }
       );
     }
 
     /* ==========================================================
-     * Quote ID
+     * PI ID
      * ======================================================== */
 
     const { id } = await params;
 
-    /* ==========================================================
-     * Load Quote
-     *
-     * The current QuoteBusinessService loads:
-     * - Quote
-     * - Inquiry
-     * - Quote Items
-     * - Product details
-     * - Created By
-     * - Updated By
-     * ======================================================== */
-
-    const quote =
-      await QuoteBusinessService.getQuoteById(
-        id
-      );
-
-    if (!quote) {
+    if (!id?.trim()) {
       return NextResponse.json(
         {
           success: false,
-          message:
-            "Quote not found.",
+          message: "Proforma Invoice ID is required.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    /* ==========================================================
+     * Load Proforma Invoice
+     *
+     * Repository includes:
+     * - PI details
+     * - Original quotation
+     * - Inquiry
+     * - PI items
+     * - Product details
+     * ======================================================== */
+
+    const proformaInvoice =
+      await proformaInvoiceRepository.findById(id);
+
+    if (!proformaInvoice) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Proforma Invoice not found.",
         },
         {
           status: 404,
@@ -93,83 +109,68 @@ export async function GET(
     }
 
     /* ==========================================================
-     * Map database Quote → PDF QuoteEntity
+     * Map database PI → PDF ProformaInvoiceEntity
      *
-     * The PDF generator intentionally uses a dedicated
-     * QuoteEntity shape so the PDF engine is independent
-     * from Prisma's generated model.
+     * The PDF generator deliberately uses its own entity shape
+     * so the PDF engine remains independent from Prisma.
      * ======================================================== */
 
-    const pdfQuote = {
+    const pdfProformaInvoice = {
+      piNumber:
+        proformaInvoice.piNumber,
+
+      issueDate:
+        proformaInvoice.issueDate,
+
+      paymentDueDate:
+        proformaInvoice.paymentDueDate,
+
       quoteNumber:
-        quote.quoteNumber,
-
-      /*
-       * The current Quote model does not have a separate
-       * issueDate field. createdAt is the quotation date.
-       */
-      quoteDate:
-        quote.createdAt,
-
-        validUntil:
-        quote.validUntil ??
-        new Date(
-          quote.createdAt.getTime() +
-            quote.validityDays *
-              24 *
-              60 *
-              60 *
-              1000
-        ),
+        proformaInvoice.quote?.quoteNumber ?? null,
 
       buyerName:
-        quote.contactPerson,
+        proformaInvoice.contactPerson,
 
       buyerCompany:
-        quote.companyName,
+        proformaInvoice.companyName,
 
       /*
-       * Address is not currently stored on Quote.
-       * Keep empty until an address field is introduced.
+       * Address is not currently stored on the
+       * ProformaInvoice model.
        */
       buyerAddress:
         "",
 
       buyerCountry:
-        quote.country,
+        proformaInvoice.country,
 
       currency:
-        quote.currency,
+        proformaInvoice.currency,
 
       subtotal:
-        quote.subtotal,
+        proformaInvoice.subtotal,
 
       discount:
-        quote.discount,
+        proformaInvoice.discount,
 
       freight:
-        quote.freight,
+        proformaInvoice.freight,
 
       insurance:
-        quote.insurance,
+        proformaInvoice.insurance,
 
       tax:
-        quote.tax,
+        proformaInvoice.tax,
 
       grandTotal:
-        quote.grandTotal,
+        proformaInvoice.grandTotal,
 
       notes:
-        quote.notes,
+        proformaInvoice.notes,
 
       items:
-        quote.items.map(
+        proformaInvoice.items.map(
           (item) => ({
-            /*
-             * QuoteItem.description is the actual
-             * commercial description stored with the
-             * quotation.
-             */
             description:
               item.description ??
               item.product?.name ??
@@ -195,8 +196,8 @@ export async function GET(
      * ======================================================== */
 
     const pdf =
-      await quoteGenerator.generateBuffer(
-        pdfQuote
+      await proformaInvoiceGenerator.generateBuffer(
+        pdfProformaInvoice
       );
 
     /* ==========================================================
@@ -213,7 +214,7 @@ export async function GET(
             "application/pdf",
 
           "Content-Disposition":
-            `attachment; filename="${quote.quoteNumber}.pdf"`,
+            `attachment; filename="${proformaInvoice.piNumber}.pdf"`,
 
           "Content-Length":
             String(pdf.length),
@@ -227,7 +228,7 @@ export async function GET(
     );
   } catch (error) {
     console.error(
-      "GET /api/admin/quotes/[id]/pdf",
+      "GET /api/admin/proforma-invoices/[id]/pdf",
       error
     );
 
@@ -238,7 +239,7 @@ export async function GET(
         message:
           error instanceof Error
             ? error.message
-            : "Unable to generate quote PDF.",
+            : "Unable to generate Proforma Invoice PDF.",
       },
       {
         status: 500,

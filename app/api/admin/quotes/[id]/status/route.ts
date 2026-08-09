@@ -37,8 +37,7 @@ async function authorize(request: NextRequest) {
     );
   }
 
-  const admin =
-    await verifyAdminToken(token);
+  const admin = await verifyAdminToken(token);
 
   if (!admin) {
     return NextResponse.json(
@@ -55,12 +54,21 @@ async function authorize(request: NextRequest) {
 }
 
 /**
- * ------------------------------------------------------------
+ * ============================================================
+ * STATUS UPDATE HANDLER
+ * ============================================================
+ *
+ * Shared implementation for both:
+ *
  * PATCH /api/admin/quotes/:id/status
- * ------------------------------------------------------------
+ * POST  /api/admin/quotes/:id/status
+ *
+ * The frontend currently uses POST.
+ * PATCH remains supported for REST compatibility.
+ * ============================================================
  */
 
-export async function PATCH(
+async function updateQuoteStatus(
   request: NextRequest,
   { params }: RouteContext
 ) {
@@ -75,11 +83,9 @@ export async function PATCH(
 
     const body = await request.json();
 
-    const input =
-      quoteStatusSchema.parse(body);
+    const input = quoteStatusSchema.parse(body);
 
-    const quote =
-      await quoteManagementService.get(id);
+    const quote = await quoteManagementService.get(id);
 
     if (isQuoteFinal(quote.status)) {
       return NextResponse.json(
@@ -94,9 +100,7 @@ export async function PATCH(
     }
 
     const allowedStatuses =
-      getNextAllowedStatuses(
-        quote.status
-      );
+      getNextAllowedStatuses(quote.status);
 
     if (
       !allowedStatuses.includes(
@@ -148,4 +152,37 @@ export async function PATCH(
       }
     );
   }
+}
+
+/**
+ * ============================================================
+ * PATCH /api/admin/quotes/:id/status
+ * ============================================================
+ */
+
+export async function PATCH(
+  request: NextRequest,
+  context: RouteContext
+) {
+  return updateQuoteStatus(request, context);
+}
+
+/**
+ * ============================================================
+ * POST /api/admin/quotes/:id/status
+ * ============================================================
+ *
+ * The current Quote Details UI sends POST when the admin
+ * clicks "Mark as Accepted".
+ *
+ * Keep POST supported so the existing frontend does not need
+ * to be changed.
+ * ============================================================
+ */
+
+export async function POST(
+  request: NextRequest,
+  context: RouteContext
+) {
+  return updateQuoteStatus(request, context);
 }

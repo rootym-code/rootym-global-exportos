@@ -39,211 +39,233 @@ import { authenticateAdmin } from "@/lib/auth";
  * GET
  * ========================================================================== */
 
-export async function GET(
-    request: NextRequest
-) {
-
+export async function GET(request: NextRequest) {
     try {
+      const auth = await authenticateAdmin(request);
 
-        const auth = await authenticateAdmin(request);
-
-        if (!auth.authenticated || !auth.admin) {
-        
-            return NextResponse.json(
-        
-                {
-        
-                    success: false,
-        
-                    message:
-                        auth.error ?? "Unauthorized",
-        
-                },
-        
-                {
-        
-                    status:
-                        auth.status ?? 401,
-        
-                },
-        
-            );
-        
-        }
-        
-        const admin = auth.admin;
-
-
-        const { searchParams } =
-            new URL(request.url);
-
-        const page =
-            Number(
-                searchParams.get("page") ?? "1"
-            );
-
-        const pageSize =
-            Number(
-                searchParams.get("pageSize") ?? "20"
-            );
-
-        const search =
-            searchParams.get("search") ?? "";
-
-        const status =
-            searchParams.get("status");
-
-        const country =
-            searchParams.get("country");
-
-        const where: Prisma.QuoteWhereInput = {};
-
-        /* ============================================================
-         * Search
-         * ============================================================ */
-
-        if (search) {
-
-            where.OR = [
-
-                {
-                    quoteNumber: {
-                        contains: search,
-                        mode: "insensitive",
-                    },
-                },
-
-                {
-                    companyName: {
-                        contains: search,
-                        mode: "insensitive",
-                    },
-                },
-
-                {
-                    contactPerson: {
-                        contains: search,
-                        mode: "insensitive",
-                    },
-                },
-
-                {
-                    email: {
-                        contains: search,
-                        mode: "insensitive",
-                    },
-                },
-
-            ];
-
-        }
-
-        /* ============================================================
-         * Filters
-         * ============================================================ */
-
-        if (status) {
-
-            where.status =
-                status as QuoteStatus;
-
-        }
-
-        if (country) {
-
-            where.country = country;
-
-        }
-
-        const total =
-            await prisma.quote.count({
-
-                where,
-
-            });
-
-        const quotes =
-            await prisma.quote.findMany({
-
-                where,
-
-                include: {
-
-                    inquiry: true,
-
-                    createdBy: true,
-
-                },
-
-                orderBy: {
-
-                    createdAt: "desc",
-
-                },
-
-                skip:
-                    (page - 1) *
-                    pageSize,
-
-                take:
-                    pageSize,
-
-            });
-            return NextResponse.json({
-
-              success: true,
-  
-              data: quotes,
-  
-              pagination: {
-  
-                  page,
-  
-                  pageSize,
-  
-                  total,
-  
-                  totalPages:
-                      Math.ceil(
-                          total / pageSize
-                      ),
-  
-              },
-  
-          });
-  
-      } catch (error) {
-  
-          console.error(
-              "GET /api/admin/quotes",
-              error
-          );
-  
-          return NextResponse.json(
-  
-              {
-  
-                  success: false,
-  
-                  message:
-                      error instanceof Error
-                          ? error.message
-                          : "Unable to fetch quotes.",
-  
-              },
-  
-              {
-  
-                  status: 500,
-  
-              },
-  
-          );
-  
+      if (!auth.authenticated || !auth.admin) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: auth.error ?? "Unauthorized",
+          },
+          {
+            status: auth.status ?? 401,
+          }
+        );
       }
-  
+
+      const { searchParams } = new URL(request.url);
+
+      const page = Math.max(
+        1,
+        Number(searchParams.get("page") ?? "1")
+      );
+
+      const pageSize = Math.max(
+        1,
+        Number(searchParams.get("pageSize") ?? "20")
+      );
+
+      const search = searchParams.get("search") ?? "";
+      const status = searchParams.get("status");
+      const country = searchParams.get("country");
+
+      const where: Prisma.QuoteWhereInput = {};
+
+      /* ============================================================
+       * Search
+       * ============================================================ */
+
+      if (search) {
+        where.OR = [
+          {
+            quoteNumber: {
+              contains: search,
+              mode: "insensitive",
+            },
+          },
+          {
+            companyName: {
+              contains: search,
+              mode: "insensitive",
+            },
+          },
+          {
+            contactPerson: {
+              contains: search,
+              mode: "insensitive",
+            },
+          },
+          {
+            email: {
+              contains: search,
+              mode: "insensitive",
+            },
+          },
+        ];
+      }
+
+      /* ============================================================
+       * Filters
+       * ============================================================ */
+
+      if (status) {
+        where.status = status as QuoteStatus;
+      }
+
+      if (country) {
+        where.country = country;
+      }
+
+      /* ============================================================
+       * Fetch quotes + total count
+       * ============================================================ */
+
+      const [total, quotes] = await Promise.all([
+        prisma.quote.count({
+          where,
+        }),
+
+        prisma.quote.findMany({
+          where,
+
+          include: {
+            inquiry: true,
+            createdBy: true,
+          },
+
+          orderBy: {
+            createdAt: "desc",
+          },
+
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+        }),
+      ]);
+
+      /* ============================================================
+       * Map database Quote → QuoteRow
+       *
+       * Important:
+       * - grandTotal becomes total
+       * - Prisma Decimal values become numbers
+       * - contactPerson becomes customerName
+       * ============================================================ */
+
+      const items = quotes.map((quote) => ({
+        id: quote.id,
+
+        quoteNumber: quote.quoteNumber,
+
+        inquiryId: quote.inquiryId,
+
+        customerName: quote.contactPerson,
+
+        companyName: quote.companyName,
+
+        country: quote.country,
+
+        status: quote.status,
+
+        currency: quote.currency,
+
+        subtotal: Number(quote.subtotal),
+
+        freight: Number(quote.freight),
+
+        tax: Number(quote.tax),
+
+        total: Number(quote.grandTotal),
+
+        validUntil: quote.validUntil
+          ? quote.validUntil.toISOString()
+          : null,
+
+        createdAt: quote.createdAt.toISOString(),
+
+        updatedAt: quote.updatedAt.toISOString(),
+      }));
+
+      /* ============================================================
+       * Summary
+       * ============================================================ */
+
+      const [draft, sent, approved, expired] =
+        await Promise.all([
+          prisma.quote.count({
+            where: {
+              ...where,
+              status: QuoteStatus.DRAFT,
+            },
+          }),
+
+          prisma.quote.count({
+            where: {
+              ...where,
+              status: QuoteStatus.SENT,
+            },
+          }),
+
+          prisma.quote.count({
+            where: {
+              ...where,
+              status: QuoteStatus.ACCEPTED,
+            },
+          }),
+
+          prisma.quote.count({
+            where: {
+              ...where,
+              status: QuoteStatus.EXPIRED,
+            },
+          }),
+        ]);
+
+      /* ============================================================
+       * Response expected by QuoteManagementPage
+       * ============================================================ */
+
+      return NextResponse.json({
+        success: true,
+
+        items,
+
+        page,
+
+        pageSize,
+
+        total,
+
+        summary: {
+          draft,
+          sent,
+          approved,
+          expired,
+        },
+      });
+    } catch (error) {
+      console.error(
+        "GET /api/admin/quotes",
+        error
+      );
+
+      return NextResponse.json(
+        {
+          success: false,
+
+          message:
+            error instanceof Error
+              ? error.message
+              : "Unable to fetch quotes.",
+        },
+        {
+          status: 500,
+        }
+      );
+    }
   }
-  
+
   /* ============================================================================
    * POST
    * ============================================================================
@@ -252,305 +274,294 @@ export async function GET(
    *
    * All business rules are delegated to QuoteBusinessService.
    * ========================================================================== */
-  
+
   export async function POST(
       request: NextRequest
   ) {
-  
+
       try {
-  
-         
-        
+
+
+
         const auth =
         await authenticateAdmin(
             request
         );
-    
+
     if (
         !auth.authenticated ||
         !auth.admin
     ) {
-    
+
         return NextResponse.json(
-    
+
             {
-    
+
                 success: false,
-    
+
                 message:
                     auth.error ??
                     "Unauthorized",
-    
+
             },
-    
+
             {
-    
+
                 status:
                     auth.status ??
                     401,
-    
+
             },
-    
+
         );
-    
+
     }
-    
+
     const admin =
         auth.admin;
-  
+
           const body =
               await request.json();
-  
+
           /* ============================================================
            * Required Fields
            * ============================================================ */
-  
+
           if (!body.companyName) {
-  
+
               return NextResponse.json(
-  
+
                   {
-  
+
                       success: false,
-  
+
                       message:
                           "Company name is required.",
-  
+
                   },
-  
+
                   {
-  
+
                       status: 400,
-  
+
                   },
-  
+
               );
-  
+
           }
-  
+
           if (!body.contactPerson) {
-  
+
               return NextResponse.json(
-  
+
                   {
-  
+
                       success: false,
-  
+
                       message:
                           "Contact person is required.",
-  
+
                   },
-  
+
                   {
-  
+
                       status: 400,
-  
+
                   },
-  
+
               );
-  
+
           }
-  
-          if (!body.email) {
-  
-              return NextResponse.json(
-  
-                  {
-  
-                      success: false,
-  
-                      message:
-                          "Email is required.",
-  
-                  },
-  
-                  {
-  
-                      status: 400,
-  
-                  },
-  
-              );
-  
-          }
-  
+
+          /*
+           * Email is optional for quotations created from
+           * WhatsApp-only inquiries.
+           *
+           * The current Quote schema still stores email as a
+           * required String, so an unavailable email is persisted
+           * as an empty string. A nullable schema migration can be
+           * introduced later without blocking this workflow.
+           */
+
           if (!body.country) {
-  
+
               return NextResponse.json(
-  
+
                   {
-  
+
                       success: false,
-  
+
                       message:
                           "Country is required.",
-  
+
                   },
-  
+
                   {
-  
+
                       status: 400,
-  
+
                   },
-  
+
               );
-  
+
           }
-  
+
           if (!body.currency) {
-  
+
               return NextResponse.json(
-  
+
                   {
-  
+
                       success: false,
-  
+
                       message:
                           "Currency is required.",
-  
+
                   },
-  
+
                   {
-  
+
                       status: 400,
-  
+
                   },
-  
+
               );
-  
+
           }
-  
+
           if (
               !Array.isArray(body.items) ||
               body.items.length === 0
           ) {
-  
+
               return NextResponse.json(
-  
+
                   {
-  
+
                       success: false,
-  
+
                       message:
                           "At least one quote item is required.",
-  
+
                   },
-  
+
                   {
-  
+
                       status: 400,
-  
+
                   },
-  
+
               );
-  
+
           }
-  
+
           /* ============================================================
            * Create Quote
            * ============================================================ */
-  
+
           const quote =
               await QuoteBusinessService.createQuote({
-  
+
                   inquiryId:
                       body.inquiryId,
-  
+
                   companyName:
                       body.companyName,
-  
+
                   contactPerson:
                       body.contactPerson,
-  
+
                   email:
-                      body.email,
-  
+                      typeof body.email === "string"
+                          ? body.email.trim()
+                          : "",
+
                   phone:
                       body.phone,
-  
+
                   country:
                       body.country,
-  
+
                   currency:
                       body.currency,
-  
+
                   items:
                       body.items,
-  
+
                   discount:
                       body.discount,
-  
+
                   freight:
                       body.freight,
-  
+
                   insurance:
                       body.insurance,
-  
+
                   tax:
                       body.tax,
-  
+
                   validityDays:
                       body.validityDays,
-  
+
                   notes:
                       body.notes,
-  
+
                   createdById:
                   admin.adminId,
-  
+
               });
-  
+
           return NextResponse.json(
-  
+
               {
-  
+
                   success: true,
-  
+
                   message:
                       "Quotation created successfully.",
-  
+
                   data: quote,
-  
+
               },
-  
+
               {
-  
+
                   status: 201,
-  
+
               },
-  
+
           );
-  
+
       } catch (error) {
-  
+
           console.error(
               "POST /api/admin/quotes",
               error
           );
-  
+
           return NextResponse.json(
-  
+
               {
-  
+
                   success: false,
-  
+
                   message:
                       error instanceof Error
                           ? error.message
                           : "Unable to create quotation.",
-  
+
               },
-  
+
               {
-  
+
                   status: 500,
-  
+
               },
-  
+
           );
-  
+
       }
-  
+
   }
   /* ============================================================================
  * PRIVATE HELPERS

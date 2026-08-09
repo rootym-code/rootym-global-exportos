@@ -40,7 +40,7 @@ export const QUOTE_STATUS_META: Record<
     isFinal: false,
     canEdit: true,
     canSend: true,
-    canApprove: false,
+    canApprove: true,
   },
 
   SENT: {
@@ -163,7 +163,10 @@ export function getNextAllowedStatuses(
 ): QuoteStatus[] {
   switch (status) {
     case "DRAFT":
-      return ["SENT"];
+      return [
+        "SENT",
+        "APPROVED",
+      ];
 
     case "SENT":
       return [

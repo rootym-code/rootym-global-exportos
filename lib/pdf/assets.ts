@@ -71,9 +71,9 @@ export const ROOTYM_COMPANY: CompanyDetails = {
 
   phone: "",
 
-  email: "info@rootym.in",
+  email: "info@rootym.com",
 
-  website: "www.rootym.in",
+  website: "www.rootym.com",
 
   gstin: "",
 

@@ -19,7 +19,7 @@ type QuoteStatus =
   | "SENT"
   | "VIEWED"
   | "NEGOTIATION"
-  | "APPROVED"
+  | "ACCEPTED"
   | "REJECTED"
   | "EXPIRED";
 
@@ -49,7 +49,10 @@ export interface QuoteRow {
 }
 
 interface QuoteListResponse {
+  success: boolean;
+
   items: QuoteRow[];
+
   page: number;
   pageSize: number;
   total: number;
@@ -77,7 +80,7 @@ export default function QuoteManagementPage() {
 
   const [search, setSearch] = useState("");
 
-  const [status, setStatus] = useState<string>("");
+  const [status, setStatus] = useState("");
 
   const [summary, setSummary] = useState({
     draft: 0,
@@ -115,17 +118,29 @@ export default function QuoteManagementPage() {
         throw new Error("Unable to fetch quotes");
       }
 
-      const data: QuoteListResponse = await response.json();
+      const data: QuoteListResponse =
+        await response.json();
 
-      setQuotes(data.items);
+      if (!data.success) {
+        throw new Error("Unable to fetch quotes");
+      }
 
-      setTotal(data.total);
+      setQuotes(
+        Array.isArray(data.items)
+          ? data.items
+          : []
+      );
+
+      setTotal(data.total ?? 0);
 
       if (data.summary) {
         setSummary(data.summary);
       }
     } catch (err) {
       console.error(err);
+
+      setQuotes([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
@@ -136,14 +151,15 @@ export default function QuoteManagementPage() {
   }, [page, pageSize, search, status]);
 
   const totalPages = useMemo(() => {
-    return Math.max(1, Math.ceil(total / pageSize));
+    return Math.max(
+      1,
+      Math.ceil(total / pageSize)
+    );
   }, [total, pageSize]);
 
   return (
     <div className="space-y-6">
-
       <div className="flex items-center justify-between">
-
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
             Quote Management
@@ -153,7 +169,6 @@ export default function QuoteManagementPage() {
             Manage quotations generated for customer inquiries.
           </p>
         </div>
-
       </div>
 
       <QuoteStatsCards summary={summary} />
