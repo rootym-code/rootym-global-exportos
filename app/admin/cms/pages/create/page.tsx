@@ -2,6 +2,10 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import type {
+  PageLayout,
+  PageTemplate,
+} from "@/components/admin/cms/pages/types";
 import {
   ArrowLeft,
   Loader2,
@@ -18,13 +22,13 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
-import type { PageTemplate } from "@/components/admin/cms/pages/types";
 
 type FormState = {
   internalTitle: string;
   title: string;
   slug: string;
   template: PageTemplate;
+  layout: PageLayout;
   status: CmsPageStatus;
   isHomePage: boolean;
   showInMenu: boolean;
@@ -41,6 +45,7 @@ const INITIAL_FORM: FormState = {
   title: "",
   slug: "",
   template: "STANDARD",
+  layout: "WEBSITE",
   status: CmsPageStatus.DRAFT,
   isHomePage: false,
   showInMenu: true,
@@ -152,7 +157,7 @@ export default function CreateCmsPage() {
               ? CmsPageStatus.PUBLISHED
               : CmsPageStatus.DRAFT,
               template: form.template,
-
+              layout: form.layout,
             isHomePage:
               form.isHomePage,
 
@@ -419,6 +424,41 @@ export default function CreateCmsPage() {
                 structure for this page.
               </p>
             </div>
+
+{/* Page Presentation */}
+<div className="space-y-2">
+  <Label htmlFor="layout">
+    Page Presentation
+  </Label>
+
+  <Select
+    id="layout"
+    value={form.layout}
+    onChange={(event) =>
+      updateField(
+        "layout",
+        event.target.value as PageLayout
+      )
+    }
+    options={[
+      {
+        label: "ROOTYM Website",
+        value: "WEBSITE",
+      },
+      {
+        label: "Standalone Landing Page",
+        value: "STANDALONE",
+      },
+    ]}
+  />
+
+  <p className="text-xs text-gray-500">
+    Choose whether this page uses the ROOTYM
+    website header and footer or works as a
+    standalone landing page.
+  </p>
+</div>
+
 
             {/* Page Title */}
             <div className="space-y-2">

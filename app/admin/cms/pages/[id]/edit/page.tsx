@@ -23,7 +23,10 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
-type PageTemplate = "STANDARD" | "COUNTRY_LANDING";
+import type {
+  PageLayout,
+  PageTemplate,
+} from "@/components/admin/cms/pages/types";
 
 type FormState = {
   internalTitle: string;
@@ -31,6 +34,7 @@ type FormState = {
   slug: string;
   status: CmsPageStatus;
   template: PageTemplate;
+  layout: PageLayout;
   isHomePage: boolean;
   showInMenu: boolean;
   excerpt: string;
@@ -47,6 +51,7 @@ const INITIAL_FORM: FormState = {
   slug: "",
   status: CmsPageStatus.DRAFT,
   template: "STANDARD",
+  layout: "WEBSITE",
   isHomePage: false,
   showInMenu: true,
   excerpt: "",
@@ -204,6 +209,11 @@ export default function EditCmsPage() {
               ? "COUNTRY_LANDING"
               : "STANDARD",
 
+          layout:
+            page.layout === "STANDALONE"
+              ? "STANDALONE"
+              : "WEBSITE",
+
           isHomePage:
             page.isHomePage ?? false,
 
@@ -327,6 +337,8 @@ export default function EditCmsPage() {
             status,
 
             template: form.template,
+
+            layout: form.layout,
 
             isHomePage:
               form.isHomePage,
@@ -582,6 +594,39 @@ export default function EditCmsPage() {
                   },
                 ]}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="layout">
+                Page Presentation
+              </Label>
+
+              <Select
+                id="layout"
+                value={form.layout}
+                onChange={(event) =>
+                  updateField(
+                    "layout",
+                    event.target.value as PageLayout
+                  )
+                }
+                options={[
+                  {
+                    label: "ROOTYM Website",
+                    value: "WEBSITE",
+                  },
+                  {
+                    label: "Standalone Landing Page",
+                    value: "STANDALONE",
+                  },
+                ]}
+              />
+
+              <p className="text-xs text-gray-500">
+                Choose whether this page uses the
+                ROOTYM website header and footer or
+                works as a standalone landing page.
+              </p>
             </div>
 
             <div className="space-y-2">

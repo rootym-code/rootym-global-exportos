@@ -77,6 +77,10 @@ export const createCmsPageSchema = z.object({
     template: z
       .enum(["STANDARD", "COUNTRY_LANDING"])
       .optional(),
+
+      layout: z
+  .enum(["WEBSITE", "STANDALONE"])
+  .optional(),
   
     isHomePage: z.boolean().optional(),
 

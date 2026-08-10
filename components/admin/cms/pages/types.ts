@@ -24,6 +24,10 @@ export type PageTemplate =
   | "STANDARD"
   | "COUNTRY_LANDING";
 
+  export type PageLayout =
+  | "WEBSITE"
+  | "STANDALONE";
+
 /* ============================================================
 Landing Page Section Types
 ============================================================ */
@@ -189,6 +193,10 @@ export interface PageGeneralForm {
 
   status: CmsPageStatus;
 
+  template: PageTemplate;
+
+  layout: PageLayout;
+
   isHomePage: boolean;
 
   showInMenu: boolean;
@@ -254,18 +262,22 @@ Default Form Values
 export const DEFAULT_PAGE_FORM: PageEditorForm = {
   general: {
     internalTitle: "",
-
+  
     defaultSlug: "",
-
+  
     status: "DRAFT",
-
+  
+    template: "STANDARD",
+  
+    layout: "WEBSITE",
+  
     isHomePage: false,
-
+  
     showInMenu: true,
-
+  
     canonicalUrl: "",
   },
-
+  
   translation: {
     languageId: "",
 

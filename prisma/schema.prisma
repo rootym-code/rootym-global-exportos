@@ -424,6 +424,9 @@ model CmsPage {
     /// Page rendering template
   template         CmsPageTemplate     @default(STANDARD)
 
+  /// Public page presentation shell
+layout CmsPageLayout @default(WEBSITE)
+
   /// Homepage flag
   isHomePage      Boolean              @default(false)
   /// Navigation visibility
@@ -772,6 +775,11 @@ enum CmsPageStatus {
 enum CmsPageTemplate {
   STANDARD
   COUNTRY_LANDING
+}
+
+enum CmsPageLayout {
+  WEBSITE
+  STANDALONE
 }
 
 enum MediaType {
