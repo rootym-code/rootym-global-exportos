@@ -17,9 +17,11 @@ class CmsPageService extends BaseCmsService {
     return this.execute(async () => {
       const validated = createCmsPageSchema.parse(data);
 
+      const { translation, ...pageData } = validated;
+
       const existing = await prisma.cmsPage.findUnique({
         where: {
-          slug: validated.slug,
+          slug: pageData.slug,
         },
       });
 
@@ -42,9 +44,18 @@ class CmsPageService extends BaseCmsService {
         );
       }
 
+      if (
+        translation?.languageId &&
+        translation.languageId !== defaultLanguage.id
+      ) {
+        throw new Error(
+          "CMS page translation must use the configured default language."
+        );
+      }
+
       return prisma.$transaction(async (tx) => {
         const page = await tx.cmsPage.create({
-          data: validated,
+          data: pageData,
         });
 
         await tx.cmsPageTranslation.create({
@@ -52,19 +63,38 @@ class CmsPageService extends BaseCmsService {
             pageId: page.id,
             languageId: defaultLanguage.id,
 
-            title: page.title,
-            slug: page.slug,
+            title:
+              translation?.title ??
+              page.title,
 
-            excerpt: null,
-            content: null,
+            slug:
+              translation?.slug ??
+              page.slug,
 
-            metaTitle: page.metaTitle,
-            metaDescription: page.metaDescription,
-            metaKeywords: page.metaKeywords,
+            excerpt:
+              translation?.excerpt ??
+              null,
+
+            content:
+              translation?.content ??
+              null,
+
+            metaTitle:
+              translation?.metaTitle ??
+              page.metaTitle,
+
+            metaDescription:
+              translation?.metaDescription ??
+              page.metaDescription,
+
+            metaKeywords:
+              translation?.metaKeywords ??
+              page.metaKeywords,
 
             isPublished:
+              translation?.isPublished ??
               page.status ===
-              CmsPageStatus.PUBLISHED,
+                CmsPageStatus.PUBLISHED,
           },
         });
 
@@ -83,18 +113,23 @@ class CmsPageService extends BaseCmsService {
       });
     });
   }
+
   async update(
     id: string,
     data: UpdateCmsPageInput
   ) {
     return this.execute(async () => {
-      const validated = updateCmsPageSchema.parse(data);
+      const validated =
+        updateCmsPageSchema.parse(data);
 
-      if (validated.slug) {
+      const { translation, ...pageData } =
+        validated;
+
+      if (pageData.slug) {
         const duplicate =
           await prisma.cmsPage.findFirst({
             where: {
-              slug: validated.slug,
+              slug: pageData.slug,
               NOT: {
                 id,
               },
@@ -108,76 +143,168 @@ class CmsPageService extends BaseCmsService {
       }
 
       return prisma.$transaction(async (tx) => {
-        const page = this.ensureExists(
-          await tx.cmsPage.findUnique({
-            where: {
-              id,
-            },
-            include: {
-              translations: {
-                include: {
-                  language: true,
+        const page =
+          this.ensureExists(
+            await tx.cmsPage.findUnique({
+              where: {
+                id,
+              },
+              include: {
+                translations: {
+                  include: {
+                    language: true,
+                  },
                 },
               },
-            },
-          }),
-          "CMS page not found."
-        );
+            }),
+            "CMS page not found."
+          );
 
         const updatedPage =
           await tx.cmsPage.update({
             where: {
               id,
             },
-            data: validated,
+            data: pageData,
           });
 
-        const defaultTranslation =
-          page.translations.find(
-            (translation) =>
-              translation.language.isDefault
-          );
+        if (translation) {
+          const defaultLanguage =
+            await tx.language.findFirst({
+              where: {
+                isDefault: true,
+                isActive: true,
+              },
+            });
 
-        if (defaultTranslation) {
-          await tx.cmsPageTranslation.update({
-            where: {
-              id: defaultTranslation.id,
-            },
-            data: {
-              ...(validated.title !== undefined && {
-                title: validated.title,
-              }),
+          if (!defaultLanguage) {
+            throw new Error(
+              "No default language configured. Please configure a default language before updating CMS pages."
+            );
+          }
 
-              ...(validated.slug !== undefined && {
-                slug: validated.slug,
-              }),
+          if (
+            translation.languageId &&
+            translation.languageId !==
+              defaultLanguage.id
+          ) {
+            throw new Error(
+              "CMS page translation must use the configured default language."
+            );
+          }
 
-              ...(validated.metaTitle !==
-                undefined && {
-                metaTitle:
-                  validated.metaTitle,
-              }),
+          const defaultTranslation =
+            page.translations.find(
+              (item) =>
+                item.language.isDefault
+            );
 
-              ...(validated.metaDescription !==
-                undefined && {
-                metaDescription:
-                  validated.metaDescription,
-              }),
+          const translationData = {
+            title: translation.title,
 
-              ...(validated.metaKeywords !==
-                undefined && {
-                metaKeywords:
-                  validated.metaKeywords,
-              }),
+            slug: translation.slug,
 
-              ...(validated.status !==
-                undefined && {
-                isPublished:
-                  validated.status ===
-                  CmsPageStatus.PUBLISHED,
-              }),
-            },
-          });
+            excerpt:
+              translation.excerpt ??
+              null,
+
+            content:
+              translation.content ??
+              null,
+
+            metaTitle:
+              translation.metaTitle ??
+              updatedPage.metaTitle,
+
+            metaDescription:
+              translation.metaDescription ??
+              updatedPage.metaDescription,
+
+            metaKeywords:
+              translation.metaKeywords ??
+              updatedPage.metaKeywords,
+
+            isPublished:
+              translation.isPublished ??
+              updatedPage.status ===
+                CmsPageStatus.PUBLISHED,
+          };
+
+          if (defaultTranslation) {
+            await tx.cmsPageTranslation.update(
+              {
+                where: {
+                  id: defaultTranslation.id,
+                },
+                data: translationData,
+              }
+            );
+          } else {
+            await tx.cmsPageTranslation.create(
+              {
+                data: {
+                  pageId: updatedPage.id,
+                  languageId:
+                    defaultLanguage.id,
+                  ...translationData,
+                },
+              }
+            );
+          }
+        } else {
+          const defaultTranslation =
+            page.translations.find(
+              (item) =>
+                item.language.isDefault
+            );
+
+          if (defaultTranslation) {
+            await tx.cmsPageTranslation.update(
+              {
+                where: {
+                  id: defaultTranslation.id,
+                },
+                data: {
+                  ...(pageData.title !==
+                    undefined && {
+                    title:
+                      pageData.title,
+                  }),
+
+                  ...(pageData.slug !==
+                    undefined && {
+                    slug:
+                      pageData.slug,
+                  }),
+
+                  ...(pageData.metaTitle !==
+                    undefined && {
+                    metaTitle:
+                      pageData.metaTitle,
+                  }),
+
+                  ...(pageData.metaDescription !==
+                    undefined && {
+                    metaDescription:
+                      pageData.metaDescription,
+                  }),
+
+                  ...(pageData.metaKeywords !==
+                    undefined && {
+                    metaKeywords:
+                      pageData.metaKeywords,
+                  }),
+
+                  ...(pageData.status !==
+                    undefined && {
+                    isPublished:
+                      pageData.status ===
+                      CmsPageStatus.PUBLISHED,
+                  }),
+                },
+              }
+            );
+          }
         }
 
         return tx.cmsPage.findUnique({
@@ -255,6 +382,7 @@ class CmsPageService extends BaseCmsService {
       },
     });
   }
+
   async publish(id: string) {
     return this.execute(async () => {
       await this.getById(id);
@@ -297,11 +425,13 @@ class CmsPageService extends BaseCmsService {
       const { skip, take } =
         this.getPagination(pagination);
 
-      const search = this.normalizeSearch(
-        filters?.search
-      );
+      const search =
+        this.normalizeSearch(
+          filters?.search
+        );
 
-      const where: Prisma.CmsPageWhereInput = {};
+      const where: Prisma.CmsPageWhereInput =
+        {};
 
       if (filters?.status) {
         where.status = filters.status;
@@ -341,9 +471,10 @@ class CmsPageService extends BaseCmsService {
               updatedAt: "desc",
             },
           }),
-        () => prisma.cmsPage.count({
-          where,
-        }),
+        () =>
+          prisma.cmsPage.count({
+            where,
+          }),
         pagination
       );
     });
@@ -351,5 +482,3 @@ class CmsPageService extends BaseCmsService {
 }
 
 export default new CmsPageService();
-
- 

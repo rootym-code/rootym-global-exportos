@@ -35,6 +35,32 @@ export const updateLanguageSchema = createLanguageSchema.partial();
    CMS PAGE
 ============================================================ */
 
+const cmsPageEditorTranslationSchema = z.object({
+  languageId: z.string().cuid().optional(),
+
+  title: z.string().trim().min(2).max(200),
+
+  slug: z
+    .string()
+    .trim()
+    .min(2)
+    .max(200)
+    .regex(slugRegex, "Invalid slug format")
+    .transform((v) => v.toLowerCase()),
+
+  excerpt: z.string().trim().max(500).optional(),
+
+  content: z.string().optional(),
+
+  metaTitle: z.string().trim().max(255).optional(),
+
+  metaDescription: z.string().trim().max(500).optional(),
+
+  metaKeywords: z.string().trim().max(500).optional(),
+
+  isPublished: z.boolean().optional(),
+});
+
 export const createCmsPageSchema = z.object({
   title: z.string().trim().min(2).max(200),
 
@@ -61,9 +87,12 @@ export const createCmsPageSchema = z.object({
   canonicalUrl: z.string().url().optional(),
 
   publishedAt: z.coerce.date().optional(),
+
+  translation: cmsPageEditorTranslationSchema.optional(),
 });
 
-export const updateCmsPageSchema = createCmsPageSchema.partial();
+export const updateCmsPageSchema =
+  createCmsPageSchema.partial();
 
 /* ============================================================
    CMS PAGE TRANSLATION
