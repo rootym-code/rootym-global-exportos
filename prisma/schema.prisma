@@ -453,24 +453,32 @@ layout CmsPageLayout @default(WEBSITE)
 }
 
 model CmsPageTranslation {
-  id              String   @id @default(cuid())
-  pageId          String
-  languageId      String
+  id                String   @id @default(cuid())
+  pageId            String
+  languageId        String
+
   /// Localized page content
-  title           String
-  slug            String
-  excerpt         String?
-  content         String?
+  title             String
+  slug              String
+  excerpt           String?
+  content           String?
+
+  /// Structured CMS landing-page content
+  structuredContent Json?
+
   /// SEO
-  metaTitle       String?
-  metaDescription String?
-  metaKeywords    String?
+  metaTitle         String?
+  metaDescription   String?
+  metaKeywords      String?
+
   /// Publishing
-  isPublished     Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  language        Language @relation(fields: [languageId], references: [id], onDelete: Cascade)
-  page            CmsPage  @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  isPublished       Boolean  @default(false)
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  language          Language @relation(fields: [languageId], references: [id], onDelete: Cascade)
+  page              CmsPage  @relation(fields: [pageId], references: [id], onDelete: Cascade)
 
   @@unique([pageId, languageId])
   @@unique([languageId, slug])
@@ -479,6 +487,7 @@ model CmsPageTranslation {
   @@index([slug])
   @@index([isPublished])
 }
+
 
 model Media {
   id                  String               @id @default(cuid())

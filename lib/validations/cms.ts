@@ -1,13 +1,13 @@
 import { z } from "zod";
 
 /* ============================================================
-   COMMON
+COMMON
 ============================================================ */
 
 const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 /* ============================================================
-   LANGUAGE
+LANGUAGE
 ============================================================ */
 
 export const createLanguageSchema = z.object({
@@ -29,10 +29,194 @@ export const createLanguageSchema = z.object({
   sortOrder: z.number().int().min(0).optional(),
 });
 
-export const updateLanguageSchema = createLanguageSchema.partial();
+export const updateLanguageSchema =
+  createLanguageSchema.partial();
 
 /* ============================================================
-   CMS PAGE
+CMS LANDING PAGE CONTENT
+
+Structured landing page content is intentionally draft-friendly.
+
+Blank fields are allowed while a page is being created or edited.
+Final publishing validation should be handled separately so that
+an administrator can save incomplete work as a draft.
+============================================================ */
+
+const heroSectionSchema = z.object({
+  type: z.literal("hero"),
+
+  heading: z.string().trim().max(300),
+
+  subheading: z.string().trim().max(1000),
+
+  primaryCtaText: z.string().trim().max(100),
+
+  secondaryCtaText: z.string().trim().max(100),
+});
+
+const valuePropositionSectionSchema = z.object({
+  type: z.literal("valueProposition"),
+
+  heading: z.string().trim().max(300),
+
+  description: z.string().trim().max(2000),
+
+  points: z
+    .array(z.string().trim().max(500))
+    .max(20),
+});
+
+const productSectionSchema = z.object({
+  type: z.literal("product"),
+
+  heading: z.string().trim().max(300),
+
+  description: z.string().trim().max(2000),
+
+  productName: z.string().trim().max(200),
+
+  origin: z.string().trim().max(200),
+
+  form: z.string().trim().max(200),
+
+  packaging: z.string().trim().max(500),
+
+  moq: z.string().trim().max(200),
+
+  applications: z
+    .array(z.string().trim().max(300))
+    .max(30),
+});
+
+const applicationsSectionSchema = z.object({
+  type: z.literal("applications"),
+
+  heading: z.string().trim().max(300),
+
+  description: z.string().trim().max(2000),
+
+  items: z
+    .array(
+      z.object({
+        title: z.string().trim().max(200),
+
+        description: z.string().trim().max(1000),
+      })
+    )
+    .max(30),
+});
+
+const whyRootymSectionSchema = z.object({
+  type: z.literal("whyRootym"),
+
+  heading: z.string().trim().max(300),
+
+  points: z
+    .array(
+      z.object({
+        title: z.string().trim().max(200),
+
+        description: z.string().trim().max(1000),
+      })
+    )
+    .max(30),
+});
+
+const buyerFocusSectionSchema = z.object({
+  type: z.literal("buyerFocus"),
+
+  heading: z.string().trim().max(300),
+
+  description: z.string().trim().max(2000),
+
+  buyerTypes: z
+    .array(z.string().trim().max(200))
+    .max(30),
+});
+
+const packagingSectionSchema = z.object({
+  type: z.literal("packaging"),
+
+  heading: z.string().trim().max(300),
+
+  description: z.string().trim().max(2000),
+
+  options: z
+    .array(z.string().trim().max(300))
+    .max(30),
+});
+
+const exportDocumentsSectionSchema = z.object({
+  type: z.literal("exportDocuments"),
+
+  heading: z.string().trim().max(300),
+
+  description: z.string().trim().max(2000),
+
+  documents: z
+    .array(z.string().trim().max(300))
+    .max(30),
+});
+
+const ctaSectionSchema = z.object({
+  type: z.literal("cta"),
+
+  heading: z.string().trim().max(300),
+
+  description: z.string().trim().max(2000),
+
+  primaryCtaText: z.string().trim().max(100),
+
+  secondaryCtaText: z.string().trim().max(100),
+});
+
+const faqSectionSchema = z.object({
+  type: z.literal("faq"),
+
+  heading: z.string().trim().max(300),
+
+  items: z
+    .array(
+      z.object({
+        question: z.string().trim().max(500),
+
+        answer: z.string().trim().max(2000),
+      })
+    )
+    .max(50),
+});
+
+const landingPageSectionSchema = z.discriminatedUnion(
+  "type",
+  [
+    heroSectionSchema,
+    valuePropositionSectionSchema,
+    productSectionSchema,
+    applicationsSectionSchema,
+    whyRootymSectionSchema,
+    buyerFocusSectionSchema,
+    packagingSectionSchema,
+    exportDocumentsSectionSchema,
+    ctaSectionSchema,
+    faqSectionSchema,
+  ]
+);
+
+export const cmsLandingPageContentSchema = z.object({
+  version: z.literal(1),
+
+  template: z.enum([
+    "STANDARD",
+    "COUNTRY_LANDING",
+  ]),
+
+  sections: z
+    .array(landingPageSectionSchema)
+    .max(50),
+});
+
+/* ============================================================
+CMS PAGE
 ============================================================ */
 
 const cmsPageEditorTranslationSchema = z.object({
@@ -51,6 +235,9 @@ const cmsPageEditorTranslationSchema = z.object({
   excerpt: z.string().trim().max(500).optional(),
 
   content: z.string().optional(),
+
+  structuredContent:
+    cmsLandingPageContentSchema.optional(),
 
   metaTitle: z.string().trim().max(255).optional(),
 
@@ -72,17 +259,29 @@ export const createCmsPageSchema = z.object({
     .regex(slugRegex, "Invalid slug format")
     .transform((v) => v.toLowerCase()),
 
-    status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).optional(),
+  status: z
+    .enum([
+      "DRAFT",
+      "PUBLISHED",
+      "ARCHIVED",
+    ])
+    .optional(),
 
-    template: z
-      .enum(["STANDARD", "COUNTRY_LANDING"])
-      .optional(),
+  template: z
+    .enum([
+      "STANDARD",
+      "COUNTRY_LANDING",
+    ])
+    .optional(),
 
-      layout: z
-  .enum(["WEBSITE", "STANDALONE"])
-  .optional(),
-  
-    isHomePage: z.boolean().optional(),
+  layout: z
+    .enum([
+      "WEBSITE",
+      "STANDALONE",
+    ])
+    .optional(),
+
+  isHomePage: z.boolean().optional(),
 
   showInMenu: z.boolean().optional(),
 
@@ -96,49 +295,65 @@ export const createCmsPageSchema = z.object({
 
   publishedAt: z.coerce.date().optional(),
 
-  translation: cmsPageEditorTranslationSchema.optional(),
+  translation:
+    cmsPageEditorTranslationSchema.optional(),
 });
 
 export const updateCmsPageSchema =
   createCmsPageSchema.partial();
 
 /* ============================================================
-   CMS PAGE TRANSLATION
+CMS PAGE TRANSLATION
 ============================================================ */
 
-export const createCmsPageTranslationSchema = z.object({
-  pageId: z.string().cuid(),
+export const createCmsPageTranslationSchema =
+  z.object({
+    pageId: z.string().cuid(),
 
-  languageId: z.string().cuid(),
+    languageId: z.string().cuid(),
 
-  title: z.string().trim().min(2).max(200),
+    title: z.string().trim().min(2).max(200),
 
-  slug: z
-    .string()
-    .trim()
-    .min(2)
-    .max(200)
-    .regex(slugRegex, "Invalid slug format")
-    .transform((v) => v.toLowerCase()),
+    slug: z
+      .string()
+      .trim()
+      .min(2)
+      .max(200)
+      .regex(
+        slugRegex,
+        "Invalid slug format"
+      )
+      .transform((v) => v.toLowerCase()),
 
-  excerpt: z.string().trim().max(500).optional(),
+    excerpt: z.string().trim().max(500).optional(),
 
-  content: z.string().optional(),
+    content: z.string().optional(),
 
-  metaTitle: z.string().trim().max(255).optional(),
+    structuredContent:
+      cmsLandingPageContentSchema.optional(),
 
-  metaDescription: z.string().trim().max(500).optional(),
+    metaTitle: z.string().trim().max(255).optional(),
 
-  metaKeywords: z.string().trim().max(500).optional(),
+    metaDescription: z
+      .string()
+      .trim()
+      .max(500)
+      .optional(),
 
-  isPublished: z.boolean().optional(),
-});
+    metaKeywords: z
+      .string()
+      .trim()
+      .max(500)
+      .optional(),
+
+    isPublished: z.boolean().optional(),
+  });
 
 export const updateCmsPageTranslationSchema =
   createCmsPageTranslationSchema.partial();
 
 /* ============================================================
-   MEDIA
+MEDIA
 ============================================================ */
 
 export const createMediaSchema = z.object({
@@ -148,7 +363,10 @@ export const createMediaSchema = z.object({
 
   fileUrl: z.string().trim().min(1),
 
-  storageProvider: z.string().trim().optional(),
+  storageProvider: z
+    .string()
+    .trim()
+    .optional(),
 
   mimeType: z.string().trim().optional(),
 
@@ -160,25 +378,50 @@ export const createMediaSchema = z.object({
     "OTHER",
   ]),
 
-  fileSize: z.number().int().nonnegative().optional(),
+  fileSize: z
+    .number()
+    .int()
+    .nonnegative()
+    .optional(),
 
-  width: z.number().int().positive().optional(),
+  width: z
+    .number()
+    .int()
+    .positive()
+    .optional(),
 
-  height: z.number().int().positive().optional(),
+  height: z
+    .number()
+    .int()
+    .positive()
+    .optional(),
 
-  altText: z.string().trim().max(255).optional(),
+  altText: z
+    .string()
+    .trim()
+    .max(255)
+    .optional(),
 
-  title: z.string().trim().max(255).optional(),
+  title: z
+    .string()
+    .trim()
+    .max(255)
+    .optional(),
 
   description: z.string().optional(),
 
-  folder: z.string().trim().max(100).optional(),
+  folder: z
+    .string()
+    .trim()
+    .max(100)
+    .optional(),
 });
 
-export const updateMediaSchema = createMediaSchema.partial();
+export const updateMediaSchema =
+  createMediaSchema.partial();
 
 /* ============================================================
-   MENU
+MENU
 ============================================================ */
 
 export const createMenuSchema = z.object({
@@ -196,10 +439,11 @@ export const createMenuSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
-export const updateMenuSchema = createMenuSchema.partial();
+export const updateMenuSchema =
+  createMenuSchema.partial();
 
 /* ============================================================
-   MENU ITEM
+MENU ITEM
 ============================================================ */
 
 export const createMenuItemSchema = z.object({
@@ -213,17 +457,22 @@ export const createMenuItemSchema = z.object({
 
   url: z.string().trim().min(1).max(500),
 
-  sortOrder: z.number().int().min(0).optional(),
+  sortOrder: z
+    .number()
+    .int()
+    .min(0)
+    .optional(),
 
   openInNewTab: z.boolean().optional(),
 
   isVisible: z.boolean().optional(),
 });
 
-export const updateMenuItemSchema = createMenuItemSchema.partial();
+export const updateMenuItemSchema =
+  createMenuItemSchema.partial();
 
 /* ============================================================
-   SITE SETTINGS
+SITE SETTINGS
 ============================================================ */
 
 export const createSiteSettingSchema = z.object({
@@ -231,7 +480,11 @@ export const createSiteSettingSchema = z.object({
 
   value: z.string().optional(),
 
-  category: z.string().trim().max(100).optional(),
+  category: z
+    .string()
+    .trim()
+    .max(100)
+    .optional(),
 
   description: z.string().optional(),
 
@@ -241,6 +494,7 @@ export const createSiteSettingSchema = z.object({
     "boolean",
     "json",
   ]),
+
   isPublic: z.boolean().optional(),
 });
 
@@ -248,7 +502,7 @@ export const updateSiteSettingSchema =
   createSiteSettingSchema.partial();
 
 /* ============================================================
-   REDIRECT
+REDIRECT
 ============================================================ */
 
 export const createRedirectSchema = z.object({
@@ -270,7 +524,7 @@ export const updateRedirectSchema =
   createRedirectSchema.partial();
 
 /* ============================================================
-   EXPORT TYPES
+EXPORT TYPES
 ============================================================ */
 
 export type CreateLanguageInput =
@@ -286,10 +540,19 @@ export type UpdateCmsPageInput =
   z.infer<typeof updateCmsPageSchema>;
 
 export type CreateCmsPageTranslationInput =
-  z.infer<typeof createCmsPageTranslationSchema>;
+  z.infer<
+    typeof createCmsPageTranslationSchema
+  >;
 
 export type UpdateCmsPageTranslationInput =
-  z.infer<typeof updateCmsPageTranslationSchema>;
+  z.infer<
+    typeof updateCmsPageTranslationSchema
+  >;
+
+export type CmsLandingPageContentInput =
+  z.infer<
+    typeof cmsLandingPageContentSchema
+  >;
 
 export type CreateMediaInput =
   z.infer<typeof createMediaSchema>;

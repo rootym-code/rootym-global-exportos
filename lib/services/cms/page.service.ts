@@ -79,6 +79,11 @@ class CmsPageService extends BaseCmsService {
               translation?.content ??
               null,
 
+            ...(translation?.structuredContent !== undefined && {
+              structuredContent:
+                translation.structuredContent as Prisma.InputJsonValue,
+            }),
+
             metaTitle:
               translation?.metaTitle ??
               page.metaTitle,
@@ -212,6 +217,11 @@ class CmsPageService extends BaseCmsService {
               translation.content ??
               null,
 
+            ...(translation.structuredContent !== undefined && {
+              structuredContent:
+                translation.structuredContent as Prisma.InputJsonValue,
+            }),
+
             metaTitle:
               translation.metaTitle ??
               updatedPage.metaTitle,
@@ -231,25 +241,21 @@ class CmsPageService extends BaseCmsService {
           };
 
           if (defaultTranslation) {
-            await tx.cmsPageTranslation.update(
-              {
-                where: {
-                  id: defaultTranslation.id,
-                },
-                data: translationData,
-              }
-            );
+            await tx.cmsPageTranslation.update({
+              where: {
+                id: defaultTranslation.id,
+              },
+              data: translationData,
+            });
           } else {
-            await tx.cmsPageTranslation.create(
-              {
-                data: {
-                  pageId: updatedPage.id,
-                  languageId:
-                    defaultLanguage.id,
-                  ...translationData,
-                },
-              }
-            );
+            await tx.cmsPageTranslation.create({
+              data: {
+                pageId: updatedPage.id,
+                languageId:
+                  defaultLanguage.id,
+                ...translationData,
+              },
+            });
           }
         } else {
           const defaultTranslation =
@@ -259,51 +265,49 @@ class CmsPageService extends BaseCmsService {
             );
 
           if (defaultTranslation) {
-            await tx.cmsPageTranslation.update(
-              {
-                where: {
-                  id: defaultTranslation.id,
-                },
-                data: {
-                  ...(pageData.title !==
-                    undefined && {
-                    title:
-                      pageData.title,
-                  }),
+            await tx.cmsPageTranslation.update({
+              where: {
+                id: defaultTranslation.id,
+              },
+              data: {
+                ...(pageData.title !==
+                  undefined && {
+                  title:
+                    pageData.title,
+                }),
 
-                  ...(pageData.slug !==
-                    undefined && {
-                    slug:
-                      pageData.slug,
-                  }),
+                ...(pageData.slug !==
+                  undefined && {
+                  slug:
+                    pageData.slug,
+                }),
 
-                  ...(pageData.metaTitle !==
-                    undefined && {
-                    metaTitle:
-                      pageData.metaTitle,
-                  }),
+                ...(pageData.metaTitle !==
+                  undefined && {
+                  metaTitle:
+                    pageData.metaTitle,
+                }),
 
-                  ...(pageData.metaDescription !==
-                    undefined && {
-                    metaDescription:
-                      pageData.metaDescription,
-                  }),
+                ...(pageData.metaDescription !==
+                  undefined && {
+                  metaDescription:
+                    pageData.metaDescription,
+                }),
 
-                  ...(pageData.metaKeywords !==
-                    undefined && {
-                    metaKeywords:
-                      pageData.metaKeywords,
-                  }),
+                ...(pageData.metaKeywords !==
+                  undefined && {
+                  metaKeywords:
+                    pageData.metaKeywords,
+                }),
 
-                  ...(pageData.status !==
-                    undefined && {
-                    isPublished:
-                      pageData.status ===
-                      CmsPageStatus.PUBLISHED,
-                  }),
-                },
-              }
-            );
+                ...(pageData.status !==
+                  undefined && {
+                  isPublished:
+                    pageData.status ===
+                    CmsPageStatus.PUBLISHED,
+                }),
+              },
+            });
           }
         }
 

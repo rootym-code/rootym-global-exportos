@@ -2,10 +2,15 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+
 import type {
+  CmsLandingPageContent,
   PageLayout,
   PageTemplate,
 } from "@/components/admin/cms/pages/types";
+
+import StructuredLandingPageEditor from "@/components/admin/cms/pages/StructuredLandingPageEditor";
+
 import {
   ArrowLeft,
   Loader2,
@@ -22,7 +27,6 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
-
 type FormState = {
   internalTitle: string;
   title: string;
@@ -34,6 +38,7 @@ type FormState = {
   showInMenu: boolean;
   excerpt: string;
   content: string;
+  structuredContent: CmsLandingPageContent;
   metaTitle: string;
   metaDescription: string;
   metaKeywords: string;
@@ -51,6 +56,11 @@ const INITIAL_FORM: FormState = {
   showInMenu: true,
   excerpt: "",
   content: "",
+  structuredContent: {
+    version: 1,
+    template: "COUNTRY_LANDING",
+    sections: [],
+  },
   metaTitle: "",
   metaDescription: "",
   metaKeywords: "",
@@ -156,8 +166,11 @@ export default function CreateCmsPage() {
             status: publish
               ? CmsPageStatus.PUBLISHED
               : CmsPageStatus.DRAFT,
-              template: form.template,
-              layout: form.layout,
+
+            template: form.template,
+
+            layout: form.layout,
+
             isHomePage:
               form.isHomePage,
 
@@ -194,6 +207,14 @@ export default function CreateCmsPage() {
 
               content:
                 form.content,
+
+              ...(form.template ===
+                "COUNTRY_LANDING"
+                ? {
+                    structuredContent:
+                      form.structuredContent,
+                  }
+                : {}),
 
               metaTitle:
                 form.metaTitle.trim(),
@@ -271,6 +292,7 @@ export default function CreateCmsPage() {
             className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-gray-500 transition hover:text-[#2E7D32]"
           >
             <ArrowLeft className="h-4 w-4" />
+
             Back to CMS Pages
           </button>
 
@@ -425,40 +447,40 @@ export default function CreateCmsPage() {
               </p>
             </div>
 
-{/* Page Presentation */}
-<div className="space-y-2">
-  <Label htmlFor="layout">
-    Page Presentation
-  </Label>
+            {/* Page Presentation */}
+            <div className="space-y-2">
+              <Label htmlFor="layout">
+                Page Presentation
+              </Label>
 
-  <Select
-    id="layout"
-    value={form.layout}
-    onChange={(event) =>
-      updateField(
-        "layout",
-        event.target.value as PageLayout
-      )
-    }
-    options={[
-      {
-        label: "ROOTYM Website",
-        value: "WEBSITE",
-      },
-      {
-        label: "Standalone Landing Page",
-        value: "STANDALONE",
-      },
-    ]}
-  />
+              <Select
+                id="layout"
+                value={form.layout}
+                onChange={(event) =>
+                  updateField(
+                    "layout",
+                    event.target.value as PageLayout
+                  )
+                }
+                options={[
+                  {
+                    label: "ROOTYM Website",
+                    value: "WEBSITE",
+                  },
+                  {
+                    label:
+                      "Standalone Landing Page",
+                    value: "STANDALONE",
+                  },
+                ]}
+              />
 
-  <p className="text-xs text-gray-500">
-    Choose whether this page uses the ROOTYM
-    website header and footer or works as a
-    standalone landing page.
-  </p>
-</div>
-
+              <p className="text-xs text-gray-500">
+                Choose whether this page uses the
+                ROOTYM website header and footer or
+                works as a standalone landing page.
+              </p>
+            </div>
 
             {/* Page Title */}
             <div className="space-y-2">
@@ -623,34 +645,50 @@ export default function CreateCmsPage() {
               </p>
             </div>
 
-            {/* Content */}
-            <div className="space-y-2">
-              <Label htmlFor="content">
-                Page Content
-              </Label>
+            {/* Standard Page Content */}
+            {form.template === "STANDARD" && (
+              <div className="space-y-2">
+                <Label htmlFor="content">
+                  Page Content
+                </Label>
 
-              <Textarea
-                id="content"
-                value={form.content}
-                onChange={(event) =>
-                  updateField(
-                    "content",
-                    event.target.value
-                  )
-                }
-                placeholder="Enter page content..."
-                rows={16}
-              />
+                <Textarea
+                  id="content"
+                  value={form.content}
+                  onChange={(event) =>
+                    updateField(
+                      "content",
+                      event.target.value
+                    )
+                  }
+                  placeholder="Enter page content..."
+                  rows={16}
+                />
 
-              <p className="text-xs text-gray-500">
-                The initial CMS version stores
-                page content as text. Structured
-                landing-page editing will be
-                added in the next CMS step.
-              </p>
-            </div>
+                <p className="text-xs text-gray-500">
+                  Enter the content that should
+                  appear on this standard CMS page.
+                </p>
+              </div>
+            )}
           </div>
         </Card>
+
+        {/* Structured Country Landing Page */}
+        {form.template ===
+          "COUNTRY_LANDING" && (
+          <StructuredLandingPageEditor
+            value={form.structuredContent}
+            onChange={(
+              structuredContent
+            ) =>
+              updateField(
+                "structuredContent",
+                structuredContent
+              )
+            }
+          />
+        )}
 
         {/* SEO */}
         <Card
