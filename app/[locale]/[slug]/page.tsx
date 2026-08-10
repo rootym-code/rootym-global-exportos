@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -70,7 +71,19 @@ function SectionHeader({
   );
 }
 
-function renderSection(section: LandingPageSection, index: number) {
+function getCtaHref(text: string, locale: string): string {
+  if (!text) return `/${locale}`;
+  const lower = text.trim().toLowerCase();
+  if (lower.includes("quote")) {
+    return `/${locale}/request-quote`;
+  }
+  if (lower.includes("contact") || lower.includes("rootym")) {
+    return `/${locale}/contact`;
+  }
+  return `/${locale}`;
+}
+
+function renderSection(section: LandingPageSection, index: number, locale: string) {
   switch (section.type) {
     case "hero":
       return (
@@ -99,23 +112,24 @@ function renderSection(section: LandingPageSection, index: number) {
 
               {(section.primaryCtaText || section.secondaryCtaText) && (
                 <div className="mt-9 flex flex-wrap gap-4">
-                  {section.primaryCtaText && (
-                    <button
-                      type="button"
-                      className="rounded-xl bg-green-700 px-6 py-3.5 font-semibold text-white shadow-lg shadow-green-900/10 transition hover:bg-green-800"
-                    >
-                      {section.primaryCtaText}
-                    </button>
-                  )}
+{section.primaryCtaText && (
+  <Link
+    href={getCtaHref(section.primaryCtaText, locale)}
+    className="rounded-xl bg-green-700 px-6 py-3.5 font-semibold text-white shadow-lg shadow-green-900/10 transition hover:bg-green-800"
+  >
+    {section.primaryCtaText}
+  </Link>
+)}
 
-                  {section.secondaryCtaText && (
-                    <button
-                      type="button"
-                      className="rounded-xl border border-gray-300 bg-white px-6 py-3.5 font-semibold text-gray-900 shadow-sm transition hover:border-gray-400 hover:bg-gray-50"
-                    >
-                      {section.secondaryCtaText}
-                    </button>
-                  )}
+
+{section.secondaryCtaText && (
+  <Link
+    href={getCtaHref(section.secondaryCtaText, locale)}
+    className="rounded-xl border border-gray-300 bg-white px-6 py-3.5 font-semibold text-gray-900 shadow-sm transition hover:border-gray-400 hover:bg-gray-50"
+  >
+    {section.secondaryCtaText}
+  </Link>
+)}
                 </div>
               )}
             </div>
@@ -660,23 +674,23 @@ function renderSection(section: LandingPageSection, index: number) {
 
             {(section.primaryCtaText || section.secondaryCtaText) && (
               <div className="mt-9 flex flex-wrap justify-center gap-4">
-                {section.primaryCtaText && (
-                  <button
-                    type="button"
-                    className="rounded-xl bg-white px-6 py-3.5 font-semibold text-green-800 shadow-lg transition hover:bg-green-50"
-                  >
-                    {section.primaryCtaText}
-                  </button>
-                )}
+{section.primaryCtaText && (
+  <Link
+    href={getCtaHref(section.primaryCtaText, locale)}
+    className="rounded-xl bg-white px-6 py-3.5 font-semibold text-green-800 shadow-lg transition hover:bg-green-50"
+  >
+    {section.primaryCtaText}
+  </Link>
+)}
 
-                {section.secondaryCtaText && (
-                  <button
-                    type="button"
-                    className="rounded-xl border border-green-200/70 bg-transparent px-6 py-3.5 font-semibold text-white transition hover:bg-white/10"
-                  >
-                    {section.secondaryCtaText}
-                  </button>
-                )}
+{section.secondaryCtaText && (
+  <Link
+    href={getCtaHref(section.secondaryCtaText, locale)}
+    className="rounded-xl border border-green-200/70 bg-transparent px-6 py-3.5 font-semibold text-white transition hover:bg-white/10"
+  >
+    {section.secondaryCtaText}
+  </Link>
+)}
               </div>
             )}
           </div>
@@ -763,7 +777,7 @@ export default async function CmsPage({
     structuredContent?.sections?.length ? (
       <main className="overflow-x-hidden bg-white">
         {structuredContent.sections.map((section, index) =>
-          renderSection(section, index)
+    renderSection(section, index, locale)
         )}
       </main>
     ) : (
