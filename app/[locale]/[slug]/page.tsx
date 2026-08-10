@@ -34,7 +34,7 @@ function SectionHeader({
   light?: boolean;
 }) {
   return (
-    <div className="max-w-3xl">
+    <div className={light ? "max-w-3xl mx-auto text-center" : "max-w-3xl"}>
       {eyebrow && (
         <p
           className={
@@ -59,7 +59,7 @@ function SectionHeader({
         <p
           className={
             light
-              ? "mt-5 max-w-2xl text-lg leading-8 text-green-50"
+              ? "mt-5 max-w-2xl text-lg leading-8 text-green-50 mx-auto"
               : "mt-5 max-w-2xl text-lg leading-8 text-gray-600"
           }
         >
@@ -169,47 +169,82 @@ function renderSection(section: LandingPageSection, index: number) {
         </section>
       );
 
-    case "valueProposition":
+    case "valueProposition": {
+      const pointsCount = section.points.length;
       return (
         <section
           key={`value-proposition-${index}`}
-          className="bg-gray-50 px-6 py-20 md:py-24"
+          className="bg-gray-50 px-6 py-16 md:py-20"
         >
           <div className="mx-auto max-w-7xl">
-            <SectionHeader
-              eyebrow="Why ROOTYM"
-              heading={section.heading}
-              description={section.description}
-            />
-
-            {section.points.length > 0 && (
-              <div className="mt-12 grid gap-5 md:grid-cols-2">
-                {section.points.map((point, pointIndex) => (
-                  <div
-                    key={`${point}-${pointIndex}`}
-                    className="group rounded-3xl bg-white p-7 shadow-sm ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-lg md:p-8"
-                  >
-                    <div className="flex items-start gap-5">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100 text-sm font-bold text-green-800">
-                        {pointIndex + 1}
-                      </div>
-                      <p className="pt-1 text-base font-semibold leading-7 text-gray-900">
-                        {point}
+            {pointsCount === 1 ? (
+              <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-center">
+                <SectionHeader
+                  eyebrow="Why ROOTYM"
+                  heading={section.heading}
+                  description={section.description}
+                />
+                <div className="group rounded-3xl bg-white p-8 shadow-md ring-1 ring-green-100/50 transition hover:shadow-lg md:p-10">
+                  <div className="flex gap-5">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-green-100 text-lg font-bold text-green-800">
+                      ✓
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-950">Key Advantage</h3>
+                      <p className="mt-3 text-lg leading-relaxed text-gray-700 font-medium">
+                        {section.points[0]}
                       </p>
                     </div>
                   </div>
-                ))}
+                </div>
               </div>
+            ) : (
+              <>
+                <SectionHeader
+                  eyebrow="Why ROOTYM"
+                  heading={section.heading}
+                  description={section.description}
+                />
+
+                {pointsCount > 0 && (
+                  <div
+                    className={
+                      pointsCount === 2
+                        ? "mt-12 grid gap-6 md:grid-cols-2"
+                        : pointsCount === 3
+                        ? "mt-12 grid gap-6 md:grid-cols-3"
+                        : "mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3"
+                    }
+                  >
+                    {section.points.map((point, pointIndex) => (
+                      <div
+                        key={`${point}-${pointIndex}`}
+                        className="group rounded-3xl bg-white p-7 shadow-sm ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-lg md:p-8"
+                      >
+                        <div className="flex items-start gap-5">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100 text-sm font-bold text-green-800">
+                            {pointIndex + 1}
+                          </div>
+                          <p className="pt-1 text-base font-semibold leading-7 text-gray-900">
+                            {point}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         </section>
       );
+    }
 
     case "product":
       return (
         <section
           key={`product-${index}`}
-          className="bg-white px-6 py-20 md:py-24"
+          className="bg-white px-6 py-16 md:py-20"
         >
           <div className="mx-auto max-w-7xl">
             <SectionHeader
@@ -220,7 +255,7 @@ function renderSection(section: LandingPageSection, index: number) {
 
             <div className="mt-12 overflow-hidden rounded-[2rem] bg-gray-950 shadow-xl">
               <div className="grid lg:grid-cols-[0.95fr_1.05fr]">
-                <div className="relative flex min-h-72 flex-col justify-end overflow-hidden bg-gradient-to-br from-gray-950 via-green-950 to-green-800 p-8 text-white md:p-10 lg:min-h-[25rem]">
+                <div className="relative flex min-h-[14rem] flex-col justify-end overflow-hidden bg-gradient-to-br from-gray-950 via-green-950 to-green-800 p-8 text-white md:p-10 lg:min-h-[18rem]">
                   <div className="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-green-500/20 blur-2xl" />
                   <p className="relative text-sm font-bold uppercase tracking-[0.18em] text-green-200">
                     Product
@@ -230,7 +265,7 @@ function renderSection(section: LandingPageSection, index: number) {
                   </h3>
                 </div>
 
-                <div className="grid bg-gray-200 sm:grid-cols-2">
+                <div className="grid bg-gray-200 sm:grid-cols-2 gap-px">
                   {[
                     ["Origin", section.origin],
                     ["Form", section.form],
@@ -239,7 +274,7 @@ function renderSection(section: LandingPageSection, index: number) {
                   ].map(([label, value]) => (
                     <div
                       key={label}
-                      className="bg-white p-7 md:p-8"
+                      className="bg-white p-6 md:p-7"
                     >
                       <p className="text-sm font-medium text-gray-500">{label}</p>
                       <p className="mt-2 text-lg font-bold text-gray-950">
@@ -251,15 +286,15 @@ function renderSection(section: LandingPageSection, index: number) {
               </div>
 
               {section.applications.length > 0 && (
-                <div className="border-t border-gray-800 bg-gray-950 p-8 text-white md:p-10">
+                <div className="border-t border-gray-800 bg-gray-950 p-6 md:p-8 text-white">
                   <h4 className="text-sm font-bold uppercase tracking-[0.16em] text-green-200">
                     Applications
                   </h4>
-                  <div className="mt-5 flex flex-wrap gap-3">
+                  <div className="mt-4 flex flex-wrap gap-2.5">
                     {section.applications.map((application, applicationIndex) => (
                       <span
                         key={`${application}-${applicationIndex}`}
-                        className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/10"
+                        className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:bg-white/20"
                       >
                         {application}
                       </span>
@@ -272,189 +307,351 @@ function renderSection(section: LandingPageSection, index: number) {
         </section>
       );
 
-    case "applications":
+    case "applications": {
+      const itemsCount = section.items.length;
       return (
         <section
           key={`applications-${index}`}
-          className="bg-gray-50 px-6 py-20 md:py-24"
+          className="bg-gray-50 px-6 py-16 md:py-20"
         >
           <div className="mx-auto max-w-7xl">
-            <SectionHeader
-              eyebrow="Applications"
-              heading={section.heading}
-              description={section.description}
-            />
-
-            {section.items.length > 0 && (
-              <div className="mt-12 grid gap-5 md:grid-cols-2">
-                {section.items.map((item, itemIndex) => (
-                  <div
-                    key={`${item.title}-${itemIndex}`}
-                    className="rounded-3xl bg-white p-7 shadow-sm ring-1 ring-gray-100 md:p-8"
-                  >
-                    <div className="flex items-start gap-4">
-                      <span className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-green-100 text-sm font-bold text-green-800">
-                        {String(itemIndex + 1).padStart(2, "0")}
-                      </span>
-                      <div>
-                        <h3 className="text-xl font-bold text-gray-950">
-                          {item.title}
-                        </h3>
-                        {item.description && (
-                          <p className="mt-3 leading-7 text-gray-600">
-                            {item.description}
-                          </p>
-                        )}
-                      </div>
+            {itemsCount === 1 ? (
+              <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-center">
+                <SectionHeader
+                  eyebrow="Applications"
+                  heading={section.heading}
+                  description={section.description}
+                />
+                <div className="rounded-3xl bg-white p-8 shadow-md ring-1 ring-gray-100 md:p-10">
+                  <div className="flex items-start gap-5">
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-green-100 text-lg font-bold text-green-800">
+                      01
+                    </span>
+                    <div>
+                      <h3 className="text-2xl font-bold text-gray-950">
+                        {section.items[0].title}
+                      </h3>
+                      {section.items[0].description && (
+                        <p className="mt-4 text-lg leading-relaxed text-gray-600">
+                          {section.items[0].description}
+                        </p>
+                      )}
                     </div>
                   </div>
-                ))}
+                </div>
               </div>
+            ) : (
+              <>
+                <SectionHeader
+                  eyebrow="Applications"
+                  heading={section.heading}
+                  description={section.description}
+                />
+
+                {itemsCount > 0 && (
+                  <div
+                    className={
+                      itemsCount === 2
+                        ? "mt-12 grid gap-6 md:grid-cols-2"
+                        : itemsCount === 3
+                        ? "mt-12 grid gap-6 md:grid-cols-3"
+                        : "mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3"
+                    }
+                  >
+                    {section.items.map((item, itemIndex) => (
+                      <div
+                        key={`${item.title}-${itemIndex}`}
+                        className="rounded-3xl bg-white p-7 shadow-sm ring-1 ring-gray-100 md:p-8 transition hover:shadow-md hover:border-green-100"
+                      >
+                        <div className="flex items-start gap-4">
+                          <span className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-green-100 text-sm font-bold text-green-800">
+                            {String(itemIndex + 1).padStart(2, "0")}
+                          </span>
+                          <div>
+                            <h3 className="text-xl font-bold text-gray-950">
+                              {item.title}
+                            </h3>
+                            {item.description && (
+                              <p className="mt-3 leading-7 text-gray-600">
+                                {item.description}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         </section>
       );
+    }
 
-    case "whyRootym":
+    case "whyRootym": {
+      const pointsCount = section.points.length;
       return (
         <section
           key={`why-rootym-${index}`}
-          className="bg-white px-6 py-20 md:py-24"
+          className="bg-white px-6 py-16 md:py-20"
         >
           <div className="mx-auto max-w-7xl">
-            <SectionHeader eyebrow="The ROOTYM Difference" heading={section.heading} />
-
-            {section.points.length > 0 && (
-              <div className="mt-12 grid gap-5 md:grid-cols-2">
-                {section.points.map((point, pointIndex) => (
-                  <div
-                    key={`${point.title}-${pointIndex}`}
-                    className="rounded-3xl border border-gray-200 bg-white p-7 shadow-sm md:p-8"
-                  >
-                    <span className="text-sm font-bold text-green-700">
-                      0{pointIndex + 1}
-                    </span>
-                    <h3 className="mt-4 text-xl font-bold text-gray-950">
-                      {point.title}
-                    </h3>
-                    {point.description && (
-                      <p className="mt-3 leading-7 text-gray-600">
-                        {point.description}
-                      </p>
-                    )}
-                  </div>
-                ))}
+            {pointsCount === 1 ? (
+              <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-center">
+                <SectionHeader eyebrow="The ROOTYM Difference" heading={section.heading} />
+                <div className="rounded-3xl border border-green-200 bg-green-50/10 p-8 shadow-md md:p-10 transition hover:shadow-lg">
+                  <span className="text-base font-bold text-green-700">01</span>
+                  <h3 className="mt-4 text-2xl font-bold text-gray-950">
+                    {section.points[0].title}
+                  </h3>
+                  {section.points[0].description && (
+                    <p className="mt-4 text-lg leading-relaxed text-gray-600">
+                      {section.points[0].description}
+                    </p>
+                  )}
+                </div>
               </div>
+            ) : (
+              <>
+                <SectionHeader eyebrow="The ROOTYM Difference" heading={section.heading} />
+
+                {pointsCount > 0 && (
+                  <div
+                    className={
+                      pointsCount === 2
+                        ? "mt-12 grid gap-6 md:grid-cols-2"
+                        : pointsCount === 3
+                        ? "mt-12 grid gap-6 md:grid-cols-3"
+                        : "mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3"
+                    }
+                  >
+                    {section.points.map((point, pointIndex) => (
+                      <div
+                        key={`${point.title}-${pointIndex}`}
+                        className="rounded-3xl border border-gray-100 bg-white p-7 shadow-sm transition hover:shadow-md hover:border-green-100 md:p-8"
+                      >
+                        <span className="text-sm font-bold text-green-700">
+                          0{pointIndex + 1}
+                        </span>
+                        <h3 className="mt-4 text-xl font-bold text-gray-950">
+                          {point.title}
+                        </h3>
+                        {point.description && (
+                          <p className="mt-3 leading-7 text-gray-600">
+                            {point.description}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         </section>
       );
+    }
 
-    case "buyerFocus":
+    case "buyerFocus": {
+      const buyerCount = section.buyerTypes.length;
       return (
         <section
           key={`buyer-focus-${index}`}
-          className="bg-gray-50 px-6 py-20 md:py-24"
+          className="bg-gray-50 px-6 py-16 md:py-20"
         >
           <div className="mx-auto max-w-7xl">
-            <SectionHeader
-              eyebrow="Buyer Focus"
-              heading={section.heading}
-              description={section.description}
-            />
-
-            {section.buyerTypes.length > 0 && (
-              <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {section.buyerTypes.map((buyerType, buyerIndex) => (
-                  <div
-                    key={`${buyerType}-${buyerIndex}`}
-                    className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100"
-                  >
-                    <p className="font-bold text-gray-950">{buyerType}</p>
+            {buyerCount === 1 ? (
+              <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-center">
+                <SectionHeader
+                  eyebrow="Buyer Focus"
+                  heading={section.heading}
+                  description={section.description}
+                />
+                <div className="rounded-3xl bg-white p-8 shadow-md ring-1 ring-green-100/50 md:p-10 flex items-center gap-6">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-green-100 text-green-700">
+                    <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
                   </div>
-                ))}
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-green-700">Target Segment</p>
+                    <p className="mt-1 text-2xl font-extrabold text-gray-950">{section.buyerTypes[0]}</p>
+                  </div>
+                </div>
               </div>
+            ) : (
+              <>
+                <SectionHeader
+                  eyebrow="Buyer Focus"
+                  heading={section.heading}
+                  description={section.description}
+                />
+
+                {buyerCount > 0 && (
+                  <div
+                    className={
+                      buyerCount === 2
+                        ? "mt-12 grid gap-4 md:grid-cols-2"
+                        : buyerCount === 3
+                        ? "mt-12 grid gap-4 md:grid-cols-3"
+                        : "mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+                    }
+                  >
+                    {section.buyerTypes.map((buyerType, buyerIndex) => (
+                      <div
+                        key={`${buyerType}-${buyerIndex}`}
+                        className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100 transition hover:shadow-md hover:ring-green-100"
+                      >
+                        <p className="font-bold text-gray-950">{buyerType}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         </section>
       );
+    }
 
-    case "packaging":
+    case "packaging": {
+      const pkgCount = section.options.length;
       return (
         <section
           key={`packaging-${index}`}
-          className="bg-white px-6 py-20 md:py-24"
+          className="bg-white px-6 py-16 md:py-20"
         >
           <div className="mx-auto max-w-7xl">
-            <SectionHeader
-              eyebrow="Packaging"
-              heading={section.heading}
-              description={section.description}
-            />
-
-            {section.options.length > 0 && (
-              <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-                {section.options.map((option, optionIndex) => (
-                  <div
-                    key={`${option}-${optionIndex}`}
-                    className="rounded-3xl border border-gray-200 bg-gray-50 p-7 transition hover:border-green-200 hover:bg-green-50/40"
-                  >
-                    <span className="text-sm font-bold text-green-700">
-                      Option {optionIndex + 1}
-                    </span>
-                    <p className="mt-3 text-lg font-bold text-gray-950">
-                      {option}
-                    </p>
-                  </div>
-                ))}
+            {pkgCount === 1 ? (
+              <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-center">
+                <SectionHeader
+                  eyebrow="Packaging"
+                  heading={section.heading}
+                  description={section.description}
+                />
+                <div className="rounded-[2rem] border-2 border-dashed border-green-200 bg-green-50/10 p-8 md:p-10 shadow-sm transition hover:bg-green-50/20">
+                  <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-800 uppercase tracking-wider">
+                    Standard Packaging Option
+                  </span>
+                  <p className="mt-6 text-2xl font-extrabold leading-snug text-gray-950">
+                    {section.options[0]}
+                  </p>
+                </div>
               </div>
+            ) : (
+              <>
+                <SectionHeader
+                  eyebrow="Packaging"
+                  heading={section.heading}
+                  description={section.description}
+                />
+
+                {pkgCount > 0 && (
+                  <div
+                    className={
+                      pkgCount === 2
+                        ? "mt-12 grid gap-5 md:grid-cols-2"
+                        : pkgCount === 3
+                        ? "mt-12 grid gap-5 md:grid-cols-3"
+                        : "mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3"
+                    }
+                  >
+                    {section.options.map((option, optionIndex) => (
+                      <div
+                        key={`${option}-${optionIndex}`}
+                        className="rounded-3xl border border-gray-200 bg-gray-50 p-7 transition hover:border-green-200 hover:bg-green-50/40"
+                      >
+                        <span className="text-sm font-bold text-green-700">
+                          Option {optionIndex + 1}
+                        </span>
+                        <p className="mt-3 text-lg font-bold text-gray-950">
+                          {option}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         </section>
       );
+    }
 
-    case "exportDocuments":
+    case "exportDocuments": {
+      const docCount = section.documents.length;
       return (
         <section
           key={`export-documents-${index}`}
-          className="bg-gray-50 px-6 py-20 md:py-24"
+          className="bg-gray-50 px-6 py-16 md:py-20"
         >
           <div className="mx-auto max-w-7xl">
-            <SectionHeader
-              eyebrow="Export Support"
-              heading={section.heading}
-              description={section.description}
-            />
-
-            {section.documents.length > 0 && (
-              <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {section.documents.map((document, documentIndex) => (
-                  <div
-                    key={`${document}-${documentIndex}`}
-                    className="flex items-center gap-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100"
-                  >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100 font-bold text-green-700">
-                      ✓
-                    </div>
-                    <p className="font-semibold text-gray-900">{document}</p>
+            {docCount === 1 ? (
+              <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-center">
+                <SectionHeader
+                  eyebrow="Export Support"
+                  heading={section.heading}
+                  description={section.description}
+                />
+                <div className="flex items-center gap-5 rounded-3xl bg-white p-8 shadow-sm ring-1 ring-green-100/50 md:p-10">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-green-100 font-bold text-green-700 text-xl">
+                    ✓
                   </div>
-                ))}
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-green-700">Verified Export Document</p>
+                    <p className="mt-1 text-2xl font-bold text-gray-900">{section.documents[0]}</p>
+                  </div>
+                </div>
               </div>
+            ) : (
+              <>
+                <SectionHeader
+                  eyebrow="Export Support"
+                  heading={section.heading}
+                  description={section.description}
+                />
+
+                {docCount > 0 && (
+                  <div
+                    className={
+                      docCount === 2
+                        ? "mt-12 grid gap-4 md:grid-cols-2"
+                        : docCount === 3
+                        ? "mt-12 grid gap-4 md:grid-cols-3"
+                        : "mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+                    }
+                  >
+                    {section.documents.map((document, documentIndex) => (
+                      <div
+                        key={`${document}-${documentIndex}`}
+                        className="flex items-center gap-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100 transition hover:shadow-md hover:ring-green-100"
+                      >
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100 font-bold text-green-700">
+                          ✓
+                        </div>
+                        <p className="font-semibold text-gray-900">{document}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         </section>
       );
+    }
 
     case "cta":
       return (
         <section
           key={`cta-${index}`}
-          className="relative overflow-hidden bg-green-800 px-6 py-20 text-white md:py-24"
+          className="relative overflow-hidden bg-green-800 px-6 py-16 md:py-20 text-white"
         >
           <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-green-500/20 blur-3xl" />
           <div className="absolute -bottom-32 -right-24 h-96 w-96 rounded-full bg-green-950/30 blur-3xl" />
 
-          <div className="relative mx-auto max-w-5xl text-center">
+          <div className="relative mx-auto max-w-5xl text-center flex flex-col items-center">
             <SectionHeader
               heading={section.heading}
               description={section.description}
@@ -490,7 +687,7 @@ function renderSection(section: LandingPageSection, index: number) {
       return (
         <section
           key={`faq-${index}`}
-          className="bg-white px-6 py-20 md:py-24"
+          className="bg-white px-6 py-16 md:py-20"
         >
           <div className="mx-auto max-w-5xl">
             <SectionHeader eyebrow="FAQ" heading={section.heading} />
@@ -562,68 +759,68 @@ export default async function CmsPage({
   const structuredContent =
     translation.structuredContent as CmsLandingPageContent | null;
 
-    const pageContent = isCountryLanding ? (
-      structuredContent?.sections?.length ? (
-        <main className="overflow-x-hidden bg-white">
-          {structuredContent.sections.map((section, index) =>
-            renderSection(section, index)
-          )}
-        </main>
-      ) : (
-        <main className="overflow-x-hidden bg-white">
-          <section className="bg-white px-6 py-20 md:py-28">
-            <div className="mx-auto max-w-6xl">
-              <span className="inline-flex rounded-full bg-green-100 px-4 py-2 text-sm font-semibold text-green-800">
-                ROOTYM Global Market
-              </span>
-  
-              <h1 className="mt-6 text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
-                {translation.title}
-              </h1>
-  
-              {translation.excerpt && (
-                <p className="mt-6 max-w-3xl text-lg leading-8 text-gray-600">
-                  {translation.excerpt}
-                </p>
-              )}
-            </div>
-          </section>
-  
-          {translation.content && (
-            <section className="bg-gray-50 px-6 py-12">
-              <div className="mx-auto max-w-6xl">
-                <article className="rounded-3xl bg-white p-8 shadow-sm md:p-12">
-                  <div className="whitespace-pre-wrap text-base leading-8 text-gray-700">
-                    {translation.content}
-                  </div>
-                </article>
-              </div>
-            </section>
-          )}
-        </main>
-      )
+  const pageContent = isCountryLanding ? (
+    structuredContent?.sections?.length ? (
+      <main className="overflow-x-hidden bg-white">
+        {structuredContent.sections.map((section, index) =>
+          renderSection(section, index)
+        )}
+      </main>
     ) : (
       <main className="overflow-x-hidden bg-white">
-        <section className="mx-auto max-w-6xl px-6 py-16 md:py-20">
-          <h1 className="text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
-            {translation.title}
-          </h1>
-  
-          {translation.excerpt && (
-            <p className="mt-6 max-w-3xl text-lg leading-8 text-gray-600">
-              {translation.excerpt}
-            </p>
-          )}
-  
-          {translation.content && (
-            <article className="mt-10">
-              <div className="whitespace-pre-wrap text-base leading-8 text-gray-700">
-                {translation.content}
-              </div>
-            </article>
-          )}
+        <section className="bg-white px-6 py-20 md:py-28">
+          <div className="mx-auto max-w-6xl">
+            <span className="inline-flex rounded-full bg-green-100 px-4 py-2 text-sm font-semibold text-green-800">
+              ROOTYM Global Market
+            </span>
+
+            <h1 className="mt-6 text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
+              {translation.title}
+            </h1>
+
+            {translation.excerpt && (
+              <p className="mt-6 max-w-3xl text-lg leading-8 text-gray-600">
+                {translation.excerpt}
+              </p>
+            )}
+          </div>
         </section>
+
+        {translation.content && (
+          <section className="bg-gray-50 px-6 py-12">
+            <div className="mx-auto max-w-6xl">
+              <article className="rounded-3xl bg-white p-8 shadow-sm md:p-12">
+                <div className="whitespace-pre-wrap text-base leading-8 text-gray-700">
+                  {translation.content}
+                </div>
+              </article>
+            </div>
+          </section>
+        )}
       </main>
+    )
+  ) : (
+    <main className="overflow-x-hidden bg-white">
+      <section className="mx-auto max-w-6xl px-6 py-16 md:py-20">
+        <h1 className="text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
+          {translation.title}
+        </h1>
+
+        {translation.excerpt && (
+          <p className="mt-6 max-w-3xl text-lg leading-8 text-gray-600">
+            {translation.excerpt}
+          </p>
+        )}
+
+        {translation.content && (
+          <article className="mt-10">
+            <div className="whitespace-pre-wrap text-base leading-8 text-gray-700">
+              {translation.content}
+            </div>
+          </article>
+        )}
+      </section>
+    </main>
   );
 
   if (isWebsiteLayout) {
