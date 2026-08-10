@@ -23,11 +23,14 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
+type PageTemplate = "STANDARD" | "COUNTRY_LANDING";
+
 type FormState = {
   internalTitle: string;
   title: string;
   slug: string;
   status: CmsPageStatus;
+  template: PageTemplate;
   isHomePage: boolean;
   showInMenu: boolean;
   excerpt: string;
@@ -43,6 +46,7 @@ const INITIAL_FORM: FormState = {
   title: "",
   slug: "",
   status: CmsPageStatus.DRAFT,
+  template: "STANDARD",
   isHomePage: false,
   showInMenu: true,
   excerpt: "",
@@ -195,6 +199,11 @@ export default function EditCmsPage() {
             page.status ??
             CmsPageStatus.DRAFT,
 
+          template:
+            page.template === "COUNTRY_LANDING"
+              ? "COUNTRY_LANDING"
+              : "STANDARD",
+
           isHomePage:
             page.isHomePage ?? false,
 
@@ -316,6 +325,8 @@ export default function EditCmsPage() {
             slug,
 
             status,
+
+            template: form.template,
 
             isHomePage:
               form.isHomePage,
@@ -541,6 +552,33 @@ export default function EditCmsPage() {
                     label: "Archived",
                     value:
                       CmsPageStatus.ARCHIVED,
+                  },
+                ]}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="template">
+                Page Template
+              </Label>
+
+              <Select
+                id="template"
+                value={form.template}
+                onChange={(event) =>
+                  updateField(
+                    "template",
+                    event.target.value as PageTemplate
+                  )
+                }
+                options={[
+                  {
+                    label: "Standard Page",
+                    value: "STANDARD",
+                  },
+                  {
+                    label: "Country Landing Page",
+                    value: "COUNTRY_LANDING",
                   },
                 ]}
               />

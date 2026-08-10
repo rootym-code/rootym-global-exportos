@@ -72,9 +72,13 @@ export const createCmsPageSchema = z.object({
     .regex(slugRegex, "Invalid slug format")
     .transform((v) => v.toLowerCase()),
 
-  status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).optional(),
+    status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).optional(),
 
-  isHomePage: z.boolean().optional(),
+    template: z
+      .enum(["STANDARD", "COUNTRY_LANDING"])
+      .optional(),
+  
+    isHomePage: z.boolean().optional(),
 
   showInMenu: z.boolean().optional(),
 

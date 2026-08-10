@@ -18,10 +18,13 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
+import type { PageTemplate } from "@/components/admin/cms/pages/types";
+
 type FormState = {
   internalTitle: string;
   title: string;
   slug: string;
+  template: PageTemplate;
   status: CmsPageStatus;
   isHomePage: boolean;
   showInMenu: boolean;
@@ -37,6 +40,7 @@ const INITIAL_FORM: FormState = {
   internalTitle: "",
   title: "",
   slug: "",
+  template: "STANDARD",
   status: CmsPageStatus.DRAFT,
   isHomePage: false,
   showInMenu: true,
@@ -67,11 +71,14 @@ export default function CreateCmsPage() {
   const [slugManuallyEdited, setSlugManuallyEdited] =
     useState(false);
 
-  const [isSaving, setIsSaving] = useState(false);
+  const [isSaving, setIsSaving] =
+    useState(false);
 
-  const [error, setError] = useState("");
+  const [error, setError] =
+    useState("");
 
-  const [success, setSuccess] = useState("");
+  const [success, setSuccess] =
+    useState("");
 
   function updateField<K extends keyof FormState>(
     field: K,
@@ -100,9 +107,11 @@ export default function CreateCmsPage() {
     const internalTitle =
       form.internalTitle.trim();
 
-    const title = form.title.trim();
+    const title =
+      form.title.trim();
 
-    const slug = form.slug.trim();
+    const slug =
+      form.slug.trim();
 
     if (!internalTitle) {
       setError(
@@ -112,12 +121,16 @@ export default function CreateCmsPage() {
     }
 
     if (!title) {
-      setError("Page title is required.");
+      setError(
+        "Page title is required."
+      );
       return;
     }
 
     if (!slug) {
-      setError("Page slug is required.");
+      setError(
+        "Page slug is required."
+      );
       return;
     }
 
@@ -138,10 +151,13 @@ export default function CreateCmsPage() {
             status: publish
               ? CmsPageStatus.PUBLISHED
               : CmsPageStatus.DRAFT,
+              template: form.template,
 
-            isHomePage: form.isHomePage,
+            isHomePage:
+              form.isHomePage,
 
-            showInMenu: form.showInMenu,
+            showInMenu:
+              form.showInMenu,
 
             ...(form.canonicalUrl.trim()
               ? {
@@ -171,7 +187,8 @@ export default function CreateCmsPage() {
                   }
                 : {}),
 
-              content: form.content,
+              content:
+                form.content,
 
               metaTitle:
                 form.metaTitle.trim(),
@@ -182,15 +199,17 @@ export default function CreateCmsPage() {
               metaKeywords:
                 form.metaKeywords.trim(),
 
-              isPublished: publish,
+              isPublished:
+                publish,
             },
           }),
         }
       );
 
-      const result = await response
-        .json()
-        .catch(() => null);
+      const result =
+        await response
+          .json()
+          .catch(() => null);
 
       if (!response.ok) {
         throw new Error(
@@ -207,7 +226,10 @@ export default function CreateCmsPage() {
       );
 
       setTimeout(() => {
-        router.push("/admin/cms/pages");
+        router.push(
+          "/admin/cms/pages"
+        );
+
         router.refresh();
       }, 700);
     } catch (err) {
@@ -237,7 +259,9 @@ export default function CreateCmsPage() {
           <button
             type="button"
             onClick={() =>
-              router.push("/admin/cms/pages")
+              router.push(
+                "/admin/cms/pages"
+              )
             }
             className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-gray-500 transition hover:text-[#2E7D32]"
           >
@@ -250,9 +274,10 @@ export default function CreateCmsPage() {
           </h1>
 
           <p className="mt-1 text-sm text-gray-500">
-            Create a new website page, configure its
-            content and SEO settings, then save it as
-            a draft or publish it.
+            Create a new website page,
+            configure its content and SEO
+            settings, then save it as a draft
+            or publish it.
           </p>
         </div>
       </div>
@@ -291,12 +316,13 @@ export default function CreateCmsPage() {
             </h2>
 
             <p className="mt-1 text-sm text-gray-500">
-              Basic page information and publishing
-              settings.
+              Basic page information,
+              template and publishing settings.
             </p>
           </div>
 
           <div className="grid gap-5 md:grid-cols-2">
+            {/* Internal Title */}
             <div className="space-y-2">
               <Label htmlFor="internalTitle">
                 Internal Page Title
@@ -317,11 +343,12 @@ export default function CreateCmsPage() {
               />
 
               <p className="text-xs text-gray-500">
-                Used internally to identify the page
-                in the CMS.
+                Used internally to identify
+                the page in the CMS.
               </p>
             </div>
 
+            {/* Status */}
             <div className="space-y-2">
               <Label htmlFor="status">
                 Status
@@ -340,7 +367,8 @@ export default function CreateCmsPage() {
                 options={[
                   {
                     label: "Draft",
-                    value: CmsPageStatus.DRAFT,
+                    value:
+                      CmsPageStatus.DRAFT,
                   },
                   {
                     label: "Published",
@@ -356,6 +384,43 @@ export default function CreateCmsPage() {
               />
             </div>
 
+            {/* Template */}
+            <div className="space-y-2">
+              <Label htmlFor="template">
+                Page Template
+              </Label>
+
+              <Select
+                id="template"
+                value={form.template}
+                onChange={(event) =>
+                  updateField(
+                    "template",
+                    event.target
+                      .value as PageTemplate
+                  )
+                }
+                options={[
+                  {
+                    label: "Standard Page",
+                    value: "STANDARD",
+                  },
+                  {
+                    label:
+                      "Country Landing Page",
+                    value:
+                      "COUNTRY_LANDING",
+                  },
+                ]}
+              />
+
+              <p className="text-xs text-gray-500">
+                Select the intended presentation
+                structure for this page.
+              </p>
+            </div>
+
+            {/* Page Title */}
             <div className="space-y-2">
               <Label htmlFor="title">
                 Page Title
@@ -375,6 +440,7 @@ export default function CreateCmsPage() {
               />
             </div>
 
+            {/* Slug */}
             <div className="space-y-2">
               <Label htmlFor="slug">
                 URL Slug
@@ -384,7 +450,9 @@ export default function CreateCmsPage() {
                 id="slug"
                 value={form.slug}
                 onChange={(event) => {
-                  setSlugManuallyEdited(true);
+                  setSlugManuallyEdited(
+                    true
+                  );
 
                   updateField(
                     "slug",
@@ -408,6 +476,7 @@ export default function CreateCmsPage() {
               </p>
             </div>
 
+            {/* Show in Menu */}
             <div className="flex items-center gap-3 rounded-xl border border-gray-200 p-4">
               <input
                 id="showInMenu"
@@ -431,12 +500,14 @@ export default function CreateCmsPage() {
                 </Label>
 
                 <p className="mt-1 text-xs text-gray-500">
-                  Controls whether this page is
-                  intended to appear in site navigation.
+                  Controls whether this page
+                  is intended to appear in
+                  site navigation.
                 </p>
               </div>
             </div>
 
+            {/* Homepage */}
             <div className="flex items-center gap-3 rounded-xl border border-gray-200 p-4">
               <input
                 id="isHomePage"
@@ -460,8 +531,9 @@ export default function CreateCmsPage() {
                 </Label>
 
                 <p className="mt-1 text-xs text-gray-500">
-                  Only enable this when this page should
-                  become the website homepage.
+                  Only enable this when this
+                  page should become the
+                  website homepage.
                 </p>
               </div>
             </div>
@@ -479,12 +551,14 @@ export default function CreateCmsPage() {
             </h2>
 
             <p className="mt-1 text-sm text-gray-500">
-              Add the content that will be stored with
-              the default CMS language.
+              Add the content that will be
+              stored with the default CMS
+              language.
             </p>
           </div>
 
           <div className="space-y-5">
+            {/* Excerpt */}
             <div className="space-y-2">
               <Label htmlFor="excerpt">
                 Excerpt
@@ -509,6 +583,7 @@ export default function CreateCmsPage() {
               </p>
             </div>
 
+            {/* Content */}
             <div className="space-y-2">
               <Label htmlFor="content">
                 Page Content
@@ -528,10 +603,10 @@ export default function CreateCmsPage() {
               />
 
               <p className="text-xs text-gray-500">
-                The initial CMS version stores page
-                content as text. Rich text/block editing
-                can be added after the complete CMS
-                lifecycle is working.
+                The initial CMS version stores
+                page content as text. Structured
+                landing-page editing will be
+                added in the next CMS step.
               </p>
             </div>
           </div>
@@ -548,11 +623,13 @@ export default function CreateCmsPage() {
             </h2>
 
             <p className="mt-1 text-sm text-gray-500">
-              Search-engine metadata for this page.
+              Search-engine metadata for this
+              page.
             </p>
           </div>
 
           <div className="grid gap-5 md:grid-cols-2">
+            {/* Meta Title */}
             <div className="space-y-2">
               <Label htmlFor="metaTitle">
                 Meta Title
@@ -572,6 +649,7 @@ export default function CreateCmsPage() {
               />
             </div>
 
+            {/* Canonical URL */}
             <div className="space-y-2">
               <Label htmlFor="canonicalUrl">
                 Canonical URL
@@ -591,6 +669,7 @@ export default function CreateCmsPage() {
               />
             </div>
 
+            {/* Meta Description */}
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="metaDescription">
                 Meta Description
@@ -611,6 +690,7 @@ export default function CreateCmsPage() {
               />
             </div>
 
+            {/* Meta Keywords */}
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="metaKeywords">
                 Meta Keywords
@@ -638,7 +718,9 @@ export default function CreateCmsPage() {
             type="button"
             variant="outline"
             onClick={() =>
-              router.push("/admin/cms/pages")
+              router.push(
+                "/admin/cms/pages"
+              )
             }
             disabled={isSaving}
           >

@@ -421,6 +421,9 @@ model CmsPage {
   slug            String               @unique
   /// Page status
   status          CmsPageStatus        @default(DRAFT)
+    /// Page rendering template
+  template         CmsPageTemplate     @default(STANDARD)
+
   /// Homepage flag
   isHomePage      Boolean              @default(false)
   /// Navigation visibility
@@ -764,6 +767,11 @@ enum CmsPageStatus {
   DRAFT
   PUBLISHED
   ARCHIVED
+}
+
+enum CmsPageTemplate {
+  STANDARD
+  COUNTRY_LANDING
 }
 
 enum MediaType {

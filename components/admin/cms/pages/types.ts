@@ -1,23 +1,161 @@
-/* ============================================================
-   ROOTYM Global Export Platform
-   ============================================================
-   Module      : CMS
-   Feature     : Page Editor
-   File        : components/admin/cms/pages/types.ts
-   Purpose     : Shared Page Editor Types
-   Sprint      : Sprint 12.2
-============================================================ */
+/*
+============================================================
+Module      : CMS
+Feature     : Page Editor
+File        : components/admin/cms/pages/types.ts
+Purpose     : Shared Page Editor Types
+Sprint      : Sprint 12.2
+============================================================
+*/
 
 import { CmsPageStatus } from "@/lib/generated/prisma";
 
 /* ============================================================
-   Core Types
+Core Types
 ============================================================ */
 
 export type PageEditorMode = "create" | "edit";
 
 /* ============================================================
-   Translation
+Page Templates
+============================================================ */
+
+export type PageTemplate =
+  | "STANDARD"
+  | "COUNTRY_LANDING";
+
+/* ============================================================
+Landing Page Section Types
+============================================================ */
+
+export type LandingPageSectionType =
+  | "hero"
+  | "valueProposition"
+  | "product"
+  | "applications"
+  | "whyRootym"
+  | "buyerFocus"
+  | "packaging"
+  | "exportDocuments"
+  | "cta"
+  | "faq";
+
+/* ============================================================
+Landing Page Sections
+============================================================ */
+
+export interface HeroSection {
+  type: "hero";
+  heading: string;
+  subheading: string;
+  primaryCtaText: string;
+  secondaryCtaText: string;
+}
+
+export interface ValuePropositionSection {
+  type: "valueProposition";
+  heading: string;
+  description: string;
+  points: string[];
+}
+
+export interface ProductSection {
+  type: "product";
+  heading: string;
+  description: string;
+  productName: string;
+  origin: string;
+  form: string;
+  packaging: string;
+  moq: string;
+  applications: string[];
+}
+
+export interface ApplicationsSection {
+  type: "applications";
+  heading: string;
+  description: string;
+  items: {
+    title: string;
+    description: string;
+  }[];
+}
+
+export interface WhyRootymSection {
+  type: "whyRootym";
+  heading: string;
+  points: {
+    title: string;
+    description: string;
+  }[];
+}
+
+export interface BuyerFocusSection {
+  type: "buyerFocus";
+  heading: string;
+  description: string;
+  buyerTypes: string[];
+}
+
+export interface PackagingSection {
+  type: "packaging";
+  heading: string;
+  description: string;
+  options: string[];
+}
+
+export interface ExportDocumentsSection {
+  type: "exportDocuments";
+  heading: string;
+  description: string;
+  documents: string[];
+}
+
+export interface CtaSection {
+  type: "cta";
+  heading: string;
+  description: string;
+  primaryCtaText: string;
+  secondaryCtaText: string;
+}
+
+export interface FaqSection {
+  type: "faq";
+  heading: string;
+  items: {
+    question: string;
+    answer: string;
+  }[];
+}
+
+/* ============================================================
+Landing Page Section Union
+============================================================ */
+
+export type LandingPageSection =
+  | HeroSection
+  | ValuePropositionSection
+  | ProductSection
+  | ApplicationsSection
+  | WhyRootymSection
+  | BuyerFocusSection
+  | PackagingSection
+  | ExportDocumentsSection
+  | CtaSection
+  | FaqSection;
+
+/* ============================================================
+Structured Landing Page Content
+============================================================ */
+
+export interface CmsLandingPageContent {
+  version: 1;
+  template: PageTemplate;
+  sections: LandingPageSection[];
+}
+
+/* ============================================================
+Translation
 ============================================================ */
 
 export interface PageTranslationForm {
@@ -41,7 +179,7 @@ export interface PageTranslationForm {
 }
 
 /* ============================================================
-   General
+General
 ============================================================ */
 
 export interface PageGeneralForm {
@@ -59,7 +197,7 @@ export interface PageGeneralForm {
 }
 
 /* ============================================================
-   Complete Editor Form
+Complete Editor Form
 ============================================================ */
 
 export interface PageEditorForm {
@@ -69,7 +207,7 @@ export interface PageEditorForm {
 }
 
 /* ============================================================
-   Component Props
+Component Props
 ============================================================ */
 
 export interface PageEditorProps {
@@ -79,7 +217,7 @@ export interface PageEditorProps {
 }
 
 /* ============================================================
-   API Payloads
+API Payloads
 ============================================================ */
 
 export interface CreatePagePayload {
@@ -110,16 +248,21 @@ export interface UpdatePagePayload
 }
 
 /* ============================================================
-   Default Form Values
+Default Form Values
 ============================================================ */
 
 export const DEFAULT_PAGE_FORM: PageEditorForm = {
   general: {
     internalTitle: "",
+
     defaultSlug: "",
+
     status: "DRAFT",
+
     isHomePage: false,
+
     showInMenu: true,
+
     canonicalUrl: "",
   },
 
