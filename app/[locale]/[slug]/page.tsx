@@ -83,6 +83,20 @@ function getCtaHref(text: string, locale: string): string {
   return `/${locale}`;
 }
 
+function getSpecificationHref(productName: string): string | null {
+  const product = productName.trim().toLowerCase();
+
+  if (product.includes("n-53") && product.includes("nashik") && product.includes("onion")) {
+    return "/downloads/ROOTYM_N53_Nashik_Onion_Buyer_Specification_Sheet.pdf";
+  }
+
+  if (product.includes("dehydrated") && product.includes("onion") && product.includes("flake")) {
+    return "/downloads/ROOTYM_Dehydrated_Onion_Flakes_Buyer_Specification_Sheet.pdf";
+  }
+
+  return null;
+}
+
 function renderSection(section: LandingPageSection, index: number, locale: string) {
   switch (section.type) {
     case "hero":
@@ -317,6 +331,38 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
                 </div>
               )}
             </div>
+
+            {(() => {
+              const specificationHref = getSpecificationHref(section.productName);
+
+              if (!specificationHref) return null;
+
+              return (
+                <div className="border-t border-white/10 bg-gray-950 px-8 py-7 md:px-10">
+                  <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-lg font-bold text-white">
+                        Buyer Specification Sheet
+                      </p>
+                      <p className="mt-1 text-sm leading-6 text-gray-300">
+                        Download the ROOTYM Buyer Specification & Laboratory Analysis Sheet
+                        for detailed product information.
+                      </p>
+                    </div>
+
+                    <a
+                      href={specificationHref}
+                      download
+                      className="inline-flex shrink-0 items-center justify-center rounded-xl bg-white px-5 py-3 font-semibold text-green-800 shadow-lg transition hover:bg-green-50"
+                    >
+                      Download Specification
+                    </a>
+                  </div>
+                </div>
+              );
+            })()}
+
+
           </div>
         </section>
       );
