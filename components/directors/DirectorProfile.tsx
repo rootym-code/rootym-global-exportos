@@ -1,3 +1,16 @@
+/**
+ * ============================================================
+ * ROOTYM Global Export Platform
+ * ============================================================
+ * Author: Prem Singh
+ * Module      : About
+ * Feature     : Director Profile
+ * Purpose     : Displays director leadership information while
+ *               using CMS-managed company identity for public
+ *               company references.
+ * ============================================================
+ */
+
 "use client";
 
 import Image from "next/image";
@@ -11,6 +24,8 @@ import {
   MapPin,
   Quote,
 } from "lucide-react";
+
+import { useCompanySettings } from "@/lib/cms/company-settings";
 
 export interface DirectorProfileProps {
   name: string;
@@ -67,6 +82,10 @@ export default function DirectorProfile({
   achievements,
   reverse = false,
 }: DirectorProfileProps) {
+  const { companyName } = useCompanySettings();
+
+  const resolvedCompanyName = companyName || "ROOTYM";
+
   return (
     <section className="py-20 lg:py-28">
       <motion.div
@@ -95,7 +114,9 @@ export default function DirectorProfile({
             <div className="mt-6 rounded-2xl bg-green-900 p-6 text-white">
               <h3 className="text-xl font-bold">{name}</h3>
 
-              <p className="mt-1 text-green-200">{designation}</p>
+              <p className="mt-1 text-green-200">
+                {designation}
+              </p>
 
               <div className="mt-5 space-y-3 text-sm text-green-100">
                 <div className="flex items-center gap-3">
@@ -105,6 +126,7 @@ export default function DirectorProfile({
 
                 <div className="flex items-center gap-3">
                   <Mail className="h-4 w-4" />
+
                   <Link
                     href={`mailto:${email}`}
                     className="transition hover:text-white"
@@ -199,12 +221,14 @@ export default function DirectorProfile({
             </div>
           </div>
 
+          {/* Company CTA */}
           <div className="mt-10">
             <Link
               href="/contact"
               className="inline-flex items-center gap-2 rounded-xl bg-green-700 px-6 py-3 font-semibold text-white transition-all duration-300 hover:bg-green-800"
             >
-              Connect With ROOTYM
+              Connect With {resolvedCompanyName}
+
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>

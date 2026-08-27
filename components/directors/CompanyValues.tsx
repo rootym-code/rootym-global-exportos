@@ -1,6 +1,20 @@
+/**
+ * ============================================================
+ * ROOTYM Global Export Platform
+ * ============================================================
+ * Author: Prem Singh
+ * Module      : Meet The Directors
+ * Feature     : Company Values
+ * Purpose     : Displays the company's core values and the
+ *               principles that guide business decisions
+ *               using locale-aware translations.
+ * ============================================================
+ */
+
 "use client";
 
 import { motion, type Variants } from "framer-motion";
+
 import {
   Award,
   Globe2,
@@ -9,6 +23,8 @@ import {
   ShieldCheck,
   Sprout,
 } from "lucide-react";
+
+import { useTranslation } from "@/lib/i18n/context";
 
 const containerVariants: Variants = {
   hidden: {},
@@ -36,44 +52,34 @@ const itemVariants: Variants = {
 
 const values = [
   {
+    key: "integrity",
     icon: ShieldCheck,
-    title: "Integrity",
-    description:
-      "We conduct every business relationship with honesty, transparency and accountability.",
   },
   {
+    key: "quality",
     icon: Award,
-    title: "Quality Excellence",
-    description:
-      "Maintaining high quality standards from sourcing to international delivery.",
   },
   {
+    key: "customer",
     icon: HeartHandshake,
-    title: "Customer Commitment",
-    description:
-      "Building long-term partnerships by consistently delivering value and reliability.",
   },
   {
+    key: "global",
     icon: Globe2,
-    title: "Global Mindset",
-    description:
-      "Creating opportunities that connect Indian agriculture with international markets.",
   },
   {
+    key: "sustainability",
     icon: Sprout,
-    title: "Sustainability",
-    description:
-      "Supporting responsible agricultural practices that benefit farmers and future generations.",
   },
   {
+    key: "innovation",
     icon: Lightbulb,
-    title: "Innovation",
-    description:
-      "Continuously improving our products, processes and customer experience.",
   },
 ];
 
 export default function CompanyValues() {
+  const { t } = useTranslation();
+
   return (
     <section className="bg-white py-20 lg:py-28">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
@@ -84,31 +90,27 @@ export default function CompanyValues() {
           viewport={{ once: true, amount: 0.15 }}
         >
           {/* Heading */}
-
           <motion.div
             variants={itemVariants}
             className="mx-auto max-w-3xl text-center"
           >
             <span className="inline-flex rounded-full bg-green-100 px-4 py-1 text-sm font-semibold text-green-700">
-              Core Values
+              {t("about.directorsCompanyValues.badge")}
             </span>
 
             <h2 className="mt-6 text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
-              Values That Shape
+              {t("about.directorsCompanyValues.title.line1")}
               <span className="block text-green-700">
-                Every Decision We Make
+                {t("about.directorsCompanyValues.title.line2")}
               </span>
             </h2>
 
             <p className="mt-6 text-lg leading-8 text-gray-600">
-              Our values define how we work, collaborate, and grow. They guide
-              our relationships with farmers, customers, employees, logistics
-              partners, suppliers and global buyers.
+              {t("about.directorsCompanyValues.description")}
             </p>
           </motion.div>
 
           {/* Values Grid */}
-
           <motion.div
             variants={containerVariants}
             className="mt-16 grid gap-8 md:grid-cols-2 xl:grid-cols-3"
@@ -118,7 +120,7 @@ export default function CompanyValues() {
 
               return (
                 <motion.div
-                  key={value.title}
+                  key={value.key}
                   variants={itemVariants}
                   className="group rounded-3xl border border-gray-200 bg-white p-8 shadow-sm transition-all duration-300 hover:-translate-y-2 hover:border-green-300 hover:shadow-xl"
                 >
@@ -127,11 +129,15 @@ export default function CompanyValues() {
                   </div>
 
                   <h3 className="mt-6 text-2xl font-bold text-gray-900">
-                    {value.title}
+                    {t(
+                      `about.directorsCompanyValues.values.${value.key}.title`
+                    )}
                   </h3>
 
                   <p className="mt-4 leading-7 text-gray-600">
-                    {value.description}
+                    {t(
+                      `about.directorsCompanyValues.values.${value.key}.description`
+                    )}
                   </p>
                 </motion.div>
               );
@@ -139,20 +145,16 @@ export default function CompanyValues() {
           </motion.div>
 
           {/* Bottom Statement */}
-
           <motion.div
             variants={itemVariants}
             className="mt-20 overflow-hidden rounded-3xl bg-gradient-to-r from-green-900 via-green-800 to-emerald-800 p-10 text-center text-white shadow-2xl"
           >
             <h3 className="text-3xl font-bold">
-              Our Values Are Our Competitive Advantage
+              {t("about.directorsCompanyValues.bottom.title")}
             </h3>
 
             <p className="mx-auto mt-6 max-w-4xl text-lg leading-8 text-green-100">
-              Markets evolve, technologies advance, and customer expectations
-              continue to grow. What remains constant is our commitment to doing
-              business with integrity, delivering exceptional quality, fostering
-              innovation, and building lasting relationships founded on trust.
+              {t("about.directorsCompanyValues.bottom.description")}
             </p>
           </motion.div>
         </motion.div>

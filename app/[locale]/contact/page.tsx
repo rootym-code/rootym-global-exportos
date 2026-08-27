@@ -1,3 +1,15 @@
+/**
+ * ============================================================
+ * ROOTYM Global Export Platform
+ * ============================================================
+ * Author: Prem Singh
+ * Module      : Contact
+ * Feature     : Contact Page
+ * Purpose     : Displays the contact page using CMS-managed
+ *               company identity in page metadata.
+ * ============================================================
+ */
+
 import type { Metadata } from "next";
 
 import Navbar from "@/components/layout/Navbar";
@@ -13,25 +25,40 @@ import {
   OfficeLocations,
 } from "@/components/contact";
 
-export const metadata: Metadata = {
-  title: "Contact Us | ROOTYM Agro Harvest Private Limited",
-  description:
-    "Get in touch with ROOTYM Agro Harvest Private Limited for agricultural exports, bulk sourcing, OEM/private label opportunities, international partnerships, distributor enquiries, and global trade collaborations. Our team is ready to assist businesses worldwide.",
-  keywords: [
-    "Contact ROOTYM",
-    "Agricultural Exporter India",
-    "Bulk Food Supplier",
-    "Export Enquiry",
-    "International Trade",
-    "Fox Nuts Export",
-    "Makhana Exporter",
-    "Onion Export",
-    "Rice Export",
-    "Potato Products Export",
-    "Indian Agricultural Products",
-    "ROOTYM Agro Harvest",
-  ],
-};
+import siteSettingService from "@/lib/services/cms/site-setting.service";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const settings =
+    await siteSettingService.getCompanySettings();
+
+  const companyName =
+    settings.company.companyName.trim() || "ROOTYM";
+
+  const legalName =
+    settings.company.legalName.trim() || companyName;
+
+  return {
+    title: `Contact Us | ${legalName}`,
+
+    description:
+      `Get in touch with ${legalName} for agricultural exports, bulk sourcing, OEM/private label opportunities, international partnerships, distributor enquiries, and global trade collaborations. Our team is ready to assist businesses worldwide.`,
+
+    keywords: [
+      `Contact ${companyName}`,
+      "Agricultural Exporter India",
+      "Bulk Food Supplier",
+      "Export Enquiry",
+      "International Trade",
+      "Fox Nuts Export",
+      "Makhana Exporter",
+      "Onion Export",
+      "Rice Export",
+      "Potato Products Export",
+      "Indian Agricultural Products",
+      `${companyName} Agro Harvest`,
+    ],
+  };
+}
 
 export default function ContactPage() {
   return (

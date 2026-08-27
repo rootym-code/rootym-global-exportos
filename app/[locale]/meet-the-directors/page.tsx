@@ -1,3 +1,16 @@
+/**
+ * ============================================================
+ * ROOTYM Global Export Platform
+ * ============================================================
+ * Author: Prem Singh
+ * Module      : Meet The Directors
+ * Feature     : Directors Page
+ * Purpose     : Displays company leadership information using
+ *               CMS-managed company identity and
+ *               locale-aware translations.
+ * ============================================================
+ */
+
 import type { Metadata } from "next";
 
 import Navbar from "@/components/layout/Navbar";
@@ -13,24 +26,142 @@ import {
   LeadershipTimeline,
 } from "@/components/directors";
 
-export const metadata: Metadata = {
-  title: "Meet The Directors | ROOTYM Agro Harvest Private Limited",
-  description:
-    "Meet the founders and directors of ROOTYM Agro Harvest Private Limited. Learn about our leadership, vision, agricultural expertise, global export mission, and commitment to quality, sustainability, and empowering Indian farmers.",
-  keywords: [
-    "ROOTYM Directors",
-    "Prem Chand Singh",
-    "Anjali Singh",
-    "ROOTYM Leadership",
-    "Agricultural Export Company",
-    "Indian Exporters",
-    "Global Food Export",
-    "Agricultural Leadership",
-    "ROOTYM Agro Harvest",
-  ],
-};
+import siteSettingService from "@/lib/services/cms/site-setting.service";
 
-export default function MeetTheDirectorsPage() {
+import { getDictionary } from "@/lib/i18n/get-dictionary";
+import type { Locale } from "@/lib/i18n/config";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const settings =
+    await siteSettingService.getCompanySettings();
+
+  const companyName =
+    settings.company.companyName.trim() || "ROOTYM";
+
+  const legalName =
+    settings.company.legalName.trim() || companyName;
+
+  return {
+    title: `Meet The Directors | ${legalName}`,
+
+    description:
+      `Meet the founders and directors of ${legalName}. Learn about our leadership, vision, agricultural expertise, global export mission, and commitment to quality, sustainability, and empowering Indian farmers.`,
+
+    keywords: [
+      `${companyName} Directors`,
+      "Prem Chand Singh",
+      "Anjali Singh",
+      `${companyName} Leadership`,
+      "Agricultural Export Company",
+      "Indian Exporters",
+      "Global Food Export",
+      "Agricultural Leadership",
+      `${companyName} Agro Harvest`,
+    ],
+  };
+}
+
+interface MeetTheDirectorsPageProps {
+  params: Promise<{
+    locale: Locale;
+  }>;
+}
+
+export default async function MeetTheDirectorsPage({
+  params,
+}: MeetTheDirectorsPageProps) {
+  const { locale } = await params;
+
+  const dictionary = await getDictionary(locale);
+
+  const settings =
+    await siteSettingService.getCompanySettings();
+
+  const companyName =
+    settings.company.companyName.trim() || "ROOTYM";
+
+  const getTranslation = (
+    key: string
+  ): string => {
+    const keys = key.split(".");
+    let value: any = dictionary;
+
+    for (const part of keys) {
+      if (
+        value &&
+        typeof value === "object" &&
+        part in value
+      ) {
+        value = value[part];
+      } else {
+        return key;
+      }
+    }
+
+    return typeof value === "string"
+      ? value
+      : key;
+  };
+
+  const getArrayTranslation = (
+    key: string
+  ): string[] => {
+    const keys = key.split(".");
+    let value: any = dictionary;
+
+    for (const part of keys) {
+      if (
+        value &&
+        typeof value === "object" &&
+        part in value
+      ) {
+        value = value[part];
+      } else {
+        return [];
+      }
+    }
+
+    return Array.isArray(value)
+      ? value.filter(
+          (item): item is string =>
+            typeof item === "string"
+        )
+      : [];
+  };
+
+  const resolvedCompanyName =
+    companyName || "ROOTYM";
+
+  const premBiography =
+    getArrayTranslation(
+      "about.directorProfiles.prem.biography"
+    );
+
+  const premExpertise =
+    getArrayTranslation(
+      "about.directorProfiles.prem.expertise"
+    );
+
+  const premAchievements =
+    getArrayTranslation(
+      "about.directorProfiles.prem.achievements"
+    );
+
+  const anjaliBiography =
+    getArrayTranslation(
+      "about.directorProfiles.anjali.biography"
+    );
+
+  const anjaliExpertise =
+    getArrayTranslation(
+      "about.directorProfiles.anjali.expertise"
+    );
+
+  const anjaliAchievements =
+    getArrayTranslation(
+      "about.directorProfiles.anjali.achievements"
+    );
+
   return (
     <>
       <Navbar />
@@ -41,62 +172,48 @@ export default function MeetTheDirectorsPage() {
         <DirectorsIntroduction />
 
         <DirectorProfile
-          name="Prem Chand Singh"
-          designation="Founder & Director"
+          name={getTranslation(
+            "about.directorProfiles.prem.name"
+          )}
+          designation={getTranslation(
+            "about.directorProfiles.prem.designation"
+          )}
           image="/images/directors/prem-singh.webp"
-          location="Pune, Maharashtra, India"
-          email="director@rootym.com"
-          biography={[
-            "Prem Chand Singh is the Founder and Director of ROOTYM Agro Harvest Private Limited. With over two decades of leadership experience in technology, enterprise transformation, and strategic business management, he envisioned ROOTYM as a bridge connecting India's agricultural excellence with global markets.",
-            "After a successful corporate career, he dedicated himself to building a modern export enterprise focused on quality, transparency, innovation, and long-term partnerships. His leadership combines technology-driven processes with ethical sourcing and international quality standards to deliver premium agricultural products worldwide.",
-            "He strongly believes that sustainable exports begin with empowering farmers, improving supply chains, and creating value for customers through consistency, trust, and continuous innovation.",
-          ]}
-          vision="To establish ROOTYM as one of India's most trusted global agricultural export brands by delivering premium products, embracing innovation, empowering farmers, and building lasting international partnerships."
-          expertise={[
-            "Business Strategy",
-            "Technology Leadership",
-            "Global Export Management",
-            "International Business Development",
-            "Supply Chain & Operations",
-            "Digital Transformation",
-          ]}
-          achievements={[
-            "20+ years of leadership and technology experience",
-            "Founder & Director of ROOTYM Agro Harvest Private Limited",
-            "Leading ROOTYM's global expansion strategy",
-            "Building technology-enabled export operations",
-            "Promoting sustainable agricultural growth and farmer empowerment",
-          ]}
+          location={getTranslation(
+            "about.directorProfiles.prem.location"
+          )}
+          email={getTranslation(
+            "about.directorProfiles.prem.email"
+          )}
+          biography={premBiography}
+          vision={getTranslation(
+            "about.directorProfiles.prem.vision"
+          )}
+          expertise={premExpertise}
+          achievements={premAchievements}
         />
 
         <DirectorProfile
           reverse
-          name="Anjali Singh"
-          designation="Co-Founder & Director"
+          name={getTranslation(
+            "about.directorProfiles.anjali.name"
+          )}
+          designation={getTranslation(
+            "about.directorProfiles.anjali.designation"
+          )}
           image="/images/directors/anjali-singh.webp"
-          location="Pune, Maharashtra, India"
-          email="director@rootym.com"
-          biography={[
-            "Anjali Singh serves as the Co-Founder and Director of ROOTYM Agro Harvest Private Limited. She plays a pivotal role in strengthening the company's operational excellence, organizational development, customer engagement, and strategic planning.",
-            "Her leadership philosophy is centered around trust, integrity, quality assurance, and creating meaningful relationships with customers and business partners across international markets.",
-            "She continuously works toward building efficient business processes that enable sustainable growth while ensuring ROOTYM consistently delivers exceptional service and premium-quality agricultural products.",
-          ]}
-          vision="To create a globally respected organization built on integrity, operational excellence, customer satisfaction, and sustainable business practices that benefit every stakeholder."
-          expertise={[
-            "Business Operations",
-            "Strategic Planning",
-            "Customer Relationship Management",
-            "Administration",
-            "Business Development",
-            "Organizational Excellence",
-          ]}
-          achievements={[
-            "Co-Founder & Director of ROOTYM Agro Harvest Private Limited",
-            "Driving operational excellence across the organization",
-            "Strengthening international customer relationships",
-            "Supporting sustainable and ethical business growth",
-            "Building long-term strategic partnerships",
-          ]}
+          location={getTranslation(
+            "about.directorProfiles.anjali.location"
+          )}
+          email={getTranslation(
+            "about.directorProfiles.anjali.email"
+          )}
+          biography={anjaliBiography}
+          vision={getTranslation(
+            "about.directorProfiles.anjali.vision"
+          )}
+          expertise={anjaliExpertise}
+          achievements={anjaliAchievements}
         />
 
         <LeadershipPhilosophy />

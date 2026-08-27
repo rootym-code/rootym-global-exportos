@@ -1,6 +1,19 @@
+/**
+ * ============================================================
+ * ROOTYM Global Export Platform
+ * ============================================================
+ * Author: Prem Singh
+ * Module      : Layout
+ * Feature     : Public Navigation
+ * Purpose     : Displays the public navigation bar using
+ *               CMS-managed company branding.
+ * ============================================================
+ */
+
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useCompanySettings } from "@/lib/cms/company-settings";
 import { Link } from "@/lib/i18n/Link";
 import { useTranslation } from "@/lib/i18n/context";
 import { usePathname, useRouter } from "next/navigation";
@@ -42,25 +55,67 @@ const Navbar = () => {
   const pathname = usePathname();
   const router = useRouter();
 
+  /*
+   * Company branding is loaded centrally through the shared
+   * CMS company-settings hook.
+   */
+  const {
+    companyName,
+    logo,
+  } = useCompanySettings();
+
+  /*
+   * Resolve the public company name once so all visible
+   * navigation branding uses the CMS value.
+   */
+  const resolvedCompanyName =
+    companyName?.trim() || "ROOTYM";
+
+  /*
+   * The About navigation label historically contains
+   * "ROOTYM" in the translation value ("Why ROOTYM").
+   *
+   * Keep "Why" translated while replacing only the
+   * user-visible company identity with the CMS company name.
+   *
+   * This also supports translations where the company name
+   * is not included in the translation value.
+   */
+  const getNavLabel = (key: string) => {
+    const translatedLabel = t(`navbar.${key}`);
+
+    if (key !== "about") {
+      return translatedLabel;
+    }
+
+    if (/rootym/i.test(translatedLabel)) {
+      return translatedLabel.replace(
+        /rootym/gi,
+        resolvedCompanyName
+      );
+    }
+
+    return `${translatedLabel} ${resolvedCompanyName}`;
+  };
+
   const handleLanguageChange = (
     e: React.ChangeEvent<HTMLSelectElement>
   ) => {
     const newLocale = e.target.value;
-  
+
     if (!pathname) return;
-  
+
     const segments = pathname.split("/");
-  
+
     if (locales.includes(segments[1] as any)) {
       segments[1] = newLocale;
     } else {
       segments.splice(1, 0, newLocale);
     }
-  
+
     const newPath = segments.join("/") || "/";
-  
+
     router.push(newPath);
-  
     router.refresh();
   };
 
@@ -207,7 +262,7 @@ const Navbar = () => {
 
         <Link
           href="/"
-          aria-label="ROOTYM Home"
+          aria-label={`${resolvedCompanyName} Home`}
           className="group flex select-none flex-col justify-center gap-0 focus:outline-none"
         >
           <div className="flex items-center gap-2">
@@ -221,11 +276,24 @@ const Navbar = () => {
                 stiffness: 450,
                 damping: 18,
               }}
-              className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-tr from-[#2E7D32] to-[#43A047] font-bold text-white shadow-md"
+              className={classNames(
+                "flex h-8 w-8 items-center justify-center rounded-xl",
+                "font-bold text-white shadow-md",
+                !logo &&
+                  "bg-gradient-to-tr from-[#2E7D32] to-[#43A047]"
+              )}
             >
-              <span className="select-none text-xl">
-                R
-              </span>
+              {logo ? (
+                <img
+                  src={logo}
+                  alt={`${resolvedCompanyName} Logo`}
+                  className="h-8 w-8 rounded-xl object-contain"
+                />
+              ) : (
+                <span className="select-none text-xl">
+                  R
+                </span>
+              )}
             </motion.div>
 
             <motion.span
@@ -235,7 +303,7 @@ const Navbar = () => {
               }}
               className="text-2xl font-extrabold tracking-wider text-[#2E7D32]"
             >
-              ROOTYM
+              {resolvedCompanyName}
             </motion.span>
           </div>
 
@@ -243,9 +311,10 @@ const Navbar = () => {
             {t("navbar.platform_title")}
           </span>
         </Link>
-                {/* Right Section */}
 
-                <div className="ml-auto flex items-center gap-2 md:gap-4">
+        {/* Right Section */}
+
+        <div className="ml-auto flex items-center gap-2 md:gap-4">
           {/* Desktop Navigation */}
 
           <div className="hidden items-center gap-1 lg:flex xl:gap-2">
@@ -273,7 +342,7 @@ const Navbar = () => {
                     whileHover={{ y: -1 }}
                     className="relative z-10"
                   >
-                    {t(`navbar.${item.key}`)}
+                    {getNavLabel(item.key)}
                   </motion.span>
 
                   <motion.span
@@ -295,26 +364,43 @@ const Navbar = () => {
             ))}
 
             {/* Language Switcher */}
+
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: NAV_ITEMS.length * 0.05, duration: 0.35 }}
+              transition={{
+                delay: NAV_ITEMS.length * 0.05,
+                duration: 0.35,
+              }}
               className="ml-2 flex items-center"
             >
               <div className="relative flex items-center rounded-xl bg-gray-50 px-2 py-1.5 transition-colors hover:bg-gray-100">
-                <Globe className="h-4 w-4 text-gray-500 mr-1" />
+                <Globe className="mr-1 h-4 w-4 text-gray-500" />
+
                 <select
                   value={locale}
                   onChange={handleLanguageChange}
-                  className="appearance-none bg-transparent text-sm font-medium text-gray-700 focus:outline-none pr-4 cursor-pointer"
+                  className="cursor-pointer appearance-none bg-transparent pr-4 text-sm font-medium text-gray-700 focus:outline-none"
                   aria-label={t("common.language")}
                 >
-                  <option value="en">{t("common.english")}</option>
-                  <option value="ar">{t("common.arabic")}</option>
-                  <option value="si">{t("common.sinhala")}</option>
+                  <option value="en">
+                    {t("common.english")}
+                  </option>
+
+                  <option value="ar">
+                    {t("common.arabic")}
+                  </option>
+
+                  <option value="si">
+                    {t("common.sinhala")}
+                  </option>
                 </select>
+
                 <div className="pointer-events-none absolute inset-y-0 right-1 flex items-center px-1 text-gray-500">
-                  <svg className="h-3 w-3 fill-current" viewBox="0 0 20 20">
+                  <svg
+                    className="h-3 w-3 fill-current"
+                    viewBox="0 0 20 20"
+                  >
                     <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
                   </svg>
                 </div>
@@ -351,7 +437,9 @@ const Navbar = () => {
             aria-label="Open Menu"
             aria-controls="navbar-mobile-menu"
             aria-expanded={mobileOpen}
-            onClick={() => setMobileOpen(!mobileOpen)}
+            onClick={() =>
+              setMobileOpen(!mobileOpen)
+            }
             type="button"
           >
             <AnimatePresence
@@ -405,9 +493,10 @@ const Navbar = () => {
           </motion.button>
         </div>
       </div>
-            {/* Mobile Drawer */}
 
-            <AnimatePresence>
+      {/* Mobile Drawer */}
+
+      <AnimatePresence>
         {mobileOpen && (
           <motion.div
             id="navbar-mobile-menu"
@@ -426,7 +515,9 @@ const Navbar = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setMobileOpen(false)}
+              onClick={() =>
+                setMobileOpen(false)
+              }
             />
 
             {/* Drawer */}
@@ -446,7 +537,9 @@ const Navbar = () => {
                 className="absolute right-3 top-3 rounded-full p-1.5 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-300"
                 aria-label="Close Menu"
                 type="button"
-                onClick={() => setMobileOpen(false)}
+                onClick={() =>
+                  setMobileOpen(false)
+                }
               >
                 <X className="h-6 w-6 text-[#2E7D32]" />
               </button>
@@ -454,14 +547,31 @@ const Navbar = () => {
               <Link
                 href="/"
                 className="mb-8 mt-2 flex items-center gap-2"
-                onClick={() => setMobileOpen(false)}
+                onClick={() =>
+                  setMobileOpen(false)
+                }
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-tr from-[#2E7D32] to-[#43A047] font-extrabold text-white">
-                  R
+                <div
+                  className={classNames(
+                    "flex h-8 w-8 items-center justify-center rounded-xl",
+                    "font-extrabold text-white",
+                    !logo &&
+                      "bg-gradient-to-tr from-[#2E7D32] to-[#43A047]"
+                  )}
+                >
+                  {logo ? (
+                    <img
+                      src={logo}
+                      alt={`${resolvedCompanyName} Logo`}
+                      className="h-8 w-8 rounded-xl object-contain"
+                    />
+                  ) : (
+                    "R"
+                  )}
                 </div>
 
                 <span className="text-xl font-extrabold text-[#2E7D32]">
-                  ROOTYM
+                  {resolvedCompanyName}
                 </span>
               </Link>
 
@@ -486,10 +596,12 @@ const Navbar = () => {
                   >
                     <Link
                       href={item.href}
-                      onClick={() => setMobileOpen(false)}
+                      onClick={() =>
+                        setMobileOpen(false)
+                      }
                       className="block rounded-lg px-3 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-[#F1F6F3] hover:text-[#2E7D32]"
                     >
-                      {t(`navbar.${item.key}`)}
+                      {getNavLabel(item.key)}
                     </Link>
                   </motion.div>
                 ))}
@@ -509,20 +621,33 @@ const Navbar = () => {
                   className="mt-2"
                 >
                   <div className="relative flex items-center rounded-xl bg-gray-50 px-3 py-3 transition-colors hover:bg-gray-100">
-                    <Globe className="h-5 w-5 text-gray-500 mr-2" />
+                    <Globe className="mr-2 h-5 w-5 text-gray-500" />
+
                     <select
                       value={locale}
                       onChange={handleLanguageChange}
-                      className="appearance-none bg-transparent text-base font-medium text-gray-700 focus:outline-none w-full cursor-pointer"
+                      className="w-full cursor-pointer appearance-none bg-transparent text-base font-medium text-gray-700 focus:outline-none"
                       aria-label={t("common.language")}
                     >
-                      <option value="en">{t("common.english")}</option>
-                      <option value="ar">{t("common.arabic")}</option>
-                      <option value="si">{t("common.sinhala")}</option>
+                      <option value="en">
+                        {t("common.english")}
+                      </option>
+
+                      <option value="ar">
+                        {t("common.arabic")}
+                      </option>
+
+                      <option value="si">
+                        {t("common.sinhala")}
+                      </option>
                     </select>
+
                     <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center px-1 text-gray-500">
-                      <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20">
-                        <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                      <svg
+                        className="h-4 w-4 fill-current"
+                        viewBox="0 0 20 20"
+                      >
+                        <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l-3.293-3.293a1 1 0 111.414 1.414 1 1 0 011.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
                       </svg>
                     </div>
                   </div>
@@ -549,7 +674,9 @@ const Navbar = () => {
                 >
                   <Link
                     href="/request-quote"
-                    onClick={() => setMobileOpen(false)}
+                    onClick={() =>
+                      setMobileOpen(false)
+                    }
                   >
                     <Button
                       variant="primary"
@@ -564,10 +691,8 @@ const Navbar = () => {
           </motion.div>
         )}
       </AnimatePresence>
-      </motion.nav>
+    </motion.nav>
   );
 };
 
 export default Navbar;
-
- 

@@ -1,3 +1,15 @@
+/**
+ * ============================================================
+ * ROOTYM Global Export Platform
+ * ============================================================
+ * Module      : CMS
+ * Feature     : Company Management
+ * File        : SocialLinks.tsx
+ * Purpose     : Social Media Links Section
+ * Sprint      : Sprint 10.3
+ * ============================================================
+ */
+
 "use client";
 
 import type { CompanySettings } from "../types";
@@ -5,7 +17,8 @@ import type { CompanySettings } from "../types";
 interface SocialLinksProps {
   settings: CompanySettings;
   onChange: (
-    field: keyof CompanySettings,
+    section: keyof CompanySettings,
+    field: string,
     value: string
   ) => void;
 }
@@ -30,6 +43,7 @@ export default function SocialLinks({
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Facebook */}
+
         <div>
           <label
             htmlFor="facebook"
@@ -41,9 +55,13 @@ export default function SocialLinks({
           <input
             id="facebook"
             type="url"
-            value={settings.facebook}
+            value={settings.social.facebook}
             onChange={(e) =>
-              onChange("facebook", e.target.value)
+              onChange(
+                "social",
+                "facebook",
+                e.target.value
+              )
             }
             placeholder="https://facebook.com/rootym"
             className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-200"
@@ -51,6 +69,7 @@ export default function SocialLinks({
         </div>
 
         {/* LinkedIn */}
+
         <div>
           <label
             htmlFor="linkedin"
@@ -62,9 +81,13 @@ export default function SocialLinks({
           <input
             id="linkedin"
             type="url"
-            value={settings.linkedin}
+            value={settings.social.linkedin}
             onChange={(e) =>
-              onChange("linkedin", e.target.value)
+              onChange(
+                "social",
+                "linkedin",
+                e.target.value
+              )
             }
             placeholder="https://linkedin.com/company/rootym"
             className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-200"
@@ -72,6 +95,7 @@ export default function SocialLinks({
         </div>
 
         {/* Instagram */}
+
         <div>
           <label
             htmlFor="instagram"
@@ -83,9 +107,13 @@ export default function SocialLinks({
           <input
             id="instagram"
             type="url"
-            value={settings.instagram}
+            value={settings.social.instagram}
             onChange={(e) =>
-              onChange("instagram", e.target.value)
+              onChange(
+                "social",
+                "instagram",
+                e.target.value
+              )
             }
             placeholder="https://instagram.com/rootym"
             className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-200"
@@ -93,6 +121,7 @@ export default function SocialLinks({
         </div>
 
         {/* YouTube */}
+
         <div>
           <label
             htmlFor="youtube"
@@ -104,9 +133,13 @@ export default function SocialLinks({
           <input
             id="youtube"
             type="url"
-            value={settings.youtube}
+            value={settings.social.youtube}
             onChange={(e) =>
-              onChange("youtube", e.target.value)
+              onChange(
+                "social",
+                "youtube",
+                e.target.value
+              )
             }
             placeholder="https://youtube.com/@rootym"
             className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-200"
@@ -114,6 +147,7 @@ export default function SocialLinks({
         </div>
 
         {/* X (Twitter) */}
+
         <div className="md:col-span-2">
           <label
             htmlFor="twitter"
@@ -125,9 +159,13 @@ export default function SocialLinks({
           <input
             id="twitter"
             type="url"
-            value={settings.twitter}
+            value={settings.social.twitter}
             onChange={(e) =>
-              onChange("twitter", e.target.value)
+              onChange(
+                "social",
+                "twitter",
+                e.target.value
+              )
             }
             placeholder="https://x.com/rootym"
             className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-200"

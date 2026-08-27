@@ -1,6 +1,20 @@
+/**
+ * ============================================================
+ * ROOTYM Global Export Platform
+ * ============================================================
+ * Author: Prem Singh
+ * Module      : Inquiry
+ * Feature     : Inquiry Review
+ * Purpose     : Displays a final review of buyer inquiry
+ *               information before submission using
+ *               CMS-managed company identity.
+ * ============================================================
+ */
+
 "use client";
 
 import type { InquiryFormData } from "@/types/inquiry";
+import { useCompanySettings } from "@/lib/cms/company-settings";
 
 interface ReviewStepProps {
   formData: InquiryFormData;
@@ -13,6 +27,11 @@ function displayValue(value: string) {
 export default function ReviewStep({
   formData,
 }: ReviewStepProps) {
+  const { companyName } = useCompanySettings();
+
+  const resolvedCompanyName =
+    companyName || "ROOTYM";
+
   return (
     <div>
       <h2 className="text-3xl font-bold text-gray-900">
@@ -20,12 +39,11 @@ export default function ReviewStep({
       </h2>
 
       <p className="mt-4 text-lg text-gray-600">
-        Please review your export inquiry carefully before submitting it to the
-        ROOTYM export team.
+        Please review your export inquiry carefully before
+        submitting it to the {resolvedCompanyName} export team.
       </p>
 
       {/* Product Details */}
-
       <div className="mt-10 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
         <h3 className="text-xl font-semibold text-gray-900">
           Product Details
@@ -58,13 +76,14 @@ export default function ReviewStep({
 
           <ReviewItem
             label="Packaging Instructions"
-            value={displayValue(formData.packagingInstructions)}
+            value={displayValue(
+              formData.packagingInstructions,
+            )}
           />
         </div>
       </div>
 
       {/* Buyer Information */}
-
       <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
         <h3 className="text-xl font-semibold text-gray-900">
           Buyer Information
@@ -83,12 +102,16 @@ export default function ReviewStep({
 
           <ReviewItem
             label="Contact Person"
-            value={displayValue(formData.contactPerson)}
+            value={displayValue(
+              formData.contactPerson,
+            )}
           />
 
           <ReviewItem
             label="Designation"
-            value={displayValue(formData.designation)}
+            value={displayValue(
+              formData.designation,
+            )}
           />
 
           <ReviewItem
@@ -109,7 +132,6 @@ export default function ReviewStep({
       </div>
 
       {/* Delivery Terms */}
-
       <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
         <h3 className="text-xl font-semibold text-gray-900">
           Preferred Delivery Terms
@@ -120,22 +142,26 @@ export default function ReviewStep({
             label="Preferred Incoterm"
             value={
               formData.preferredIncoterm === "Not Sure"
-                ? "Not Sure (ROOTYM team will recommend)"
-                : displayValue(formData.preferredIncoterm)
+                ? `Not Sure (${resolvedCompanyName} team will recommend)`
+                : displayValue(
+                    formData.preferredIncoterm,
+                  )
             }
           />
 
-          {formData.preferredIncoterm !== "Not Sure" && (
+          {formData.preferredIncoterm !==
+            "Not Sure" && (
             <ReviewItem
               label="Named Port / Place"
-              value={displayValue(formData.namedPlace)}
+              value={displayValue(
+                formData.namedPlace,
+              )}
             />
           )}
         </div>
       </div>
 
       {/* Additional Requirements */}
-
       <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
         <h3 className="text-xl font-semibold text-gray-900">
           Additional Requirements
@@ -151,16 +177,16 @@ export default function ReviewStep({
       </div>
 
       {/* Submission Notice */}
-
       <div className="mt-8 rounded-2xl border border-green-100 bg-green-50 p-6">
         <h3 className="text-xl font-semibold text-[#2E7D32]">
           Almost Done!
         </h3>
 
         <p className="mt-3 leading-7 text-gray-700">
-          Please review all information carefully. After you submit your
-          inquiry, the ROOTYM export team will evaluate your requirements and
-          contact you with a quotation or request additional information if
+          Please review all information carefully. After you
+          submit your inquiry, the {resolvedCompanyName} export
+          team will evaluate your requirements and contact you
+          with a quotation or request additional information if
           needed.
         </p>
       </div>

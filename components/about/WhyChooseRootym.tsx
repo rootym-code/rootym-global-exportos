@@ -1,6 +1,19 @@
+/**
+ * ============================================================
+ * ROOTYM Global Export Platform
+ * ============================================================
+ * Author: Prem Singh
+ * Module      : About
+ * Feature     : Why Choose ROOTYM
+ * Purpose     : Displays the key reasons global buyers choose
+ *              the company, using translated public content.
+ * ============================================================
+ */
+
 "use client";
 
 import { motion, type Variants } from "framer-motion";
+
 import {
   Award,
   Globe2,

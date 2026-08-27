@@ -1,10 +1,29 @@
+/**
+ * ============================================================
+ * ROOTYM Global Export Platform
+ * ============================================================
+ * Author: Prem Singh
+ * Module      : About
+ * Feature     : Directors Introduction
+ * Purpose     : Displays the leadership philosophy and company
+ *               vision using CMS-managed company identity and
+ *               locale-aware translations.
+ * ============================================================
+ */
+
 "use client";
 
 import { motion, type Variants } from "framer-motion";
+
 import { Globe, Handshake, Leaf, Target } from "lucide-react";
+
+import { useTranslation } from "@/lib/i18n/context";
+
+import { useCompanySettings } from "@/lib/cms/company-settings";
 
 const containerVariants: Variants = {
   hidden: {},
+
   visible: {
     transition: {
       staggerChildren: 0.15,
@@ -17,6 +36,7 @@ const itemVariants: Variants = {
     opacity: 0,
     y: 30,
   },
+
   visible: {
     opacity: 1,
     y: 0,
@@ -29,32 +49,30 @@ const itemVariants: Variants = {
 
 const highlights = [
   {
+    key: "globalVision",
     icon: Globe,
-    title: "Global Vision",
-    description:
-      "Expanding the reach of premium Indian agricultural products into international markets.",
   },
   {
+    key: "trustedRelationships",
     icon: Handshake,
-    title: "Trusted Relationships",
-    description:
-      "Building long-term partnerships with farmers, buyers, logistics providers, and distributors.",
   },
   {
+    key: "sustainableGrowth",
     icon: Leaf,
-    title: "Sustainable Growth",
-    description:
-      "Supporting responsible sourcing and creating value across the agricultural ecosystem.",
   },
   {
+    key: "customerCommitment",
     icon: Target,
-    title: "Customer Commitment",
-    description:
-      "Delivering quality, transparency, and dependable export solutions for every customer.",
   },
 ];
 
 export default function DirectorsIntroduction() {
+  const { t } = useTranslation();
+
+  const { companyName } = useCompanySettings();
+
+  const resolvedCompanyName = companyName || "ROOTYM";
+
   return (
     <section className="bg-white py-20 lg:py-28">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
@@ -70,23 +88,23 @@ export default function DirectorsIntroduction() {
             className="mx-auto max-w-3xl text-center"
           >
             <span className="inline-flex rounded-full bg-green-100 px-4 py-1 text-sm font-semibold text-green-700">
-              Leadership
+              {t("about.directorsIntroduction.badge")}
             </span>
 
             <h2 className="mt-6 text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
-              Leadership Built on Vision,
+              {t("about.directorsIntroduction.title.line1")}
+
               <span className="block text-green-700">
-                Integrity & Long-Term Growth
+                {t("about.directorsIntroduction.title.line2")}
               </span>
             </h2>
 
             <p className="mt-6 text-lg leading-8 text-gray-600">
-              ROOTYM was founded with a simple yet ambitious vision—to connect
-              India's agricultural excellence with global opportunities. Our
-              leadership team combines industry experience, entrepreneurial
-              thinking, and a commitment to building sustainable relationships
-              that benefit farmers, customers, and international trade partners.
-            </p>
+  {t("about.directorsIntroduction.description").replace(
+    "{companyName}",
+    resolvedCompanyName
+  )}
+</p>
           </motion.div>
 
           {/* Content */}
@@ -94,28 +112,28 @@ export default function DirectorsIntroduction() {
             <motion.div variants={itemVariants}>
               <div className="rounded-3xl border border-green-100 bg-gradient-to-br from-green-50 to-white p-10 shadow-sm">
                 <h3 className="text-2xl font-bold text-gray-900">
-                  Our Leadership Philosophy
+                  {t("about.directorsIntroduction.philosophy.title")}
                 </h3>
 
                 <p className="mt-6 leading-8 text-gray-600">
-                  We believe that successful exports are built on trust,
-                  consistency, and quality. Every business relationship is
-                  approached with transparency, ethical practices, and a
-                  long-term commitment to delivering value.
+                  {t(
+                    "about.directorsIntroduction.philosophy.paragraph1"
+                  )}
                 </p>
 
                 <p className="mt-5 leading-8 text-gray-600">
-                  Rather than focusing only on transactions, we aim to build
-                  enduring partnerships by understanding customer needs,
-                  maintaining product excellence, and continuously improving our
-                  processes.
+                  {t(
+                    "about.directorsIntroduction.philosophy.paragraph2"
+                  )}
                 </p>
 
                 <div className="mt-8 rounded-2xl border border-green-200 bg-white p-6">
                   <p className="text-lg font-semibold italic text-green-800">
-                    "Our mission is not just to export products, but to export
-                    India's trust, quality, and agricultural excellence to the
-                    world."
+                    &quot;
+                    {t(
+                      "about.directorsIntroduction.philosophy.quote"
+                    )}
+                    &quot;
                   </p>
                 </div>
               </div>
@@ -130,7 +148,7 @@ export default function DirectorsIntroduction() {
 
                 return (
                   <motion.div
-                    key={item.title}
+                    key={item.key}
                     variants={itemVariants}
                     className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-green-300 hover:shadow-lg"
                   >
@@ -139,11 +157,15 @@ export default function DirectorsIntroduction() {
                     </div>
 
                     <h3 className="mt-5 text-xl font-semibold text-gray-900">
-                      {item.title}
+                      {t(
+                        `about.directorsIntroduction.highlights.${item.key}.title`
+                      )}
                     </h3>
 
                     <p className="mt-3 text-sm leading-7 text-gray-600">
-                      {item.description}
+                      {t(
+                        `about.directorsIntroduction.highlights.${item.key}.description`
+                      )}
                     </p>
                   </motion.div>
                 );

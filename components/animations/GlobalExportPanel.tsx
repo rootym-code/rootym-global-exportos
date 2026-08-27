@@ -1,15 +1,25 @@
 /**
  * ============================================================
- * ROOTYM Motion Engine
- * File: components/animations/GlobalExportPanel.tsx
+ * ROOTYM Global Export Platform
+ * ============================================================
+ * Author: Prem Singh
+ * Module      : Motion Engine
+ * Feature     : Global Export Panel
+ * File        : components/animations/GlobalExportPanel.tsx
+ * Purpose     : Displays the animated global export panel with
+ *               CMS-managed company branding and translated
+ *               export statistics.
  * ============================================================
  */
+
 "use client";
 
 import { memo } from "react";
+
 import { motion } from "framer-motion";
 
 import { useTranslation } from "@/lib/i18n/context";
+import { useCompanySettings } from "@/lib/cms/company-settings";
 
 import AnimatedGlobe from "./AnimatedGlobe";
 import CargoPlane from "./CargoPlane";
@@ -18,10 +28,33 @@ import FloatingParticles from "./FloatingParticles";
 import TradeRoutes from "./TradeRoutes";
 
 import { EXPORT_HUBS } from "./globe.constants";
-import { cardViewport, fadeUp } from "@/lib/motion";
+
+import {
+  cardViewport,
+  fadeUp,
+} from "@/lib/motion";
 
 function GlobalExportPanel() {
   const { t } = useTranslation();
+
+  const {
+    companyName,
+    tagline,
+  } = useCompanySettings();
+
+  /* ============================================================
+     Company Branding
+     ============================================================ */
+
+  const resolvedCompanyName =
+    companyName || "ROOTYM";
+
+  const resolvedTagline =
+    tagline || t("hero.badge");
+
+  /* ============================================================
+     Statistics
+     ============================================================ */
 
   const STATS = [
     {
@@ -50,23 +83,40 @@ function GlobalExportPanel() {
       viewport={cardViewport}
       className="relative overflow-hidden rounded-3xl border border-emerald-500/15 bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 p-8 shadow-2xl"
     >
+      {/* ========================================================
+          Floating Particles
+          ======================================================== */}
       <FloatingParticles />
 
       <div className="relative grid items-center gap-10 lg:grid-cols-2">
-        {/* Content */}
-        <div className="space-y-6">
-          <span className="inline-flex rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-emerald-300">
-            {t("globalPanel.badge")}
-          </span>
 
+        {/* ======================================================
+            Content
+            ====================================================== */}
+        <div className="space-y-6">
+
+          {/* Company Branding */}
+          <div className="space-y-2">
+            <span className="inline-flex rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-emerald-300">
+              {resolvedCompanyName}
+            </span>
+
+            <p className="text-sm font-medium text-emerald-200">
+              {resolvedTagline}
+            </p>
+          </div>
+
+          {/* Title */}
           <h2 className="text-4xl font-extrabold tracking-tight text-white">
             {t("globalPanel.title")}
           </h2>
 
+          {/* Description */}
           <p className="max-w-xl text-slate-300">
             {t("globalPanel.description")}
           </p>
 
+          {/* Statistics */}
           <div className="grid grid-cols-2 gap-4">
             {STATS.map((item) => (
               <div
@@ -85,7 +135,9 @@ function GlobalExportPanel() {
           </div>
         </div>
 
-        {/* Globe */}
+        {/* ======================================================
+            Globe
+            ====================================================== */}
         <div className="relative mx-auto w-full max-w-[560px]">
           <AnimatedGlobe />
 

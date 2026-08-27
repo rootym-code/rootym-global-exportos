@@ -12,7 +12,14 @@
 
   "use client";
 
-  import { useMemo, useRef, useState, useEffect, useCallback } from "react";
+  import {
+  useMemo,
+  useRef,
+  useState,
+  useEffect,
+  useCallback,
+  type ChangeEvent,
+} from "react";
   import Image from "next/image";
 
   import { MediaType } from "@/lib/generated/prisma";
@@ -225,6 +232,34 @@
     const [mediaType, setMediaType] =
       useState<MediaFilter>("ALL");
 
+    /* ============================================================
+      Upload
+    ============================================================ */
+
+    const uploadInputRef =
+      useRef<HTMLInputElement | null>(null);
+
+    const [uploadOpen, setUploadOpen] =
+      useState(false);
+
+    const [uploadFile, setUploadFile] =
+      useState<File | null>(null);
+
+    const [uploadFolder, setUploadFolder] =
+      useState("general");
+
+    const [uploadTitle, setUploadTitle] =
+      useState("");
+
+    const [uploadAltText, setUploadAltText] =
+      useState("");
+
+    const [uploadDescription, setUploadDescription] =
+      useState("");
+
+    const [uploading, setUploading] =
+      useState(false);
+
     const debounceTimer =
       useRef<ReturnType<typeof setTimeout> | null>(
         null
@@ -326,6 +361,98 @@
       loadMedia();
     }, [loadMedia]);
 
+    const openUploadDialog = () => {
+      setError("");
+      setUploadFile(null);
+      setUploadTitle("");
+      setUploadAltText("");
+      setUploadDescription("");
+      setUploadFolder("general");
+      setUploadOpen(true);
+    };
+
+    const closeUploadDialog = () => {
+      setUploadOpen(false);
+      setUploadFile(null);
+
+      if (uploadInputRef.current) {
+        uploadInputRef.current.value = "";
+      }
+    };
+
+    const handleUploadFileChange = (
+      event: ChangeEvent<HTMLInputElement>
+    ) => {
+      const selectedFile = event.target.files?.[0] ?? null;
+
+      setUploadFile(selectedFile);
+
+      if (selectedFile) {
+        const defaultTitle = selectedFile.name
+          .replace(/\.[^/.]+$/, "")
+          .trim();
+
+        setUploadTitle((current) =>
+          current || defaultTitle
+        );
+
+        setUploadAltText((current) =>
+          current || defaultTitle
+        );
+      }
+    };
+
+    const handleUpload = async () => {
+      if (!uploadFile) {
+        setError("Please select a file to upload.");
+        return;
+      }
+
+      try {
+        setUploading(true);
+        setError("");
+
+        const formData = new FormData();
+        formData.append("file", uploadFile);
+        formData.append("folder", uploadFolder.trim());
+        formData.append("title", uploadTitle.trim());
+        formData.append("altText", uploadAltText.trim());
+        formData.append(
+          "description",
+          uploadDescription.trim()
+        );
+
+        const response = await fetch(
+          "/api/admin/cms/media",
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error(
+            result.message ??
+              "Unable to upload media."
+          );
+        }
+
+        closeUploadDialog();
+        setPage(1);
+        await loadMedia();
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Unable to upload media."
+        );
+      } finally {
+        setUploading(false);
+      }
+    };
+
     /* ============================================================
       Dashboard Statistics
     ============================================================ */
@@ -408,15 +535,162 @@
 
             <button
               type="button"
-              disabled
-              title="Upload workflow will be added in the next CMS task."
-              className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl bg-green-700 px-5 py-3 text-sm font-medium text-white opacity-70"
+              onClick={openUploadDialog}
+              disabled={loading || uploading}
+              className="inline-flex items-center gap-2 rounded-xl bg-green-700 px-5 py-3 text-sm font-medium text-white transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <Upload className="h-4 w-4" />
-              Upload Media
+              {uploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Upload className="h-4 w-4" />
+              )}
+              {uploading ? "Uploading..." : "Upload Media"}
             </button>
           </div>
         </div>
+
+        {uploadOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-2xl">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-900">
+                    Upload Media
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Add an image, document, video or audio file to the CMS media library.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={closeUploadDialog}
+                  disabled={uploading}
+                  className="rounded-xl px-3 py-2 text-slate-500 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  aria-label="Close upload dialog"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="mt-6 space-y-5">
+                <input
+                  ref={uploadInputRef}
+                  type="file"
+                  className="hidden"
+                  onChange={handleUploadFileChange}
+                  accept="image/jpeg,image/png,image/webp,image/gif,image/x-icon,image/vnd.microsoft.icon,video/mp4,video/webm,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,audio/mpeg,audio/wav,audio/ogg"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => uploadInputRef.current?.click()}
+                  disabled={uploading}
+                  className="flex w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center transition hover:border-green-500 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Upload className="h-10 w-10 text-green-700" />
+                  <span className="mt-4 text-sm font-semibold text-slate-800">
+                    {uploadFile
+                      ? uploadFile.name
+                      : "Choose a file to upload"}
+                  </span>
+                  <span className="mt-1 text-xs text-slate-500">
+                    Images, documents, videos and audio files
+                  </span>
+                </button>
+
+                <div className="grid gap-5 md:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">
+                      Folder
+                    </label>
+                    <input
+                      type="text"
+                      value={uploadFolder}
+                      onChange={(event) =>
+                        setUploadFolder(event.target.value)
+                      }
+                      placeholder="general"
+                      disabled={uploading}
+                      className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-green-700 focus:ring-2 focus:ring-green-100 disabled:bg-slate-100"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">
+                      Title
+                    </label>
+                    <input
+                      type="text"
+                      value={uploadTitle}
+                      onChange={(event) =>
+                        setUploadTitle(event.target.value)
+                      }
+                      placeholder="Media title"
+                      disabled={uploading}
+                      className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-green-700 focus:ring-2 focus:ring-green-100 disabled:bg-slate-100"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-slate-700">
+                    Alt Text
+                  </label>
+                  <input
+                    type="text"
+                    value={uploadAltText}
+                    onChange={(event) =>
+                      setUploadAltText(event.target.value)
+                    }
+                    placeholder="Accessible description"
+                    disabled={uploading}
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-green-700 focus:ring-2 focus:ring-green-100 disabled:bg-slate-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-slate-700">
+                    Description
+                  </label>
+                  <textarea
+                    value={uploadDescription}
+                    onChange={(event) =>
+                      setUploadDescription(event.target.value)
+                    }
+                    placeholder="Optional description"
+                    rows={3}
+                    disabled={uploading}
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-green-700 focus:ring-2 focus:ring-green-100 disabled:bg-slate-100"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 border-t border-slate-100 pt-5">
+                  <button
+                    type="button"
+                    onClick={closeUploadDialog}
+                    disabled={uploading}
+                    className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleUpload}
+                    disabled={!uploadFile || uploading}
+                    className="inline-flex items-center gap-2 rounded-xl bg-green-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {uploading && (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    )}
+                    {uploading ? "Uploading..." : "Upload"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ============================================================
             Statistics

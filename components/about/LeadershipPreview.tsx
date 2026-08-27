@@ -1,14 +1,29 @@
+/**
+ * ============================================================
+ * ROOTYM Global Export Platform
+ * ============================================================
+ * Author: Prem Singh
+ * Module      : About
+ * Feature     : Leadership Preview
+ * Purpose     : Displays the company leadership team using
+ *               translated content and locale-aware navigation.
+ * ============================================================
+ */
+
 "use client";
 
 import Image from "next/image";
 import Link from "next/link";
+
 import { motion, type Variants } from "framer-motion";
+
 import { ArrowRight } from "lucide-react";
 
 import { useTranslation } from "@/lib/i18n/context";
 
 const containerVariants: Variants = {
   hidden: {},
+
   visible: {
     transition: {
       staggerChildren: 0.12,
@@ -21,9 +36,11 @@ const fadeUpVariants: Variants = {
     opacity: 0,
     y: 40,
   },
+
   visible: {
     opacity: 1,
     y: 0,
+
     transition: {
       duration: 0.7,
       ease: "easeOut",
@@ -43,7 +60,9 @@ const directors = [
 ];
 
 export default function LeadershipPreview() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
+
+  const directorsHref = `/${locale}/meet-the-directors`;
 
   return (
     <section className="relative overflow-hidden bg-slate-50 py-24">
@@ -56,6 +75,7 @@ export default function LeadershipPreview() {
           whileInView="visible"
           viewport={{ once: true, amount: 0.2 }}
         >
+          {/* Section Heading */}
           <motion.div
             variants={fadeUpVariants}
             className="mx-auto max-w-3xl text-center"
@@ -77,6 +97,7 @@ export default function LeadershipPreview() {
             </p>
           </motion.div>
 
+          {/* Directors */}
           <div className="mt-16 grid gap-10 lg:grid-cols-2">
             {directors.map((director) => (
               <motion.div
@@ -84,17 +105,22 @@ export default function LeadershipPreview() {
                 variants={fadeUpVariants}
                 className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-2 hover:shadow-2xl"
               >
+                {/* Director Image */}
                 <div className="relative h-96 overflow-hidden">
                   <Image
                     src={director.image}
-                    alt={t(`about.leadership.directors.${director.key}.name`)}
+                    alt={t(
+                      `about.leadership.directors.${director.key}.name`
+                    )}
                     fill
                     className="object-cover transition duration-500 group-hover:scale-105"
                   />
 
                   <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-8">
                     <h3 className="text-3xl font-bold text-white">
-                      {t(`about.leadership.directors.${director.key}.name`)}
+                      {t(
+                        `about.leadership.directors.${director.key}.name`
+                      )}
                     </h3>
 
                     <p className="mt-2 text-lg text-green-200">
@@ -105,6 +131,7 @@ export default function LeadershipPreview() {
                   </div>
                 </div>
 
+                {/* Director Description */}
                 <div className="p-8">
                   <p className="leading-8 text-slate-600">
                     {t(
@@ -114,7 +141,7 @@ export default function LeadershipPreview() {
 
                   <div className="mt-8">
                     <Link
-                      href="/meet-the-directors"
+                      href={directorsHref}
                       className="inline-flex items-center gap-2 font-semibold text-green-700 transition hover:text-green-800"
                     >
                       {t("about.leadership.viewProfile")}
@@ -128,12 +155,12 @@ export default function LeadershipPreview() {
           </div>
 
           {/* Bottom CTA */}
-
           <motion.div
             variants={fadeUpVariants}
             className="mt-20 overflow-hidden rounded-3xl border border-green-100 bg-gradient-to-r from-green-700 via-green-600 to-green-700 shadow-xl"
           >
             <div className="grid gap-10 p-10 lg:grid-cols-2 lg:items-center lg:p-14">
+              {/* CTA Content */}
               <div className="text-white">
                 <span className="rounded-full bg-white/15 px-4 py-2 text-sm font-semibold backdrop-blur">
                   {t("about.leadership.bottom.badge")}
@@ -141,7 +168,9 @@ export default function LeadershipPreview() {
 
                 <h3 className="mt-6 text-4xl font-bold leading-tight">
                   {t("about.leadership.bottom.title.line1")}
+
                   <br />
+
                   {t("about.leadership.bottom.title.line2")}
                 </h3>
 
@@ -150,7 +179,7 @@ export default function LeadershipPreview() {
                 </p>
 
                 <Link
-                  href="/meet-the-directors"
+                  href={directorsHref}
                   className="mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-7 py-4 font-semibold text-green-700 transition-all duration-300 hover:scale-105"
                 >
                   {t("about.leadership.bottom.button")}
@@ -159,44 +188,65 @@ export default function LeadershipPreview() {
                 </Link>
               </div>
 
+              {/* Leadership Values */}
               <div className="grid gap-5 sm:grid-cols-2">
-              <div className="rounded-2xl bg-white/10 p-6 backdrop-blur">
+                {/* Strategic Leadership */}
+                <div className="rounded-2xl bg-white/10 p-6 backdrop-blur">
                   <h4 className="text-3xl font-bold text-white">
-                    {t("about.leadership.bottom.cards.leadership.title")}
+                    {t(
+                      "about.leadership.bottom.cards.leadership.title"
+                    )}
                   </h4>
 
                   <p className="mt-3 text-green-100">
-                    {t("about.leadership.bottom.cards.leadership.description")}
+                    {t(
+                      "about.leadership.bottom.cards.leadership.description"
+                    )}
                   </p>
                 </div>
 
+                {/* Innovation */}
                 <div className="rounded-2xl bg-white/10 p-6 backdrop-blur">
                   <h4 className="text-3xl font-bold text-white">
-                    {t("about.leadership.bottom.cards.innovation.title")}
+                    {t(
+                      "about.leadership.bottom.cards.innovation.title"
+                    )}
                   </h4>
 
                   <p className="mt-3 text-green-100">
-                    {t("about.leadership.bottom.cards.innovation.description")}
+                    {t(
+                      "about.leadership.bottom.cards.innovation.description"
+                    )}
                   </p>
                 </div>
 
+                {/* Integrity */}
                 <div className="rounded-2xl bg-white/10 p-6 backdrop-blur">
                   <h4 className="text-3xl font-bold text-white">
-                    {t("about.leadership.bottom.cards.integrity.title")}
+                    {t(
+                      "about.leadership.bottom.cards.integrity.title"
+                    )}
                   </h4>
 
                   <p className="mt-3 text-green-100">
-                    {t("about.leadership.bottom.cards.integrity.description")}
+                    {t(
+                      "about.leadership.bottom.cards.integrity.description"
+                    )}
                   </p>
                 </div>
 
+                {/* Global Partnerships */}
                 <div className="rounded-2xl bg-white/10 p-6 backdrop-blur">
                   <h4 className="text-3xl font-bold text-white">
-                    {t("about.leadership.bottom.cards.partnerships.title")}
+                    {t(
+                      "about.leadership.bottom.cards.partnerships.title"
+                    )}
                   </h4>
 
                   <p className="mt-3 text-green-100">
-                    {t("about.leadership.bottom.cards.partnerships.description")}
+                    {t(
+                      "about.leadership.bottom.cards.partnerships.description"
+                    )}
                   </p>
                 </div>
               </div>

@@ -13,27 +13,35 @@
 import type { CompanySettings } from "./types";
 
 export const DEFAULT_COMPANY_SETTINGS: CompanySettings = {
-  companyName: "",
-  legalName: "",
-  tagline: "",
+  company: {
+    companyName: "",
+    legalName: "",
+    tagline: "",
+    description: "",
+    logo: "",
+    favicon: "",
+  },
 
-  address: "",
-  phone: "",
-  whatsapp: "",
-  email: "",
+  contact: {
+    address: "",
+    phone: "",
+    whatsapp: "",
+    email: "",
+  },
 
-  gst: "",
- iec: "",
-  apeda: "",
+  business: {
+    gst: "",
+    iec: "",
+    apeda: "",
+  },
 
-  facebook: "",
-  linkedin: "",
-  instagram: "",
-  youtube: "",
-  twitter: "",
-
-  logo: "",
-  favicon: "",
+  social: {
+    facebook: "",
+    linkedin: "",
+    instagram: "",
+    youtube: "",
+    twitter: "",
+  },
 };
 
 export const COMPANY_SECTIONS = {

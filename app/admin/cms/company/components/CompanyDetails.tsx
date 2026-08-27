@@ -16,8 +16,10 @@ import type { CompanySettings } from "../types";
 
 interface CompanyDetailsProps {
   settings: CompanySettings;
+
   onChange: (
-    field: keyof CompanySettings,
+    section: keyof CompanySettings,
+    field: string,
     value: string
   ) => void;
 }
@@ -47,7 +49,9 @@ export default function CompanyDetails({
       ============================================================ */}
 
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Company Name */}
+        {/* ============================================================
+            Company Name
+        ============================================================ */}
 
         <div>
           <label className="mb-2 block text-sm font-medium text-slate-700">
@@ -56,9 +60,10 @@ export default function CompanyDetails({
 
           <input
             type="text"
-            value={settings.companyName}
+            value={settings.company.companyName}
             onChange={(event) =>
               onChange(
+                "company",
                 "companyName",
                 event.target.value
               )
@@ -68,7 +73,9 @@ export default function CompanyDetails({
           />
         </div>
 
-        {/* Legal Name */}
+        {/* ============================================================
+            Legal Name
+        ============================================================ */}
 
         <div>
           <label className="mb-2 block text-sm font-medium text-slate-700">
@@ -77,9 +84,10 @@ export default function CompanyDetails({
 
           <input
             type="text"
-            value={settings.legalName}
+            value={settings.company.legalName}
             onChange={(event) =>
               onChange(
+                "company",
                 "legalName",
                 event.target.value
               )
@@ -89,7 +97,9 @@ export default function CompanyDetails({
           />
         </div>
 
-        {/* Tagline */}
+        {/* ============================================================
+            Tagline
+        ============================================================ */}
 
         <div className="md:col-span-2">
           <label className="mb-2 block text-sm font-medium text-slate-700">
@@ -98,9 +108,10 @@ export default function CompanyDetails({
 
           <input
             type="text"
-            value={settings.tagline}
+            value={settings.company.tagline}
             onChange={(event) =>
               onChange(
+                "company",
                 "tagline",
                 event.target.value
               )
@@ -108,6 +119,35 @@ export default function CompanyDetails({
             className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-green-700"
             placeholder="Rooted in India. Trusted Worldwide."
           />
+        </div>
+
+        {/* ============================================================
+            Company Description
+        ============================================================ */}
+
+        <div className="md:col-span-2">
+          <label className="mb-2 block text-sm font-medium text-slate-700">
+            Company Description
+          </label>
+
+          <textarea
+            value={settings.company.description}
+            onChange={(event) =>
+              onChange(
+                "company",
+                "description",
+                event.target.value
+              )
+            }
+            rows={5}
+            className="w-full resize-y rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-green-700"
+            placeholder="Partner with ROOTYM for reliable sourcing, export documentation, quality assurance and timely international deliveries."
+          />
+
+          <p className="mt-2 text-xs text-slate-500">
+            This description can be used across the public website wherever
+            the company description is displayed.
+          </p>
         </div>
       </div>
     </section>

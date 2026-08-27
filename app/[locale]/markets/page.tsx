@@ -17,19 +17,32 @@ import Link from "@/lib/i18n/Link";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
 import type { Locale } from "@/lib/i18n/config";
 
-export const metadata: Metadata = {
-  title: "Global Markets | ROOTYM Agro Harvest Private Limited",
-  description:
-    "ROOTYM connects global buyers with premium Indian agricultural products through reliable sourcing, export compliance, quality assurance and international logistics support.",
-  keywords: [
-    "ROOTYM Global Markets",
-    "Indian Agricultural Exporter",
-    "Agricultural Export Company India",
-    "Food Export Partner",
-    "Indian Food Export",
-    "Global Agricultural Supply Chain",
-  ],
-};
+import siteSettingService from "@/lib/services/cms/site-setting.service";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const settings =
+    await siteSettingService.getCompanySettings();
+
+  const companyName =
+    settings.company.companyName.trim() || "ROOTYM";
+
+  const legalName =
+    settings.company.legalName.trim() || companyName;
+
+  return {
+    title: `Global Markets | ${legalName}`,
+    description:
+      `${companyName} connects global buyers with premium Indian agricultural products through reliable sourcing, export compliance, quality assurance and international logistics support.`,
+    keywords: [
+      `${companyName} Global Markets`,
+      "Indian Agricultural Exporter",
+      "Agricultural Export Company India",
+      "Food Export Partner",
+      "Indian Food Export",
+      "Global Agricultural Supply Chain",
+    ],
+  };
+}
 
 export default async function MarketsPage({
   params,

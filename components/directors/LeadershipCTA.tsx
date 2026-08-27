@@ -1,8 +1,26 @@
+/**
+ * ============================================================
+ * ROOTYM Global Export Platform
+ * ============================================================
+ * Author: Prem Singh
+ * Module      : Meet The Directors
+ * Feature     : Leadership CTA
+ * Purpose     : Displays the leadership partnership call-to-action
+ *               using locale-aware translations and CMS company identity.
+ * ============================================================
+ */
+
 "use client";
 
 import Link from "next/link";
+
 import { motion, type Variants } from "framer-motion";
+
 import { ArrowRight, Mail, Phone } from "lucide-react";
+
+import { useCompanySettings } from "@/lib/cms/company-settings";
+
+import { useTranslation } from "@/lib/i18n/context";
 
 const containerVariants: Variants = {
   hidden: {},
@@ -29,10 +47,15 @@ const itemVariants: Variants = {
 };
 
 export default function LeadershipCTA() {
+  const { companyName } = useCompanySettings();
+
+  const { t } = useTranslation();
+
+  const resolvedCompanyName = companyName || "ROOTYM";
+
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-green-950 via-green-900 to-emerald-900 py-24">
       {/* Background Glow */}
-
       <div className="absolute inset-0">
         <div className="absolute left-1/2 top-0 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-green-500/20 blur-3xl" />
 
@@ -42,7 +65,6 @@ export default function LeadershipCTA() {
       </div>
 
       {/* Grid */}
-
       <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:48px_48px]" />
 
       <motion.div
@@ -56,28 +78,26 @@ export default function LeadershipCTA() {
           variants={itemVariants}
           className="inline-flex rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-green-200 backdrop-blur"
         >
-          Let's Build Together
+          {t("about.directorsLeadershipCTA.badge")}
         </motion.span>
 
         <motion.h2
           variants={itemVariants}
           className="mt-8 text-4xl font-bold tracking-tight text-white md:text-5xl"
         >
-          Partner With ROOTYM
+          {t("about.directorsLeadershipCTA.title.beforeCompany")}{" "}
+          {resolvedCompanyName}
+          {t("about.directorsLeadershipCTA.title.afterCompany")}
         </motion.h2>
 
         <motion.p
           variants={itemVariants}
           className="mx-auto mt-6 max-w-3xl text-lg leading-8 text-green-100"
         >
-          Whether you're an international buyer, importer, distributor,
-          wholesaler or strategic partner, our leadership team is committed to
-          building long-term business relationships founded on trust, quality
-          and transparency.
+          {t("about.directorsLeadershipCTA.description")}
         </motion.p>
 
         {/* CTA Buttons */}
-
         <motion.div
           variants={itemVariants}
           className="mt-12 flex flex-col items-center justify-center gap-4 sm:flex-row"
@@ -86,7 +106,8 @@ export default function LeadershipCTA() {
             href="/request-quote"
             className="inline-flex items-center gap-2 rounded-xl bg-white px-7 py-4 font-semibold text-green-900 transition-all duration-300 hover:scale-105 hover:bg-green-50"
           >
-            Request a Quote
+            {t("about.directorsLeadershipCTA.buttons.quote")}
+
             <ArrowRight className="h-5 w-5" />
           </Link>
 
@@ -94,12 +115,11 @@ export default function LeadershipCTA() {
             href="/contact"
             className="inline-flex items-center rounded-xl border border-white/20 bg-white/10 px-7 py-4 font-semibold text-white backdrop-blur transition-all duration-300 hover:bg-white/20"
           >
-            Contact Us
+            {t("about.directorsLeadershipCTA.buttons.contact")}
           </Link>
         </motion.div>
 
         {/* Contact Cards */}
-
         <motion.div
           variants={itemVariants}
           className="mt-16 grid gap-6 md:grid-cols-2"
@@ -110,12 +130,11 @@ export default function LeadershipCTA() {
             </div>
 
             <h3 className="mt-5 text-xl font-semibold text-white">
-              Email Us
+              {t("about.directorsLeadershipCTA.cards.email.title")}
             </h3>
 
             <p className="mt-3 text-green-100">
-              Reach our export team for product inquiries, quotations and
-              international business discussions.
+              {t("about.directorsLeadershipCTA.cards.email.description")}
             </p>
           </div>
 
@@ -125,12 +144,11 @@ export default function LeadershipCTA() {
             </div>
 
             <h3 className="mt-5 text-xl font-semibold text-white">
-              Let's Connect
+              {t("about.directorsLeadershipCTA.cards.connect.title")}
             </h3>
 
             <p className="mt-3 text-green-100">
-              Our team is ready to discuss your sourcing requirements and help
-              build a reliable long-term partnership.
+              {t("about.directorsLeadershipCTA.cards.connect.description")}
             </p>
           </div>
         </motion.div>

@@ -1,3 +1,15 @@
+/**
+ * ============================================================
+ * ROOTYM Global Export Platform
+ * ============================================================
+ * Module      : CMS
+ * Feature     : Company Management
+ * File        : ContactDetails.tsx
+ * Purpose     : Contact Details Section
+ * Sprint      : Sprint 10.3
+ * ============================================================
+ */
+
 "use client";
 
 import type { CompanySettings } from "../types";
@@ -5,7 +17,8 @@ import type { CompanySettings } from "../types";
 interface ContactDetailsProps {
   settings: CompanySettings;
   onChange: (
-    field: keyof CompanySettings,
+    section: keyof CompanySettings,
+    field: string,
     value: string
   ) => void;
 }
@@ -29,6 +42,7 @@ export default function ContactDetails({
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Phone */}
+
         <div>
           <label
             htmlFor="phone"
@@ -40,9 +54,13 @@ export default function ContactDetails({
           <input
             id="phone"
             type="text"
-            value={settings.phone}
+            value={settings.contact.phone}
             onChange={(e) =>
-              onChange("phone", e.target.value)
+              onChange(
+                "contact",
+                "phone",
+                e.target.value
+              )
             }
             placeholder="+91 9876543210"
             className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-200"
@@ -50,6 +68,7 @@ export default function ContactDetails({
         </div>
 
         {/* WhatsApp */}
+
         <div>
           <label
             htmlFor="whatsapp"
@@ -61,9 +80,13 @@ export default function ContactDetails({
           <input
             id="whatsapp"
             type="text"
-            value={settings.whatsapp}
+            value={settings.contact.whatsapp}
             onChange={(e) =>
-              onChange("whatsapp", e.target.value)
+              onChange(
+                "contact",
+                "whatsapp",
+                e.target.value
+              )
             }
             placeholder="+91 9876543210"
             className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-200"
@@ -71,6 +94,7 @@ export default function ContactDetails({
         </div>
 
         {/* Email */}
+
         <div className="md:col-span-2">
           <label
             htmlFor="email"
@@ -82,9 +106,13 @@ export default function ContactDetails({
           <input
             id="email"
             type="email"
-            value={settings.email}
+            value={settings.contact.email}
             onChange={(e) =>
-              onChange("email", e.target.value)
+              onChange(
+                "contact",
+                "email",
+                e.target.value
+              )
             }
             placeholder="info@rootym.com"
             className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-200"
@@ -92,6 +120,7 @@ export default function ContactDetails({
         </div>
 
         {/* Address */}
+
         <div className="md:col-span-2">
           <label
             htmlFor="address"
@@ -103,9 +132,13 @@ export default function ContactDetails({
           <textarea
             id="address"
             rows={4}
-            value={settings.address}
+            value={settings.contact.address}
             onChange={(e) =>
-              onChange("address", e.target.value)
+              onChange(
+                "contact",
+                "address",
+                e.target.value
+              )
             }
             placeholder="Enter your complete business address..."
             className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-200"

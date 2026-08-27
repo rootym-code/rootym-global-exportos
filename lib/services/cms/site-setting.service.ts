@@ -1,4 +1,19 @@
+/**
+ * ============================================================
+ * ROOTYM Global Export Platform
+ * ============================================================
+ * Author: Prem Singh
+ * Module      : CMS
+ * Feature     : Site Settings Service
+ * File        : lib/services/cms/site-setting.service.ts
+ * Purpose     : Provides centralized CRUD operations for site
+ *               settings and delegates Company, Google and
+ *               WhatsApp settings to their dedicated services.
+ * ============================================================
+ */
+
 import { Prisma } from "@/lib/generated/prisma";
+
 import prisma from "@/lib/prisma";
 
 import BaseCmsService, {
@@ -22,7 +37,15 @@ import {
   WhatsAppSettingsInput,
 } from "./settings/types";
 
+/* ============================================================
+   Site Setting Service
+============================================================ */
+
 class SiteSettingService extends BaseCmsService {
+  /* ============================================================
+     Create Site Setting
+  ============================================================ */
+
   async create(data: CreateSiteSettingInput) {
     return this.execute(async () => {
       const validated =
@@ -46,6 +69,10 @@ class SiteSettingService extends BaseCmsService {
     });
   }
 
+  /* ============================================================
+     Update Site Setting
+  ============================================================ */
+
   async update(
     id: string,
     data: UpdateSiteSettingInput
@@ -59,7 +86,9 @@ class SiteSettingService extends BaseCmsService {
           await prisma.siteSetting.findFirst({
             where: {
               key: validated.key,
-              NOT: { id },
+              NOT: {
+                id,
+              },
             },
           });
 
@@ -70,27 +99,41 @@ class SiteSettingService extends BaseCmsService {
       }
 
       return prisma.siteSetting.update({
-        where: { id },
+        where: {
+          id,
+        },
         data: validated,
       });
     });
   }
+
+  /* ============================================================
+     Delete Site Setting
+  ============================================================ */
 
   async delete(id: string) {
     return this.execute(async () => {
       await this.getById(id);
 
       return prisma.siteSetting.delete({
-        where: { id },
+        where: {
+          id,
+        },
       });
     });
   }
+
+  /* ============================================================
+     Get Site Setting By ID
+  ============================================================ */
 
   async getById(id: string) {
     return this.execute(async () => {
       const setting =
         await prisma.siteSetting.findUnique({
-          where: { id },
+          where: {
+            id,
+          },
         });
 
       return this.ensureExists(
@@ -100,11 +143,21 @@ class SiteSettingService extends BaseCmsService {
     });
   }
 
+  /* ============================================================
+     Get Site Setting By Key
+  ============================================================ */
+
   async getByKey(key: string) {
     return prisma.siteSetting.findUnique({
-      where: { key },
+      where: {
+        key,
+      },
     });
   }
+
+  /* ============================================================
+     Company Settings
+  ============================================================ */
 
   async getCompanySettings() {
     return this.execute(async () => {
@@ -122,6 +175,10 @@ class SiteSettingService extends BaseCmsService {
     });
   }
 
+  /* ============================================================
+     Google Settings
+  ============================================================ */
+
   async getGoogleSettings() {
     return this.execute(async () => {
       return googleSettingsService.getGoogleSettings();
@@ -138,6 +195,10 @@ class SiteSettingService extends BaseCmsService {
     });
   }
 
+  /* ============================================================
+     WhatsApp Settings
+  ============================================================ */
+
   async getWhatsAppSettings() {
     return this.execute(async () => {
       return whatsappSettingsService.getWhatsAppSettings();
@@ -153,6 +214,10 @@ class SiteSettingService extends BaseCmsService {
       );
     });
   }
+
+  /* ============================================================
+     List Site Settings
+  ============================================================ */
 
   async list(
     filters?: {
@@ -172,16 +237,30 @@ class SiteSettingService extends BaseCmsService {
       const where: Prisma.SiteSettingWhereInput =
         {};
 
+      /* --------------------------------------------------------
+         Category Filter
+      -------------------------------------------------------- */
+
       if (filters?.category) {
-        where.category = filters.category;
+        where.category =
+          filters.category;
       }
+
+      /* --------------------------------------------------------
+         Public Visibility Filter
+      -------------------------------------------------------- */
 
       if (
         typeof filters?.isPublic ===
         "boolean"
       ) {
-        where.isPublic = filters.isPublic;
+        where.isPublic =
+          filters.isPublic;
       }
+
+      /* --------------------------------------------------------
+         Search Filter
+      -------------------------------------------------------- */
 
       if (search) {
         where.OR = [
@@ -200,6 +279,10 @@ class SiteSettingService extends BaseCmsService {
         ];
       }
 
+      /* --------------------------------------------------------
+         Paginated Result
+      -------------------------------------------------------- */
+
       return this.paginate(
         () =>
           prisma.siteSetting.findMany({
@@ -210,14 +293,20 @@ class SiteSettingService extends BaseCmsService {
               category: "asc",
             },
           }),
+
         () =>
           prisma.siteSetting.count({
             where,
           }),
+
         pagination
       );
     });
   }
 }
+
+/* ============================================================
+   Service Instance
+============================================================ */
 
 export default new SiteSettingService();

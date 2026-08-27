@@ -1,3 +1,15 @@
+/**
+ * ============================================================
+ * ROOTYM Global Export Platform
+ * ============================================================
+ * Author: Prem Singh
+ * Module      : Contact
+ * Feature     : Contact / Inquiry Form
+ * Purpose     : Provides the public inquiry form for buyers
+ *               to submit business and product requirements.
+ * ============================================================
+ */
+
 "use client";
 
 import { useMemo, useState } from "react";
@@ -20,6 +32,7 @@ import {
 } from "lucide-react";
 
 import type { InquiryInput } from "@/lib/validations/inquiry";
+
 import { useTranslation } from "@/lib/i18n/context";
 
 const containerVariants: Variants = {
@@ -133,8 +146,7 @@ export default function ContactForm() {
         {
           method: "POST",
           headers: {
-            "Content-Type":
-              "application/json",
+            "Content-Type": "application/json",
           },
           body: JSON.stringify(form),
         },
@@ -181,7 +193,6 @@ export default function ContactForm() {
           className="grid gap-12 lg:grid-cols-2 lg:items-start"
         >
           {/* Left Panel */}
-
           <motion.div variants={itemVariants}>
             <span className="inline-flex rounded-full bg-green-100 px-4 py-1 text-sm font-semibold text-green-700">
               {t("contact.form.badge")}
@@ -224,17 +235,30 @@ export default function ContactForm() {
               </div>
 
               <ul className="mt-5 space-y-3 text-gray-600">
-                <li>• {t("contact.form.why.apeda")}</li>
-                <li>• {t("contact.form.why.support")}</li>
-                <li>• {t("contact.form.why.sourcing")}</li>
-                <li>• {t("contact.form.why.communication")}</li>
-                <li>• {t("contact.form.why.quality")}</li>
+                <li>
+                  • {t("contact.form.why.apeda")}
+                </li>
+
+                <li>
+                  • {t("contact.form.why.support")}
+                </li>
+
+                <li>
+                  • {t("contact.form.why.sourcing")}
+                </li>
+
+                <li>
+                  • {t("contact.form.why.communication")}
+                </li>
+
+                <li>
+                  • {t("contact.form.why.quality")}
+                </li>
               </ul>
             </div>
           </motion.div>
 
           {/* Form */}
-
           <motion.div
             variants={itemVariants}
             className="rounded-3xl border border-gray-200 bg-white p-8 shadow-xl lg:p-10"
@@ -272,7 +296,9 @@ export default function ContactForm() {
               <div className="grid gap-6 md:grid-cols-2">
                 <div>
                   <label className="mb-2 block text-sm font-medium text-gray-700">
-                    {t("contact.form.fields.contactPerson")}
+                    {t(
+                      "contact.form.fields.contactPerson",
+                    )}
                   </label>
 
                   <div className="relative">
@@ -298,7 +324,9 @@ export default function ContactForm() {
 
                 <div>
                   <label className="mb-2 block text-sm font-medium text-gray-700">
-                    {t("contact.form.fields.companyName")}
+                    {t(
+                      "contact.form.fields.companyName",
+                    )}
                   </label>
 
                   <div className="relative">
@@ -508,7 +536,9 @@ export default function ContactForm() {
 
               <div>
                 <label className="mb-2 block text-sm font-medium text-gray-700">
-                  {t("contact.form.fields.requirement")}
+                  {t(
+                    "contact.form.fields.requirement",
+                  )}
                 </label>
 
                 <div className="relative">
@@ -532,7 +562,9 @@ export default function ContactForm() {
                 </div>
 
                 <p className="mt-2 text-sm text-gray-500">
-                  {t("contact.form.requirementHint")}
+                  {t(
+                    "contact.form.requirementHint",
+                  )}
                 </p>
               </div>
 
@@ -542,11 +574,15 @@ export default function ContactForm() {
 
                   <div>
                     <h4 className="font-semibold text-gray-900">
-                      {t("contact.form.security.title")}
+                      {t(
+                        "contact.form.security.title",
+                      )}
                     </h4>
 
                     <p className="mt-1 text-sm leading-6 text-gray-600">
-                      {t("contact.form.security.description")}
+                      {t(
+                        "contact.form.security.description",
+                      )}
                     </p>
                   </div>
                 </div>
@@ -555,7 +591,9 @@ export default function ContactForm() {
               <div className="space-y-4">
                 <button
                   type="submit"
-                  disabled={submitting || !canSubmit}
+                  disabled={
+                    submitting || !canSubmit
+                  }
                   className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-green-700 px-6 py-4 font-semibold text-white transition-all duration-300 hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {submitting ? (

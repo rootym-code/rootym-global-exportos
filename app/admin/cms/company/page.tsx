@@ -72,12 +72,16 @@ export default function CompanyManagementPage() {
   ============================================================ */
 
   const handleChange = (
-    field: keyof CompanySettings,
+    section: keyof CompanySettings,
+    field: string,
     value: string
   ) => {
     setSettings((previous) => ({
       ...previous,
-      [field]: value,
+      [section]: {
+        ...previous[section],
+        [field]: value,
+      },
     }));
   };
 

@@ -1,6 +1,21 @@
+/**
+ * ============================================================
+ * ROOTYM Global Export Platform
+ * ============================================================
+ * Author: Prem Singh
+ * Module      : Inquiry
+ * Feature     : Buyer Information
+ * Purpose     : Captures buyer company, contact and business
+ *               information required for export quotations.
+ * ============================================================
+ */
+
 "use client";
 
-import type { BuyerType, InquiryStepProps } from "@/types/inquiry";
+import type {
+  BuyerType,
+  InquiryStepProps,
+} from "@/types/inquiry";
 
 const buyerTypes: BuyerType[] = [
   "Importer",
@@ -23,24 +38,25 @@ export default function CompanyStep({
       </h2>
 
       <p className="mt-3 text-lg text-gray-600">
-        Please provide your company and contact details so our export team can
-        prepare the most suitable quotation.
+        Please provide your company and contact details so our
+        export team can prepare the most suitable quotation.
       </p>
 
       {/* Company Information */}
-
       <div className="mt-10">
         <h3 className="text-xl font-semibold text-gray-900">
           Company Information
         </h3>
 
         <div className="mt-6 grid gap-6 md:grid-cols-2">
+          {/* Company Name */}
           <div>
             <label
               htmlFor="companyName"
               className="mb-2 block text-sm font-semibold text-gray-700"
             >
-              Company Name <span className="text-red-500">*</span>
+              Company Name{" "}
+              <span className="text-red-500">*</span>
             </label>
 
             <input
@@ -49,18 +65,23 @@ export default function CompanyStep({
               placeholder="ABC Imports Ltd."
               value={formData.companyName}
               onChange={(e) =>
-                updateFormData("companyName", e.target.value)
+                updateFormData(
+                  "companyName",
+                  e.target.value,
+                )
               }
               className="w-full rounded-2xl border border-gray-300 px-5 py-4 outline-none transition focus:border-[#2E7D32] focus:ring-2 focus:ring-[#2E7D32]"
             />
           </div>
 
+          {/* Buyer Type */}
           <div>
             <label
               htmlFor="buyerType"
               className="mb-2 block text-sm font-semibold text-gray-700"
             >
-              Buyer Type <span className="text-red-500">*</span>
+              Buyer Type{" "}
+              <span className="text-red-500">*</span>
             </label>
 
             <select
@@ -69,12 +90,14 @@ export default function CompanyStep({
               onChange={(e) =>
                 updateFormData(
                   "buyerType",
-                  e.target.value as BuyerType
+                  e.target.value as BuyerType,
                 )
               }
               className="w-full rounded-2xl border border-gray-300 bg-white px-5 py-4 outline-none transition focus:border-[#2E7D32] focus:ring-2 focus:ring-[#2E7D32]"
             >
-              <option value="">Select Buyer Type</option>
+              <option value="">
+                Select Buyer Type
+              </option>
 
               {buyerTypes.map((type) => (
                 <option
@@ -90,19 +113,20 @@ export default function CompanyStep({
       </div>
 
       {/* Contact Information */}
-
       <div className="mt-12">
         <h3 className="text-xl font-semibold text-gray-900">
           Contact Information
         </h3>
 
         <div className="mt-6 grid gap-6 md:grid-cols-2">
+          {/* Contact Person */}
           <div>
             <label
               htmlFor="contactPerson"
               className="mb-2 block text-sm font-semibold text-gray-700"
             >
-              Contact Person <span className="text-red-500">*</span>
+              Contact Person{" "}
+              <span className="text-red-500">*</span>
             </label>
 
             <input
@@ -111,12 +135,16 @@ export default function CompanyStep({
               placeholder="John Smith"
               value={formData.contactPerson}
               onChange={(e) =>
-                updateFormData("contactPerson", e.target.value)
+                updateFormData(
+                  "contactPerson",
+                  e.target.value,
+                )
               }
               className="w-full rounded-2xl border border-gray-300 px-5 py-4 outline-none transition focus:border-[#2E7D32] focus:ring-2 focus:ring-[#2E7D32]"
             />
           </div>
 
+          {/* Designation */}
           <div>
             <label
               htmlFor="designation"
@@ -131,18 +159,23 @@ export default function CompanyStep({
               placeholder="Procurement Manager"
               value={formData.designation}
               onChange={(e) =>
-                updateFormData("designation", e.target.value)
+                updateFormData(
+                  "designation",
+                  e.target.value,
+                )
               }
               className="w-full rounded-2xl border border-gray-300 px-5 py-4 outline-none transition focus:border-[#2E7D32] focus:ring-2 focus:ring-[#2E7D32]"
             />
           </div>
 
+          {/* Business Email */}
           <div>
             <label
               htmlFor="email"
               className="mb-2 block text-sm font-semibold text-gray-700"
             >
-              Business Email <span className="text-red-500">*</span>
+              Business Email{" "}
+              <span className="text-red-500">*</span>
             </label>
 
             <input
@@ -151,18 +184,23 @@ export default function CompanyStep({
               placeholder="john@company.com"
               value={formData.email}
               onChange={(e) =>
-                updateFormData("email", e.target.value)
+                updateFormData(
+                  "email",
+                  e.target.value,
+                )
               }
               className="w-full rounded-2xl border border-gray-300 px-5 py-4 outline-none transition focus:border-[#2E7D32] focus:ring-2 focus:ring-[#2E7D32]"
             />
           </div>
 
+          {/* Mobile / WhatsApp */}
           <div>
             <label
               htmlFor="phone"
               className="mb-2 block text-sm font-semibold text-gray-700"
             >
-              Mobile / WhatsApp <span className="text-red-500">*</span>
+              Mobile / WhatsApp{" "}
+              <span className="text-red-500">*</span>
             </label>
 
             <input
@@ -171,12 +209,16 @@ export default function CompanyStep({
               placeholder="+91 9876543210"
               value={formData.phone}
               onChange={(e) =>
-                updateFormData("phone", e.target.value)
+                updateFormData(
+                  "phone",
+                  e.target.value,
+                )
               }
               className="w-full rounded-2xl border border-gray-300 px-5 py-4 outline-none transition focus:border-[#2E7D32] focus:ring-2 focus:ring-[#2E7D32]"
             />
           </div>
 
+          {/* Company Website */}
           <div className="md:col-span-2">
             <label
               htmlFor="website"
@@ -191,7 +233,10 @@ export default function CompanyStep({
               placeholder="https://www.company.com"
               value={formData.website}
               onChange={(e) =>
-                updateFormData("website", e.target.value)
+                updateFormData(
+                  "website",
+                  e.target.value,
+                )
               }
               className="w-full rounded-2xl border border-gray-300 px-5 py-4 outline-none transition focus:border-[#2E7D32] focus:ring-2 focus:ring-[#2E7D32]"
             />
@@ -200,16 +245,16 @@ export default function CompanyStep({
       </div>
 
       {/* Information Card */}
-
       <div className="mt-10 rounded-2xl border border-green-100 bg-green-50 p-5">
         <h3 className="font-semibold text-[#2E7D32]">
           Why do we need this information?
         </h3>
 
         <p className="mt-2 leading-7 text-gray-700">
-          Your company details help us prepare an accurate export quotation,
-          recommend suitable packaging and shipping options, and ensure our
-          export team can contact you with the best commercial offer.
+          Your company details help us prepare an accurate
+          export quotation, recommend suitable packaging and
+          shipping options, and ensure our export team can
+          contact you with the best commercial offer.
         </p>
       </div>
     </div>

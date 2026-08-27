@@ -1291,6 +1291,262 @@
     }
   }
 },
+
+"directorsHero": {
+  "badge": "Leadership • Vision • Innovation",
+  "title": {
+    "line1": "Meet The",
+    "line2": "Visionary Leaders"
+  },
+  "description": "Behind every successful organization is a team driven by purpose, integrity, and long-term vision. Meet the leaders shaping {companyName}'s mission of connecting Indian agriculture with global markets through trust, quality, and innovation.",
+  "buttons": {
+    "quote": "Request a Quote",
+    "contact": "Contact Our Team"
+  },
+  "stats": {
+    "experience": {
+      "value": "20+",
+      "label": "Years of Industry Experience"
+    },
+    "vision": {
+      "value": "Global",
+      "label": "Export Vision"
+    },
+    "quality": {
+      "value": "100%",
+      "label": "Commitment to Quality"
+    }
+  }
+},
+
+"directorsIntroduction": {
+  "badge": "Leadership",
+  "title": {
+    "line1": "Leadership Built on Vision,",
+    "line2": "Integrity & Long-Term Growth"
+  },
+  "description": "{companyName} was founded with a simple yet ambitious vision—to connect India's agricultural excellence with global opportunities. Our leadership team combines industry experience, entrepreneurial thinking, and a commitment to building sustainable relationships that benefit farmers, customers, and international trade partners.",
+  "philosophy": {
+    "title": "Our Leadership Philosophy",
+    "paragraph1": "We believe that successful exports are built on trust, consistency, and quality. Every business relationship is approached with transparency, ethical practices, and a long-term commitment to delivering value.",
+    "paragraph2": "Rather than focusing only on transactions, we aim to build enduring partnerships by understanding customer needs, maintaining product excellence, and continuously improving our processes.",
+    "quote": "Our mission is not just to export products, but to export India's trust, quality, and agricultural excellence to the world."
+  },
+  "highlights": {
+    "globalVision": {
+      "title": "Global Vision",
+      "description": "Expanding the reach of premium Indian agricultural products into international markets."
+    },
+    "trustedRelationships": {
+      "title": "Trusted Relationships",
+      "description": "Building long-term partnerships with farmers, buyers, logistics providers, and distributors."
+    },
+    "sustainableGrowth": {
+      "title": "Sustainable Growth",
+      "description": "Supporting responsible sourcing and creating value across the agricultural ecosystem."
+    },
+    "customerCommitment": {
+      "title": "Customer Commitment",
+      "description": "Delivering quality, transparency, and dependable export solutions for every customer."
+    }
+  }
+},
+"directorProfiles": {
+  "prem": {
+    "name": "Prem Chand Singh",
+    "designation": "Founder & Director",
+    "location": "Pune, Maharashtra, India",
+    "email": "director@rootym.com",
+    "biography": [
+      "Prem Chand Singh is the Founder and Director of ROOTYM Agro Harvest Private Limited. With over two decades of leadership experience in technology, enterprise transformation, and strategic business management, he envisioned ROOTYM as a bridge connecting India's agricultural excellence with global markets.",
+      "After a successful corporate career, he dedicated himself to building a modern export enterprise focused on quality, transparency, innovation, and long-term partnerships. His leadership combines technology-driven processes with ethical sourcing and international quality standards to deliver premium agricultural products worldwide.",
+      "He strongly believes that sustainable exports begin with empowering farmers, improving supply chains, and creating value for customers through consistency, trust, and continuous innovation."
+    ],
+    "vision": "To establish ROOTYM as one of India's most trusted global agricultural export brands by delivering premium products, embracing innovation, empowering farmers, and building lasting international partnerships.",
+    "expertise": [
+      "Business Strategy",
+      "Technology Leadership",
+      "Global Export Management",
+      "International Business Development",
+      "Supply Chain & Operations",
+      "Digital Transformation"
+    ],
+    "achievements": [
+      "20+ years of leadership and technology experience",
+      "Founder & Director of ROOTYM Agro Harvest Private Limited",
+      "Leading ROOTYM's global expansion strategy",
+      "Building technology-enabled export operations",
+      "Promoting sustainable agricultural growth and farmer empowerment"
+    ]
+  },
+  "anjali": {
+    "name": "Anjali Singh",
+    "designation": "Co-Founder & Director",
+    "location": "Pune, Maharashtra, India",
+    "email": "director@rootym.com",
+    "biography": [
+      "Anjali Singh serves as the Co-Founder and Director of ROOTYM Agro Harvest Private Limited. She plays a pivotal role in strengthening the company's operational excellence, organizational development, customer engagement, and strategic planning.",
+      "Her leadership philosophy is centered around trust, integrity, quality assurance, and creating meaningful relationships with customers and business partners across international markets.",
+      "She continuously works toward building efficient business processes that enable sustainable growth while ensuring ROOTYM consistently delivers exceptional service and premium-quality agricultural products."
+    ],
+    "vision": "To create a globally respected organization built on integrity, operational excellence, customer satisfaction, and sustainable business practices that benefit every stakeholder.",
+    "expertise": [
+      "Business Operations",
+      "Strategic Planning",
+      "Customer Relationship Management",
+      "Administration",
+      "Business Development",
+      "Organizational Excellence"
+    ],
+    "achievements": [
+      "Co-Founder & Director of ROOTYM Agro Harvest Private Limited",
+      "Driving operational excellence across the organization",
+      "Strengthening international customer relationships",
+      "Supporting sustainable and ethical business growth",
+      "Building long-term strategic partnerships"
+    ]
+  }
+},
+
+"directorsLeadershipPhilosophy": {
+  "badge": "Leadership Philosophy",
+  "title": {
+    "line1": "Principles That Guide",
+    "line2": "Every Business Decision"
+  },
+  "description": {
+    "beforeCompany": "At ",
+    "afterCompany": ", leadership extends beyond managing operations. It is about creating lasting value for customers, empowering farmers, strengthening partnerships, and building a globally respected Indian export brand."
+  },
+  "quote": "Leadership is measured not by the number of shipments we export, but by the trust we build, the farmers we empower, and the value we create for customers across the world.",
+  "principles": {
+    "trust": {
+      "title": "Trust First",
+      "description": "Every business relationship begins with transparency, honesty, and long-term commitment."
+    },
+    "quality": {
+      "title": "Quality Without Compromise",
+      "description": "Consistent product quality and compliance remain at the center of every shipment."
+    },
+    "global": {
+      "title": "Global Perspective",
+      "description": "Connecting Indian agricultural excellence with international buyers through reliable exports."
+    },
+    "responsible": {
+      "title": "Responsible Growth",
+      "description": "Supporting sustainable agriculture while creating value for farmers and customers alike."
+    },
+    "improvement": {
+      "title": "Continuous Improvement",
+      "description": "Learning, innovating and improving every process to deliver better customer experiences."
+    },
+    "purpose": {
+      "title": "Purpose Driven Leadership",
+      "description": "Making decisions guided by ethics, vision, customer success and long-term business value."
+    }
+  },
+  "closing": {
+    "beforeCompany": "These principles shape every interaction at ",
+    "afterCompany": "—from sourcing agricultural products and maintaining quality standards to serving international buyers with professionalism, transparency and consistency. They represent the foundation upon which the company continues to grow."
+  }
+},
+
+"directorsCompanyValues": {
+  "badge": "Core Values",
+  "title": {
+    "line1": "Values That Shape",
+    "line2": "Every Decision We Make"
+  },
+  "description": "Our values define how we work, collaborate, and grow. They guide our relationships with farmers, customers, employees, logistics partners, suppliers and global buyers.",
+  "values": {
+    "integrity": {
+      "title": "Integrity",
+      "description": "We conduct every business relationship with honesty, transparency and accountability."
+    },
+    "quality": {
+      "title": "Quality Excellence",
+      "description": "Maintaining high quality standards from sourcing to international delivery."
+    },
+    "customer": {
+      "title": "Customer Commitment",
+      "description": "Building long-term partnerships by consistently delivering value and reliability."
+    },
+    "global": {
+      "title": "Global Mindset",
+      "description": "Creating opportunities that connect Indian agriculture with international markets."
+    },
+    "sustainability": {
+      "title": "Sustainability",
+      "description": "Supporting responsible agricultural practices that benefit farmers and future generations."
+    },
+    "innovation": {
+      "title": "Innovation",
+      "description": "Continuously improving our products, processes and customer experience."
+    }
+  },
+  "bottom": {
+    "title": "Our Values Are Our Competitive Advantage",
+    "description": "Markets evolve, technologies advance, and customer expectations continue to grow. What remains constant is our commitment to doing business with integrity, delivering exceptional quality, fostering innovation, and building lasting relationships founded on trust."
+  }
+},
+
+"directorsLeadershipTimeline": {
+  "badge": "Leadership Journey",
+  "title": {
+    "line1": "Building {companyName}",
+    "line2": "One Milestone at a Time"
+  },
+  "description": "Every milestone reflects our commitment to excellence, entrepreneurship, innovation and building lasting relationships in the global agricultural export industry.",
+  "timeline": {
+    "experience": {
+      "year": "20+ Years",
+      "title": "Professional Experience",
+      "description": "Extensive experience across technology, leadership and business transformation, building strong foundations in operational excellence and customer-centric delivery."
+    },
+    "founded": {
+      "year": "2025",
+      "title": "Company Founded",
+      "description": "Established the company with a vision of taking premium Indian agricultural products to international markets while empowering farmers."
+    },
+    "today": {
+      "year": "Today",
+      "title": "Export Expansion",
+      "description": "Developing trusted global partnerships, strengthening export capabilities and building a premium agricultural brand recognised for quality and reliability."
+    },
+    "future": {
+      "year": "Future",
+      "title": "Sustainable Growth",
+      "description": "Leveraging technology, innovation and responsible sourcing to create long-term value for customers, partners and farming communities."
+    }
+  },
+  "futureVision": {
+    "title": "Looking Ahead",
+    "description": "Our journey has only begun. We remain committed to building a globally trusted agricultural export company that represents the quality, diversity and strength of Indian agriculture while creating sustainable opportunities for farmers and international partners."
+  }
+},
+"directorsLeadershipCTA": {
+  "badge": "Let's Build Together",
+  "title": {
+    "beforeCompany": "Partner With",
+    "afterCompany": ""
+  },
+  "description": "Whether you're an international buyer, importer, distributor, wholesaler or strategic partner, our leadership team is committed to building long-term business relationships founded on trust, quality and transparency.",
+  "buttons": {
+    "quote": "Request a Quote",
+    "contact": "Contact Us"
+  },
+  "cards": {
+    "email": {
+      "title": "Email Us",
+      "description": "Reach our export team for product inquiries, quotations and international business discussions."
+    },
+    "connect": {
+      "title": "Let's Connect",
+      "description": "Our team is ready to discuss your sourcing requirements and help build a reliable long-term partnership."
+    }
+  }
+},
+
 "leadership": {
   "badge": "Leadership Team",
 
@@ -1352,6 +1608,8 @@
     }
   }
 },
+
+
 "cta": {
   "badge": "Start Your Partnership",
 
@@ -1486,7 +1744,7 @@
     "line1": "Intelligent Export Decisions",
     "line2": "Powered by AI"
   },
-  "description": "In the future, ROOTYM Brain will help international buyers identify suitable products based on their country, market requirements, quantity, packaging preferences and business objectives.",
+  "description": "ROOTYM Brain helps international buyers identify suitable products based on their country, market requirements, quantity, packaging preferences and business objectives.",
   "cards": {
     "market": {
       "title": "Market Understanding",

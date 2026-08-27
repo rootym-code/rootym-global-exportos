@@ -1,3 +1,18 @@
+/**
+ * ============================================================
+ * Project         : ROOTYM Global Export Platform
+ * ============================================================
+ * Author: Prem Singh
+ * Module          : About Page
+ * Feature         : CMS-driven Page Metadata
+ *
+ * Description
+ * ------------------------------------------------------------
+ * Uses centralized CMS Company Settings for the About page
+ * metadata while preserving the existing page sections.
+ * ============================================================
+ */
+
 import type { Metadata } from "next";
 
 import Navbar from "@/components/layout/Navbar";
@@ -14,22 +29,40 @@ import LeadershipPreview from "@/components/about/LeadershipPreview";
 import GlobalPresence from "@/components/about/GlobalPresence";
 import AboutCTA from "@/components/about/AboutCTA";
 
-export const metadata: Metadata = {
-  title: "About Us | ROOTYM Agro Harvest Private Limited",
-  description:
-    "Learn about ROOTYM Agro Harvest Private Limited, our vision, leadership, export capabilities, premium agricultural products, and commitment to delivering trusted Indian agricultural products to global markets.",
-  keywords: [
-    "ROOTYM",
-    "About ROOTYM",
-    "Indian Agricultural Exporter",
-    "Agricultural Export Company India",
-    "Premium Makhana Exporter",
-    "Food Export Company",
-    "Indian Food Export",
-  ],
-};
+import companySettingsService from "@/lib/services/cms/settings/company-settings.service";
 
-export default function AboutPage() {
+export async function generateMetadata(): Promise<Metadata> {
+  const settings =
+    await companySettingsService.getCompanySettings();
+
+  const companyName =
+    settings.company.companyName ||
+    settings.company.legalName ||
+    "ROOTYM";
+
+  const description =
+    settings.company.description ||
+    settings.company.tagline ||
+    `Learn about ${companyName}, our vision, leadership, export capabilities, premium agricultural products, and commitment to delivering trusted Indian agricultural products to global markets.`;
+
+  return {
+    title: `About Us | ${companyName}`,
+    description,
+    keywords: [
+      companyName,
+      settings.company.legalName,
+      settings.company.tagline,
+      "About ROOTYM",
+      "Indian Agricultural Exporter",
+      "Agricultural Export Company India",
+      "Premium Makhana Exporter",
+      "Food Export Company",
+      "Indian Food Export",
+    ].filter(Boolean),
+  };
+}
+
+export default async function AboutPage() {
   return (
     <>
       <Navbar />

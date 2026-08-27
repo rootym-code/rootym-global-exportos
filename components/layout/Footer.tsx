@@ -1,13 +1,29 @@
-"use client";
-import { useTranslation } from "@/lib/i18n/context";
-import {
-  useEffect,
-  useState,
-} from "react";
+/**
+ * ============================================================
+ * ROOTYM Global Export Platform
+ * ============================================================
+ * Author: Prem Singh
+ * Module      : Layout
+ * Feature     : Public Footer
+ * Purpose     : Displays CMS-managed company information,
+ *               contact details and social media links.
+ * ============================================================
+ */
 
-import { motion, Variants } from "framer-motion";
-import Link from "next/link";
-import { Mail, MapPin, Phone } from "lucide-react";
+"use client";
+
+import { useTranslation } from "@/lib/i18n/context";
+import { Link } from "@/lib/i18n/Link";
+import { motion, type Variants } from "framer-motion";
+
+import { useCompanySettings } from "@/lib/cms/company-settings";
+
+import {
+  Mail,
+  MapPin,
+  Phone,
+  MessageCircle,
+} from "lucide-react";
 
 import {
   FaLinkedin,
@@ -16,29 +32,9 @@ import {
   FaYoutube,
 } from "react-icons/fa";
 
-import { footer } from "@/data/footer";
-
-
-interface CompanySettings {
-  company: {
-    companyName: string;
-    tagline: string;
-  };
-
-  contact: {
-    address: string;
-    phone: string;
-    email: string;
-  };
-
-  social: {
-    facebook: string;
-    linkedin: string;
-    instagram: string;
-    youtube: string;
-  };
-}
-
+/* ============================================================
+   Animation Variants
+============================================================ */
 
 const sectionVariants: Variants = {
   hidden: {
@@ -58,7 +54,6 @@ const sectionVariants: Variants = {
   },
 };
 
-
 const itemVariants: Variants = {
   hidden: {
     opacity: 0,
@@ -75,118 +70,99 @@ const itemVariants: Variants = {
   },
 };
 
+/* ============================================================
+   Footer
+============================================================ */
 
 export default function Footer() {
   const { t } = useTranslation();
-  const [companySettings, setCompanySettings] =
-    useState<CompanySettings | null>(null);
 
+  /*
+   * All client-specific company information is loaded from
+   * the centralized CMS company settings hook.
+   */
+  const {
+    companyName,
+    legalName,
+    tagline,
+    logo,
+    address,
+    phone,
+    whatsapp,
+    email,
+    social,
+  } = useCompanySettings();
 
+  /* ============================================================
+     Resolved CMS Values
+  ============================================================ */
 
-  useEffect(() => {
+  const resolvedCompanyName =
+    companyName?.trim() || "Company";
 
-    async function loadCompanySettings() {
+  const resolvedLegalName =
+    legalName?.trim() || resolvedCompanyName;
 
-      try {
+  const resolvedTagline =
+    tagline?.trim() || "";
 
-        const response =
-          await fetch(
-            "/api/admin/cms/settings/company",
-            {
-              cache: "no-store",
-            }
-          );
+  const resolvedDescription = t(
+    "footer.company.description"
+  ).replace(/^ROOTYM\b/, resolvedCompanyName);
 
+  const resolvedAddress =
+    address?.trim() || "";
 
-        const result =
-          await response.json();
+  const resolvedEmail =
+    email?.trim() || "";
 
+  const resolvedPhone =
+    phone?.trim() || "";
 
-        if (
-          result.success &&
-          result.data
-        ) {
-          setCompanySettings(
-            result.data
-          );
-        }
+  const resolvedWhatsapp =
+    whatsapp?.trim() || "";
 
+  const resolvedLogo =
+    logo?.trim() || "";
 
-      } catch (error) {
-
-        console.error(
-          "Footer CMS loading error:",
-          error
-        );
-
-      }
-
-    }
-
-
-    loadCompanySettings();
-
-  }, []);
-
-
-
-  const companyName =
-    companySettings?.company.companyName ||
-    footer.company.name;
-
-
-  const tagline =
-    companySettings?.company.tagline ||
-    footer.company.tagline;
-
-
-  const address =
-    companySettings?.contact.address ||
-    footer.contact.address;
-
-
-  const email =
-    companySettings?.contact.email ||
-    footer.contact.email;
-
-
-  const phone =
-    companySettings?.contact.phone ||
-    footer.contact.phone;
-
-
+  /* ============================================================
+     Social Links
+  ============================================================ */
 
   const socialLinks = [
     {
       Icon: FaLinkedin,
-      url:
-        companySettings?.social.linkedin ||
-        "#",
+      label: "LinkedIn",
+      url: social?.linkedin?.trim() || "",
     },
-
     {
       Icon: FaFacebook,
-      url:
-        companySettings?.social.facebook ||
-        "#",
+      label: "Facebook",
+      url: social?.facebook?.trim() || "",
     },
-
     {
       Icon: FaInstagram,
-      url:
-        companySettings?.social.instagram ||
-        "#",
+      label: "Instagram",
+      url: social?.instagram?.trim() || "",
     },
-
     {
       Icon: FaYoutube,
-      url:
-        companySettings?.social.youtube ||
-        "#",
+      label: "YouTube",
+      url: social?.youtube?.trim() || "",
     },
-  ];
+  ].filter((item) => item.url);
 
+  /* ============================================================
+     Contact URLs
+  ============================================================ */
 
+  const phoneHref = resolvedPhone
+    ? `tel:${resolvedPhone.replace(/[^\d+]/g, "")}`
+    : "";
+
+  const whatsappHref = resolvedWhatsapp
+    ? `https://wa.me/${resolvedWhatsapp.replace(/\D/g, "")}`
+    : "";
 
   return (
     <motion.footer
@@ -199,323 +175,321 @@ export default function Footer() {
       }}
       className="relative overflow-hidden bg-[#143D1F] text-white"
     >
-
-      {/* Ambient Background */}
+      {/* ============================================================
+          Ambient Background
+      ============================================================ */}
 
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-
         <motion.div
           animate={{
             x: [0, 80, 0],
             y: [0, -50, 0],
             scale: [1, 1.12, 1],
           }}
-
           transition={{
             duration: 18,
             repeat: Infinity,
             ease: "easeInOut",
           }}
-
           className="absolute -top-48 left-1/2 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-green-400/10 blur-[140px]"
         />
-
 
         <motion.div
           animate={{
             x: [0, -70, 0],
             y: [0, 60, 0],
           }}
-
           transition={{
             duration: 22,
             repeat: Infinity,
             ease: "easeInOut",
           }}
-
           className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-green-300/10 blur-[120px]"
         />
-
       </div>
 
-
+      {/* ============================================================
+          Main Footer Content
+      ============================================================ */}
 
       <div className="relative mx-auto max-w-7xl px-6 py-20">
-
         <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-5">
 
-
-          {/* Company */}
+          {/* ========================================================
+              Company
+          ======================================================== */}
 
           <motion.div
             variants={itemVariants}
             className="lg:col-span-2"
           >
+            {resolvedLogo ? (
+              <div className="mb-5">
+                <img
+                  src={resolvedLogo}
+                  alt={resolvedCompanyName}
+                  className="h-12 w-auto max-w-[220px] object-contain object-left"
+                />
+              </div>
+            ) : (
+              <motion.h2
+                whileHover={{
+                  scale: 1.02,
+                }}
+                className="text-3xl font-bold"
+              >
+                {resolvedCompanyName}
+              </motion.h2>
+            )}
 
-            <motion.h2
-              whileHover={{
-                scale: 1.02,
-              }}
-
-              className="text-3xl font-bold"
-            >
-              {companyName}
-            </motion.h2>
-
-
-            <p className="mt-3 font-medium text-green-300">
-              {tagline}
-            </p>
-
+            {resolvedTagline && (
+              <p className="mt-3 font-medium text-green-300">
+                {resolvedTagline}
+              </p>
+            )}
 
             <p className="mt-6 max-w-md leading-8 text-green-100">
-            {t("footer.company.description")}
+              {resolvedDescription}
             </p>
-
           </motion.div>
 
-
-
-
-          {/* Quick Links */}
+          {/* ========================================================
+              Quick Links
+          ======================================================== */}
 
           <motion.div variants={itemVariants}>
-
             <h3 className="text-lg font-semibold">
-            {t("footer.headings.quickLinks")}
+              {t("footer.headings.quickLinks")}
             </h3>
-
 
             <ul className="mt-6 space-y-3">
-
-            {[
-  t("footer.links.home"),
-  t("footer.links.products"),
-  t("footer.links.about"),
-  t("footer.links.contact"),
-].map(
-                (item) => (
-
-                  <li key={item}>
-
-                    <motion.div
-                      whileHover={{
-                        x: 6,
-                      }}
+              {[
+                {
+                  label: t("footer.links.home"),
+                  href: "/",
+                },
+                {
+                  label: t("footer.links.products"),
+                  href: "/products",
+                },
+                {
+                  label: t("footer.links.about"),
+                  href: "/about",
+                },
+                {
+                  label: t("footer.links.contact"),
+                  href: "/contact",
+                },
+              ].map((item) => (
+                <li key={item.href}>
+                  <motion.div
+                    whileHover={{
+                      x: 6,
+                    }}
+                  >
+                    <Link
+                      href={item.href}
+                      className="transition-colors hover:text-green-300"
                     >
-
-                      <Link
-                        href="#"
-                        className="transition-colors hover:text-green-300"
-                      >
-                        {item}
-                      </Link>
-
-                    </motion.div>
-
-                  </li>
-
-                )
-              )}
-
+                      {item.label}
+                    </Link>
+                  </motion.div>
+                </li>
+              ))}
             </ul>
-
           </motion.div>
 
-
-
-
-
-          {/* Products */}
+          {/* ========================================================
+              Products
+          ======================================================== */}
 
           <motion.div variants={itemVariants}>
-
             <h3 className="text-lg font-semibold">
-            {t("footer.headings.products")}
+              {t("footer.headings.products")}
             </h3>
-
 
             <ul className="mt-6 space-y-3">
-
-            {[
-  t("footer.products.makhana"),
-  t("footer.products.onion"),
-  t("footer.products.potato"),
-  t("footer.products.mango"),
-].map(
-                (item) => (
-
-                  <li key={item}>
-
-                    <motion.div
-                      whileHover={{
-                        x: 6,
-                      }}
-
-                      className="cursor-default text-green-100 transition-colors hover:text-green-300"
+              {[
+                {
+                  label: t("footer.products.makhana"),
+                  href: "/products/makhana",
+                },
+                {
+                  label: t("footer.products.onion"),
+                  href: "/products/onion",
+                },
+                {
+                  label: t("footer.products.potato"),
+                  href: "/products/potato",
+                },
+                {
+                  label: t("footer.products.mango"),
+                  href: "/products/mango",
+                },
+              ].map((item) => (
+                <li key={item.href}>
+                  <motion.div
+                    whileHover={{
+                      x: 6,
+                    }}
+                  >
+                    <Link
+                      href={item.href}
+                      className="text-green-100 transition-colors hover:text-green-300"
                     >
-                      {item}
-                    </motion.div>
-
-                  </li>
-
-                )
-              )}
-
+                      {item.label}
+                    </Link>
+                  </motion.div>
+                </li>
+              ))}
             </ul>
-
           </motion.div>
 
-
-
-
-
-          {/* Contact */}
+          {/* ========================================================
+              Contact
+          ======================================================== */}
 
           <motion.div variants={itemVariants}>
-
             <h3 className="text-lg font-semibold">
-            {t("footer.headings.contact")}
+              {t("footer.headings.contact")}
             </h3>
-
-
 
             <div className="mt-6 space-y-5">
 
+              {/* Address */}
 
-              <motion.div
-                whileHover={{
-                  x: 5,
-                }}
+              {resolvedAddress && (
+                <motion.div
+                  whileHover={{
+                    x: 5,
+                  }}
+                  className="flex gap-3"
+                >
+                  <MapPin className="mt-1 h-5 w-5 flex-shrink-0 text-green-300" />
 
-                className="flex gap-3"
-              >
-
-                <MapPin className="mt-1 h-5 w-5 flex-shrink-0 text-green-300" />
-
-                <span className="text-green-100">
-                  {address}
-                </span>
-
-              </motion.div>
-
-
-
-
-              <motion.div
-                whileHover={{
-                  x: 5,
-                }}
-
-                className="flex gap-3"
-              >
-
-                <Mail className="mt-1 h-5 w-5 flex-shrink-0 text-green-300" />
-
-                <span className="text-green-100">
-                  {email}
-                </span>
-
-              </motion.div>
-
-
-
-
-              <motion.div
-                whileHover={{
-                  x: 5,
-                }}
-
-                className="flex gap-3"
-              >
-
-                <Phone className="mt-1 h-5 w-5 flex-shrink-0 text-green-300" />
-
-                <span className="text-green-100">
-                  {phone}
-                </span>
-
-              </motion.div>
-
-
-            </div>
-
-
-
-
-
-            {/* Social Icons */}
-
-            <div className="mt-8 flex gap-4">
-
-              {socialLinks.map(
-                ({
-                  Icon,
-                  url,
-                }, index) => (
-
-                  <motion.a
-                    key={index}
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-
-                    whileHover={{
-                      y: -5,
-                      scale: 1.15,
-                    }}
-
-                    whileTap={{
-                      scale: 0.95,
-                    }}
-
-                    className="flex h-11 w-11 items-center justify-center rounded-full border border-green-500/40 bg-white/5 text-green-200 backdrop-blur transition-colors hover:border-green-300 hover:bg-white/10 hover:text-white"
-                  >
-
-                    <Icon className="h-5 w-5" />
-
-                  </motion.a>
-
-                )
+                  <span className="text-green-100">
+                    {resolvedAddress}
+                  </span>
+                </motion.div>
               )}
 
+              {/* Email */}
+
+              {resolvedEmail && (
+                <motion.div
+                  whileHover={{
+                    x: 5,
+                  }}
+                  className="flex gap-3"
+                >
+                  <Mail className="mt-1 h-5 w-5 flex-shrink-0 text-green-300" />
+
+                  <a
+                    href={`mailto:${resolvedEmail}`}
+                    className="text-green-100 transition-colors hover:text-green-300"
+                  >
+                    {resolvedEmail}
+                  </a>
+                </motion.div>
+              )}
+
+              {/* Phone */}
+
+              {resolvedPhone && (
+                <motion.div
+                  whileHover={{
+                    x: 5,
+                  }}
+                  className="flex gap-3"
+                >
+                  <Phone className="mt-1 h-5 w-5 flex-shrink-0 text-green-300" />
+
+                  <a
+                    href={phoneHref}
+                    className="text-green-100 transition-colors hover:text-green-300"
+                  >
+                    {resolvedPhone}
+                  </a>
+                </motion.div>
+              )}
+
+              {/* WhatsApp */}
+
+              {resolvedWhatsapp && whatsappHref && (
+                <motion.div
+                  whileHover={{
+                    x: 5,
+                  }}
+                  className="flex gap-3"
+                >
+                  <MessageCircle className="mt-1 h-5 w-5 flex-shrink-0 text-green-300" />
+
+                  <a
+                    href={whatsappHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-green-100 transition-colors hover:text-green-300"
+                  >
+                    WhatsApp
+                  </a>
+                </motion.div>
+              )}
             </div>
 
+            {/* ======================================================
+                Social Icons
+            ====================================================== */}
 
+            {socialLinks.length > 0 && (
+              <div className="mt-8 flex gap-4">
+                {socialLinks.map(
+                  ({
+                    Icon,
+                    label,
+                    url,
+                  }) => (
+                    <motion.a
+                      key={label}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={label}
+                      title={label}
+                      whileHover={{
+                        y: -5,
+                        scale: 1.15,
+                      }}
+                      whileTap={{
+                        scale: 0.95,
+                      }}
+                      className="flex h-11 w-11 items-center justify-center rounded-full border border-green-500/40 bg-white/5 text-green-200 backdrop-blur transition-colors hover:border-green-300 hover:bg-white/10 hover:text-white"
+                    >
+                      <Icon className="h-5 w-5" />
+                    </motion.a>
+                  )
+                )}
+              </div>
+            )}
           </motion.div>
-
-
         </div>
 
-
-
-
-
-        {/* Bottom Bar */}
+        {/* ============================================================
+            Bottom Bar
+        ============================================================ */}
 
         <motion.div
           variants={itemVariants}
-
           className="mt-16 border-t border-green-700/70 pt-8 text-center"
         >
-
           <p className="text-sm text-green-200">
-          {t("footer.copyright")}
+            © {new Date().getFullYear()} {resolvedLegalName}. All Rights Reserved.
           </p>
-
 
           <p className="mt-2 text-xs text-green-300">
-          {t("footer.tagline")}
+            {t("footer.tagline")}
           </p>
-
-
         </motion.div>
-
-
       </div>
-
-
     </motion.footer>
   );
-
 }
