@@ -12,106 +12,110 @@
  */
 
 import {
-    DeleteObjectCommand,
-    PutObjectCommand,
-    S3Client,
-  } from "@aws-sdk/client-s3";
+  DeleteObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
 
-  import type {
-    StorageProvider,
-    StorageUploadInput,
-    StorageUploadResult,
-  } from "./storage.types";
+import type {
+  StorageProvider,
+  StorageUploadInput,
+  StorageUploadResult,
+} from "./storage.types";
 
-  function getRequiredEnvironmentVariable(
-    name: string
-  ) {
-    const value = process.env[name];
+function getRequiredEnvironmentVariable(
+  name: string
+): string {
+  const value = process.env[name];
 
-    if (!value) {
-      throw new Error(
-        `Missing required storage environment variable: ${name}`
-      );
-    }
-
-    return value;
+  if (!value) {
+    throw new Error(
+      `Missing required storage environment variable: ${name}`
+    );
   }
 
-  function getR2Client() {
-    const accountId =
-      getRequiredEnvironmentVariable(
-        "R2_ACCOUNT_ID"
-      );
+  return value;
+}
 
-    const accessKeyId =
-      getRequiredEnvironmentVariable(
-        "R2_ACCESS_KEY_ID"
-      );
+function getR2Client(): S3Client {
+  const endpoint =
+    getRequiredEnvironmentVariable(
+      "R2_ENDPOINT"
+    );
 
-    const secretAccessKey =
-      getRequiredEnvironmentVariable(
-        "R2_SECRET_ACCESS_KEY"
-      );
+  const accessKeyId =
+    getRequiredEnvironmentVariable(
+      "R2_ACCESS_KEY_ID"
+    );
 
-    return new S3Client({
-      region: "auto",
-      endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
-      credentials: {
-        accessKeyId,
-        secretAccessKey,
-      },
-    });
+  const secretAccessKey =
+    getRequiredEnvironmentVariable(
+      "R2_SECRET_ACCESS_KEY"
+    );
+
+  return new S3Client({
+    region: "auto",
+    endpoint,
+    credentials: {
+      accessKeyId,
+      secretAccessKey,
+    },
+  });
+}
+
+class R2StorageService
+  implements StorageProvider
+{
+  private getBucketName(): string {
+    return getRequiredEnvironmentVariable(
+      "R2_BUCKET"
+    );
   }
 
-  class R2StorageService implements StorageProvider {
-    private getBucketName() {
-      return getRequiredEnvironmentVariable(
-        "R2_BUCKET"
-      );
-    }
-
-    private getPublicUrl() {
-      return getRequiredEnvironmentVariable(
-        "R2_PUBLIC_URL"
-      ).replace(/\/+$/, "");
-    }
-
-    async upload(
-      input: StorageUploadInput
-    ): Promise<StorageUploadResult> {
-      const client = getR2Client();
-
-      const key = input.key.replace(
-        /^\/+/,
-        ""
-      );
-
-      await client.send(
-        new PutObjectCommand({
-          Bucket: this.getBucketName(),
-          Key: key,
-          Body: input.body,
-          ContentType: input.contentType,
-        })
-      );
-
-      return {
-        key,
-        url: `${this.getPublicUrl()}/${key}`,
-        provider: "r2",
-      };
-    }
-
-    async delete(key: string) {
-      const client = getR2Client();
-
-      await client.send(
-        new DeleteObjectCommand({
-          Bucket: this.getBucketName(),
-          Key: key.replace(/^\/+/, ""),
-        })
-      );
-    }
+  private getPublicUrl(): string {
+    return getRequiredEnvironmentVariable(
+      "R2_PUBLIC_URL"
+    ).replace(/\/+$/, "");
   }
 
-  export default new R2StorageService();
+  async upload(
+    input: StorageUploadInput
+  ): Promise<StorageUploadResult> {
+    const client = getR2Client();
+
+    const key = input.key.replace(
+      /^\/+/,
+      ""
+    );
+
+    await client.send(
+      new PutObjectCommand({
+        Bucket: this.getBucketName(),
+        Key: key,
+        Body: input.body,
+        ContentType: input.contentType,
+      })
+    );
+
+    return {
+      key,
+      url: `${this.getPublicUrl()}/${key}`,
+      provider: "r2",
+    };
+  }
+
+  async delete(
+    key: string
+  ): Promise<void> {
+    const client = getR2Client();
+
+    await client.send(
+      new DeleteObjectCommand({
+        Bucket: this.getBucketName(),
+        Key: key.replace(/^\/+/, ""),
+      })
+    );
+  }
+}
+
+export default new R2StorageService();

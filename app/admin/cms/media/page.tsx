@@ -34,7 +34,9 @@
     Loader2,
     Music,
     RefreshCw,
+    RotateCcw,
     Search,
+    Trash2,
     Upload,
     Video,
   } from "lucide-react";
@@ -260,6 +262,18 @@
     const [uploading, setUploading] =
       useState(false);
 
+    const [includeDeleted, setIncludeDeleted] =
+      useState(false);
+
+    const [deletingId, setDeletingId] =
+      useState<string | null>(null);
+
+    const [restoringId, setRestoringId] =
+      useState<string | null>(null);
+
+    const [purgingId, setPurgingId] =
+      useState<string | null>(null);
+
     const debounceTimer =
       useRef<ReturnType<typeof setTimeout> | null>(
         null
@@ -318,6 +332,10 @@
           );
         }
 
+        if (includeDeleted) {
+          params.set("includeDeleted", "true");
+        }
+
         const response = await fetch(
           `/api/admin/cms/media?${params.toString()}`,
           {
@@ -355,6 +373,7 @@
       search,
       folder,
       mediaType,
+      includeDeleted,
     ]);
 
     useEffect(() => {
@@ -450,6 +469,121 @@
         );
       } finally {
         setUploading(false);
+      }
+    };
+
+    const handleDelete = async (item: MediaDto) => {
+      const confirmed = window.confirm(
+        `Delete "${item.title ?? item.fileName}" from the media library?`
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      try {
+        setDeletingId(item.id);
+        setError("");
+
+        const response = await fetch(
+          `/api/admin/cms/media/${item.id}`,
+          {
+            method: "DELETE",
+          }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error(
+            result.message ??
+              "Unable to delete media."
+          );
+        }
+
+        await loadMedia();
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Unable to delete media."
+        );
+      } finally {
+        setDeletingId(null);
+      }
+    };
+
+    const handleRestore = async (item: MediaDto) => {
+      try {
+        setRestoringId(item.id);
+        setError("");
+
+        const response = await fetch(
+          `/api/admin/cms/media/${item.id}/restore`,
+          {
+            method: "POST",
+          }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error(
+            result.message ??
+              "Unable to restore media."
+          );
+        }
+
+        await loadMedia();
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Unable to restore media."
+        );
+      } finally {
+        setRestoringId(null);
+      }
+    };
+
+    const handlePurge = async (item: MediaDto) => {
+      const confirmed = window.confirm(
+        `Permanently delete "${item.title ?? item.fileName}"? This will permanently remove the media record and its physical storage object. This action cannot be undone.`
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      try {
+        setPurgingId(item.id);
+        setError("");
+
+        const response = await fetch(
+          `/api/admin/cms/media/${item.id}/purge`,
+          {
+            method: "DELETE",
+          }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error(
+            result.message ??
+              "Unable to permanently delete media."
+          );
+        }
+
+        await loadMedia();
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Unable to permanently delete media."
+        );
+      } finally {
+        setPurgingId(null);
       }
     };
 
@@ -778,7 +912,7 @@
           <div className="grid gap-4 lg:grid-cols-12">
             {/* Search */}
 
-            <div className="relative lg:col-span-5">
+            <div className="relative lg:col-span-4">
               <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 
               <input
@@ -811,7 +945,7 @@
 
             {/* Media Type */}
 
-            <div className="relative lg:col-span-3">
+            <div className="relative lg:col-span-2">
               <Filter className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 
               <select
@@ -832,6 +966,28 @@
                     {type}
                   </option>
                 ))}
+              </select>
+            </div>
+
+            {/* Status */}
+
+            <div className="relative lg:col-span-2">
+              <select
+                value={includeDeleted ? "ALL" : "ACTIVE"}
+                onChange={(event) => {
+                  setPage(1);
+                  setIncludeDeleted(
+                    event.target.value === "ALL"
+                  );
+                }}
+                className="w-full rounded-xl border border-slate-300 bg-white py-3 px-4 outline-none transition focus:border-green-700"
+              >
+                <option value="ACTIVE">
+                  Active
+                </option>
+                <option value="ALL">
+                  All
+                </option>
               </select>
             </div>
 
@@ -1047,6 +1203,68 @@
                         {item.isDeleted ? "Deleted" : "Active"}
                       </span>
                     </div>
+
+                    {item.isDeleted ? (
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <button
+                          type="button"
+                          onClick={() => handleRestore(item)}
+                          disabled={
+                            restoringId === item.id ||
+                            purgingId === item.id
+                          }
+                          className="inline-flex items-center justify-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-2.5 text-sm font-semibold text-green-700 transition hover:bg-green-100 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {restoringId === item.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <RotateCcw className="h-4 w-4" />
+                          )}
+                          {restoringId === item.id
+                            ? "Restoring..."
+                            : "Restore"}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handlePurge(item)}
+                          disabled={
+                            restoringId === item.id ||
+                            purgingId === item.id
+                          }
+                          className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-300 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {purgingId === item.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                          {purgingId === item.id
+                            ? "Purging..."
+                            : "Permanently Delete"}
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(item)}
+                        disabled={
+                          deletingId === item.id ||
+                          uploading ||
+                          loading
+                        }
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {deletingId === item.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                        {deletingId === item.id
+                          ? "Deleting..."
+                          : "Delete"}
+                      </button>
+                    )}
                   </div>
                 </div>
               );

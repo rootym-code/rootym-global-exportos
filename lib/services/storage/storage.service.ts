@@ -6,8 +6,8 @@
  * Module      : Storage
  * Feature     : Storage Provider Factory
  * File        : lib/services/storage/storage.service.ts
- * Purpose     : Selects the configured persistent media storage
- *               provider without coupling CMS code to storage.
+ * Purpose     : Selects the configured or explicitly requested
+ *               persistent media storage provider.
  * ============================================================
  */
 
@@ -16,13 +16,22 @@ import type { StorageProvider } from "./storage.types";
 import localStorageService from "./local-storage.service";
 import r2StorageService from "./r2-storage.service";
 
-function getStorageProvider(): StorageProvider {
-  const provider =
+function normalizeProvider(
+  provider?: string
+): string {
+  return (
+    provider?.trim().toLowerCase() ||
     process.env.STORAGE_PROVIDER
       ?.trim()
-      .toLowerCase() || "local";
+      .toLowerCase() ||
+    "local"
+  );
+}
 
-  switch (provider) {
+function getStorageProvider(
+  provider?: string
+): StorageProvider {
+  switch (normalizeProvider(provider)) {
     case "local":
       return localStorageService;
 
