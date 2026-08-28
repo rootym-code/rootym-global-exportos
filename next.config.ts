@@ -11,6 +11,10 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "rootym.com",
       },
+      {
+        protocol: "https",
+        hostname: "media.rootym.com",
+      },
     ],
   },
 

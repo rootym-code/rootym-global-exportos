@@ -6,29 +6,27 @@
  * Module      : CMS
  * Feature     : Media Library Upload API
  * File        : app/api/admin/cms/media/route.ts
- * Purpose     : Authenticated CMS media upload and listing.
+ * Purpose     : Authenticated CMS media upload and listing
+ *               using provider-independent persistent storage.
  * ============================================================
  */
 
 import { randomUUID } from "crypto";
-import { promises as fs } from "fs";
 import path from "path";
 
 import { NextRequest } from "next/server";
 
 import { MediaType } from "@/lib/generated/prisma";
+
 import { authenticateAdmin } from "@/lib/auth";
+
 import ApiResponse from "@/lib/api/api-response";
 import handleApiError from "@/lib/api/handle-api-error";
+
 import mediaService from "@/lib/services/cms/media.service";
+import getStorageProvider from "@/lib/services/storage/storage.service";
 
 export const runtime = "nodejs";
-
-const UPLOAD_ROOT = path.join(
-  process.cwd(),
-  "public",
-  "uploads"
-);
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024;
 
@@ -51,7 +49,9 @@ const ALLOWED_MIME_TYPES = new Set([
   "audio/ogg",
 ]);
 
-function resolveMediaType(mimeType: string): MediaType {
+function resolveMediaType(
+  mimeType: string
+): MediaType {
   if (mimeType.startsWith("image/")) {
     return MediaType.IMAGE;
   }
@@ -68,7 +68,8 @@ function resolveMediaType(mimeType: string): MediaType {
     mimeType === "application/pdf" ||
     mimeType === "application/msword" ||
     mimeType.includes("wordprocessingml") ||
-    mimeType === "application/vnd.ms-excel" ||
+    mimeType ===
+      "application/vnd.ms-excel" ||
     mimeType.includes("spreadsheetml")
   ) {
     return MediaType.DOCUMENT;
@@ -77,7 +78,9 @@ function resolveMediaType(mimeType: string): MediaType {
   return MediaType.OTHER;
 }
 
-function sanitizeFolder(value: string | null): string {
+function sanitizeFolder(
+  value: string | null
+): string {
   const sanitized = (value ?? "general")
     .trim()
     .toLowerCase()
@@ -92,52 +95,74 @@ function getExtension(filename: string) {
   return path.extname(filename).toLowerCase();
 }
 
-function generateStoredFilename(originalName: string) {
+function generateStoredFilename(
+  originalName: string
+) {
   return `${Date.now()}-${randomUUID()}${getExtension(
     originalName
   )}`;
 }
 
-async function ensureDirectoryExists(directory: string) {
-  await fs.mkdir(directory, { recursive: true });
-}
-
-export async function GET(request: NextRequest) {
+export async function GET(
+  request: NextRequest
+) {
   try {
-    const auth = await authenticateAdmin(request);
+    const auth = await authenticateAdmin(
+      request
+    );
 
     if (!auth.authenticated) {
       return ApiResponse.error({
-        message: auth.error ?? "Unauthorized.",
+        message:
+          auth.error ?? "Unauthorized.",
         code: "UNAUTHORIZED",
         status: auth.status,
       });
     }
 
-    const { searchParams } = new URL(request.url);
+    const { searchParams } =
+      new URL(request.url);
 
-    const page = Number(searchParams.get("page") ?? 1);
-    const limit = Number(searchParams.get("limit") ?? 20);
-    const search = searchParams.get("search") ?? undefined;
-    const folder = searchParams.get("folder") ?? undefined;
-    const mediaType =
-      (searchParams.get("mediaType") as MediaType | null) ??
-      undefined;
-    const includeDeleted =
-      searchParams.get("includeDeleted") === "true";
-
-    const result = await mediaService.list(
-      {
-        mediaType,
-        folder,
-        includeDeleted,
-        search,
-      },
-      {
-        page,
-        limit,
-      }
+    const page = Number(
+      searchParams.get("page") ?? 1
     );
+
+    const limit = Number(
+      searchParams.get("limit") ?? 20
+    );
+
+    const search =
+      searchParams.get("search") ??
+      undefined;
+
+    const folder =
+      searchParams.get("folder") ??
+      undefined;
+
+    const mediaType =
+      (searchParams.get(
+        "mediaType"
+      ) as MediaType | null) ??
+      undefined;
+
+    const includeDeleted =
+      searchParams.get(
+        "includeDeleted"
+      ) === "true";
+
+    const result =
+      await mediaService.list(
+        {
+          mediaType,
+          folder,
+          includeDeleted,
+          search,
+        },
+        {
+          page,
+          limit,
+        }
+      );
 
     return ApiResponse.paginated({
       data: result.data,
@@ -145,7 +170,8 @@ export async function GET(request: NextRequest) {
         page: result.page,
         limit: result.limit,
         total: result.total,
-        totalPages: result.totalPages,
+        totalPages:
+          result.totalPages,
       },
     });
   } catch (error) {
@@ -153,21 +179,30 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
-  let absolutePath: string | null = null;
+export async function POST(
+  request: NextRequest
+) {
+  let storageKey: string | null = null;
 
   try {
-    const auth = await authenticateAdmin(request);
+    const auth =
+      await authenticateAdmin(request);
 
-    if (!auth.authenticated || !auth.admin) {
+    if (
+      !auth.authenticated ||
+      !auth.admin
+    ) {
       return ApiResponse.error({
-        message: auth.error ?? "Unauthorized.",
+        message:
+          auth.error ?? "Unauthorized.",
         code: "UNAUTHORIZED",
         status: auth.status,
       });
     }
 
-    const formData = await request.formData();
+    const formData =
+      await request.formData();
+
     const file = formData.get("file");
 
     if (!(file instanceof File)) {
@@ -178,9 +213,14 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    if (!ALLOWED_MIME_TYPES.has(file.type)) {
+    if (
+      !ALLOWED_MIME_TYPES.has(
+        file.type
+      )
+    ) {
       return ApiResponse.error({
-        message: "Unsupported file type.",
+        message:
+          "Unsupported file type.",
         code: "INVALID_FILE_TYPE",
         status: 400,
       });
@@ -188,83 +228,154 @@ export async function POST(request: NextRequest) {
 
     if (file.size <= 0) {
       return ApiResponse.error({
-        message: "The uploaded file is empty.",
+        message:
+          "The uploaded file is empty.",
         code: "INVALID_FILE",
         status: 400,
       });
     }
 
-    if (file.size > MAX_FILE_SIZE) {
+    if (
+      file.size > MAX_FILE_SIZE
+    ) {
       return ApiResponse.error({
-        message: "File size must not exceed 20 MB.",
+        message:
+          "File size must not exceed 20 MB.",
         code: "FILE_TOO_LARGE",
         status: 400,
       });
     }
 
-    const folder = sanitizeFolder(
-      formData.get("folder")?.toString() ?? "general"
-    );
+    const folder =
+      sanitizeFolder(
+        formData
+          .get("folder")
+          ?.toString() ??
+          "general"
+      );
 
-    const uploadDirectory = path.join(
-      UPLOAD_ROOT,
-      folder
-    );
+    const storedFileName =
+      generateStoredFilename(
+        file.name
+      );
 
-    await ensureDirectoryExists(uploadDirectory);
+    /*
+     * The storage key is intentionally independent
+     * of the physical storage provider.
+     *
+     * Example:
+     * products/1750000000000-uuid.webp
+     *
+     * This same key works with both local storage
+     * and Cloudflare R2.
+     */
+    storageKey =
+      `${folder}/${storedFileName}`;
 
-    const storedFileName = generateStoredFilename(
-      file.name
-    );
+    const bytes =
+      await file.arrayBuffer();
 
-    absolutePath = path.join(
-      uploadDirectory,
-      storedFileName
-    );
+    const buffer =
+      Buffer.from(bytes);
 
-    const bytes = await file.arrayBuffer();
+    const storage =
+      getStorageProvider();
 
-    await fs.writeFile(
-      absolutePath,
-      Buffer.from(bytes)
-    );
+    /*
+     * Upload the physical file first.
+     *
+     * The selected provider is determined by:
+     *
+     * STORAGE_PROVIDER=local
+     * or
+     * STORAGE_PROVIDER=r2
+     */
+    const uploaded =
+      await storage.upload({
+        key: storageKey,
+        body: buffer,
+        contentType: file.type,
+      });
 
     const title =
-      formData.get("title")?.toString().trim() ||
-      path.parse(file.name).name;
+      formData
+        .get("title")
+        ?.toString()
+        .trim() ||
+      path.parse(
+        file.name
+      ).name;
 
     const altText =
-      formData.get("altText")?.toString().trim() ||
-      path.parse(file.name).name;
+      formData
+        .get("altText")
+        ?.toString()
+        .trim() ||
+      path.parse(
+        file.name
+      ).name;
 
     const description =
-      formData.get("description")?.toString().trim() ||
+      formData
+        .get("description")
+        ?.toString()
+        .trim() ||
       undefined;
 
-    const media = await mediaService.create({
-      fileName: file.name,
-      storedFileName,
-      fileUrl: `/uploads/${folder}/${storedFileName}`,
-      storageProvider: "local",
-      mimeType: file.type,
-      mediaType: resolveMediaType(file.type),
-      fileSize: file.size,
-      folder,
-      title,
-      altText,
-      description,
-    });
+    /*
+     * Store the logical storage key in storedFileName.
+     *
+     * Example:
+     * products/1750000000000-uuid.webp
+     *
+     * fileUrl contains the actual public URL returned
+     * by the storage provider.
+     */
+    const media =
+      await mediaService.create({
+        fileName: file.name,
+        storedFileName:
+          uploaded.key,
+        fileUrl:
+          uploaded.url,
+        storageProvider:
+          uploaded.provider,
+        mimeType: file.type,
+        mediaType:
+          resolveMediaType(
+            file.type
+          ),
+        fileSize: file.size,
+        folder,
+        title,
+        altText,
+        description,
+      });
 
     return ApiResponse.created({
-      message: "Media uploaded successfully.",
+      message:
+        "Media uploaded successfully.",
       data: media,
     });
   } catch (error) {
-    if (absolutePath) {
+    /*
+     * If storage upload succeeded but the Media database
+     * record failed, remove the physical object so we
+     * don't leave orphaned files in local storage or R2.
+     */
+    if (storageKey) {
       try {
-        await fs.unlink(absolutePath);
-      } catch {
-        // Ignore cleanup errors after a failed upload.
+        const storage =
+          getStorageProvider();
+
+        await storage.delete(
+          storageKey
+        );
+      } catch (cleanupError) {
+        console.error(
+          "Failed to clean up uploaded media after error.",
+          cleanupError
+        );
       }
     }
 
