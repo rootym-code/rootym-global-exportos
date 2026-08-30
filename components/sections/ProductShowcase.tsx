@@ -1,9 +1,12 @@
 /**
  * File: components/sections/ProductShowcase.tsx
- * ROOTYM Frontend Sprint 007
+ * Author: Prem Singh
+ * Purpose: Renders the CMS-driven home product carousel with responsive navigation.
  */
 
 "use client";
+
+import { useEffect, useState } from "react";
 import { useTranslation } from "@/lib/i18n/context";
 import Image from "next/image";
 import Link from "next/link";
@@ -12,6 +15,7 @@ import {
   MapPin,
   Package,
   BadgeCheck,
+  ArrowLeft,
   ArrowRight,
 } from "lucide-react";
 
@@ -79,6 +83,51 @@ export default function ProductShowcase({
   products,
 }: ProductShowcaseProps) {
   const { t, locale } = useTranslation();
+  const [visibleCount, setVisibleCount] = useState(4);
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const validProducts = products.filter(
+    (product) => product.id && product.slug && product.name
+  );
+
+  useEffect(() => {
+    const updateVisibleCount = () => {
+      if (window.innerWidth < 768) {
+        setVisibleCount(1);
+      } else if (window.innerWidth < 1280) {
+        setVisibleCount(2);
+      } else {
+        setVisibleCount(4);
+      }
+    };
+
+    updateVisibleCount();
+    window.addEventListener("resize", updateVisibleCount);
+
+    return () => window.removeEventListener("resize", updateVisibleCount);
+  }, []);
+
+  useEffect(() => {
+    const maxIndex = Math.max(0, validProducts.length - visibleCount);
+    setCurrentIndex((index) => Math.min(index, maxIndex));
+  }, [validProducts.length, visibleCount]);
+
+  const canGoPrevious = currentIndex > 0;
+  const canGoNext = currentIndex < Math.max(0, validProducts.length - visibleCount);
+
+  const goPrevious = () => {
+    setCurrentIndex((index) => Math.max(0, index - 1));
+  };
+
+  const goNext = () => {
+    const maxIndex = Math.max(0, validProducts.length - visibleCount);
+    setCurrentIndex((index) => Math.min(maxIndex, index + 1));
+  };
+
+  const visibleProducts = validProducts.slice(
+    currentIndex,
+    currentIndex + visibleCount
+  );
 
   return (
 <Section
@@ -135,10 +184,43 @@ export default function ProductShowcase({
 </motion.div>
          
 
-        <div className="mt-16 grid gap-8 md:grid-cols-2 xl:grid-cols-3">
-        {products
-  .filter((product) => product.id && product.slug && product.name)
-  .map((product, index) => (
+        <div className="group relative mt-16 px-1">
+          {validProducts.length > visibleCount && (
+            <>
+              <button
+                type="button"
+                aria-label="Previous products"
+                onClick={goPrevious}
+                disabled={!canGoPrevious}
+                className={`absolute left-0 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 rounded-full border border-green-100 bg-white/95 p-3 text-[#2E7D32] shadow-lg backdrop-blur transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#2E7D32] ${
+                  canGoPrevious
+                    ? "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 hover:scale-105"
+                    : "pointer-events-none opacity-0"
+                }`}
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+
+              <button
+                type="button"
+                aria-label="Next products"
+                onClick={goNext}
+                disabled={!canGoNext}
+                className={`absolute right-0 top-1/2 z-20 translate-x-1/2 -translate-y-1/2 rounded-full border border-green-100 bg-white/95 p-3 text-[#2E7D32] shadow-lg backdrop-blur transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#2E7D32] ${
+                  canGoNext
+                    ? "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 hover:scale-105"
+                    : "pointer-events-none opacity-0"
+                }`}
+              >
+                <ArrowRight className="h-5 w-5" />
+              </button>
+            </>
+          )}
+
+          <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-4">
+            {visibleProducts
+              .filter((product) => product.id && product.slug && product.name)
+              .map((product, index) => (
     
 <motion.div
   key={product.id}
@@ -422,7 +504,8 @@ className="rounded-full border border-sky-200 bg-sky-50 px-4 py-1.5 text-xs font
                 className="absolute bottom-0 left-0 h-1.5 w-full origin-left rounded-full bg-gradient-to-r from-primary via-emerald-500 to-lime-400"
               />
             </motion.div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
       </motion.div>

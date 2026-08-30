@@ -778,3 +778,340 @@ enum RedirectType {
   PERMANENT
   TEMPORARY
 }
+
+// -----------------------------------------------------------------------------
+// ROOTYM SaaS Identity & Subscription Foundation
+// Author: Prem Singh
+// Purpose: Defines SaaS users, tenants, memberships, plans, and subscriptions.
+// -----------------------------------------------------------------------------
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  name            String
+  avatarUrl       String?
+  emailVerifiedAt DateTime?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  identities  AuthIdentity[]
+  memberships Membership[]
+
+  @@index([isActive])
+}
+
+model AuthIdentity {
+  id                String   @id @default(cuid())
+  userId            String
+  provider          String
+  providerAccountId String
+  providerEmail     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@index([provider])
+}
+
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships     Membership[]
+  subscriptions   Subscription[]
+  planChanges     SubscriptionPlanChange[]
+  billingCustomer BillingCustomer?
+  payments        Payment[]
+
+  @@index([isActive])
+}
+
+model Membership {
+  id        String         @id @default(cuid())
+  userId    String
+  tenantId  String
+  role      MembershipRole @default(OWNER)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tenantId])
+  @@index([userId])
+  @@index([tenantId])
+  @@index([role])
+}
+
+/**
+ * Author: Prem Singh
+ * Purpose: Defines ROOTYM SaaS trial and paid billing plans used for subscription management.
+ */
+
+model Plan {
+  id          String  @id @default(cuid())
+  code        String  @unique
+  name        String
+  description String?
+
+  type            PlanType        @default(PAID)
+  billingInterval BillingInterval @default(MONTHLY)
+
+  amount   Int    @default(0)
+  currency String @default("INR")
+
+  trialDays Int @default(0)
+
+  razorpayPlanId String? @unique
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subscriptions   Subscription[]
+  planChangesFrom SubscriptionPlanChange[] @relation("PlanChangeFromPlan")
+  planChangesTo   SubscriptionPlanChange[] @relation("PlanChangeToPlan")
+
+  @@index([isActive])
+  @@index([type])
+  @@index([billingInterval])
+  @@index([currency])
+}
+
+/**
+ * Author: Prem Singh
+ * Purpose: Stores the tenant subscription lifecycle and Razorpay billing references.
+ */
+
+model Subscription {
+  id              String             @id @default(cuid())
+  tenantId        String
+  planId          String
+  status          SubscriptionStatus @default(TRIALING)
+  billingInterval BillingInterval?
+  startedAt       DateTime           @default(now())
+
+  trialStartedAt DateTime?
+  trialEndsAt    DateTime?
+
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+
+  canceledAt DateTime?
+
+  amount   Int?
+  currency String?
+
+  razorpayCustomerId     String?
+  razorpaySubscriptionId String? @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  plan Plan @relation(fields: [planId], references: [id])
+
+  payments    Payment[]
+  planChanges SubscriptionPlanChange[]
+
+  @@index([tenantId])
+  @@index([planId])
+  @@index([status])
+  @@index([trialEndsAt])
+  @@index([razorpayCustomerId])
+}
+
+/**
+ * Author: Prem Singh
+ * Purpose: Stores a paid future subscription plan change without changing the currently effective plan.
+ */
+model SubscriptionPlanChange {
+  id                     String  @id @default(cuid())
+  tenantId               String
+  subscriptionId         String
+  razorpaySubscriptionId String?
+  fromPlanId             String
+  toPlanId               String
+
+  effectiveAt DateTime
+  status      PlanChangeStatus @default(PAYMENT_PENDING)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  fromPlan Plan @relation("PlanChangeFromPlan", fields: [fromPlanId], references: [id])
+
+  toPlan Plan @relation("PlanChangeToPlan", fields: [toPlanId], references: [id])
+
+  payments Payment[]
+
+  @@index([tenantId])
+  @@index([subscriptionId])
+  @@index([razorpaySubscriptionId])
+  @@index([fromPlanId])
+  @@index([toPlanId])
+  @@index([effectiveAt])
+  @@index([status])
+}
+
+/**
+ * Author: Prem Singh
+ * Purpose: Stores the Razorpay billing customer associated with a ROOTYM tenant.
+ */
+
+model BillingCustomer {
+  id       String @id @default(cuid())
+  tenantId String @unique
+
+  provider           String @default("RAZORPAY")
+  providerCustomerId String @unique
+
+  email String?
+  name  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([provider])
+}
+
+/**
+ * Author: Prem Singh
+ * Purpose: Stores individual SaaS payment transactions received through Razorpay.
+ */
+
+model Payment {
+  id String @id @default(cuid())
+
+  tenantId       String
+  subscriptionId String?
+  planChangeId   String?
+
+  provider String @default("RAZORPAY")
+
+  providerPaymentId      String  @unique
+  providerOrderId        String?
+  providerInvoiceId      String?
+  providerSubscriptionId String?
+
+  amount   Int
+  currency String @default("INR")
+
+  status PaymentStatus @default(CREATED)
+
+  paidAt   DateTime?
+  failedAt DateTime?
+
+  failureCode   String?
+  failureReason String?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  planChange SubscriptionPlanChange? @relation(fields: [planChangeId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([subscriptionId])
+  @@index([planChangeId])
+  @@index([status])
+  @@index([providerOrderId])
+  @@index([providerInvoiceId])
+  @@index([providerSubscriptionId])
+}
+
+/**
+ * Author: Prem Singh
+ * Purpose: Provides idempotent storage and processing state for Razorpay webhook events.
+ */
+
+model BillingWebhookEvent {
+  id String @id @default(cuid())
+
+  provider  String @default("RAZORPAY")
+  eventId   String @unique
+  eventType String
+
+  status BillingWebhookStatus @default(RECEIVED)
+
+  payload Json
+
+  processedAt  DateTime?
+  errorMessage String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([provider])
+  @@index([eventType])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum MembershipRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum SubscriptionStatus {
+  PENDING
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+enum BillingInterval {
+  MONTHLY
+  ANNUAL
+}
+
+enum PlanType {
+  TRIAL
+  PAID
+}
+
+enum PaymentStatus {
+  CREATED
+  AUTHORIZED
+  CAPTURED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum PlanChangeStatus {
+  PAYMENT_PENDING
+  PAYMENT_CONFIRMED
+  PAYMENT_FAILED
+  APPLIED
+}
+
+enum BillingWebhookStatus {
+  RECEIVED
+  PROCESSED
+  FAILED
+}

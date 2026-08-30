@@ -1,3 +1,8 @@
+/**
+ * Author: Prem Singh
+ * Purpose: Loads all published products for the Home page product carousel.
+ */
+
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 
@@ -18,7 +23,7 @@ export default async function Home() {
   const { items: products } = await listProducts({
     status: ProductStatus.PUBLISHED,
     page: 1,
-    pageSize: 6,
+    pageSize: 100,
   });
 
   return (
