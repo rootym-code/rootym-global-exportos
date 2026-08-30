@@ -359,7 +359,7 @@ useEffect(() => {
 
           <div>
             <p className="text-xs uppercase tracking-[0.35em] text-emerald-400">
-              ROOTYM AI
+              ROOTYM ExportOS
             </p>
 
             <h3 className="mt-2 text-2xl font-bold text-white">
@@ -563,7 +563,7 @@ useEffect(() => {
     <BrainCircuit className="h-5 w-5 text-cyan-400" />
 
     <span className="font-semibold text-white">
-      ROOTYM AI Assistant
+      ROOTYM ExportOS Assistant
     </span>
   </div>
 
@@ -759,7 +759,7 @@ useEffect(() => {
 <div className="flex justify-end">
   <div className="max-w-[85%] rounded-2xl rounded-br-md bg-emerald-500/10 border border-emerald-500/20 px-4 py-3">
     <p className="text-xs text-emerald-300">
-      ROOTYM AI • Draft
+      ROOTYM ExportOS • Draft
     </p>
     <p className="mt-2 text-sm text-white">
       Your quotation has been prepared and is ready for approval before sending.

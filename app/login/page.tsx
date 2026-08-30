@@ -57,7 +57,7 @@ export default async function LoginPage({
           {/* Brand */}
           <div className="mb-8 text-center">
             <Link
-              href="/en"
+    href="/"
               className="inline-flex items-center gap-3"
             >
               <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-emerald-400/20 bg-emerald-400/10 text-xl font-bold text-emerald-400">
@@ -204,7 +204,7 @@ export default async function LoginPage({
           {/* Footer */}
           <div className="mt-6 text-center">
             <Link
-              href="/en"
+        href="/"
               className="text-sm text-slate-500 transition hover:text-slate-300"
             >
               ← Back to ROOTYM

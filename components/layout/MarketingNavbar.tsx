@@ -90,7 +90,7 @@ export default function MarketingNavbar() {
         <Link
           href="#top"
           onClick={handleNavigation}
-          aria-label="ROOTYM AI Home"
+          aria-label="ROOTYM ExportOS Home"
           className="group flex items-center gap-3"
         >
           <motion.div
@@ -110,7 +110,7 @@ export default function MarketingNavbar() {
 
           <div className="leading-none">
             <span className="block text-xl font-extrabold tracking-wide text-white">
-              ROOTYM AI
+              ROOTYM ExportOS
             </span>
 
             <span className="mt-1 block text-[10px] font-medium uppercase tracking-[0.18em] text-slate-500">
