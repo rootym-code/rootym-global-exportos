@@ -3,102 +3,184 @@
  * ROOTYM ExportOS
  * ============================================================
  * Author: Prem Singh
- * Purpose: Provides hostname-based routing for the ROOTYM
- *          ExportOS marketing website and SaaS application.
+ * Purpose: Provides deterministic hostname-based separation
+ *          between the ROOTYM marketing website and the
+ *          ExportOS SaaS application.
  *
- *          Production domains:
+ * Production:
+ *   export.rootym.com
+ *     → /marketing
  *
- *            export.rootym.com
- *              → ROOTYM AI Marketing Website
+ *   app.export.rootym.com
+ *     → /saas
  *
- *            app.export.rootym.com
- *              → ROOTYM ExportOS SaaS
+ * Local development:
+ *   export.localhost
+ *     → /marketing
  *
- *          The legacy rootym.com website is deployed from a
- *          separate repository and is intentionally outside
- *          this application's routing architecture.
+ *   app.export.localhost
+ *     → /saas
+ *
+ * Public SaaS login:
+ *   /login
+ *     → app/login/page.tsx
+ *
+ * The physical route structure intentionally uses explicit
+ * "marketing" and "saas" directories to avoid ambiguity
+ * between app/page.tsx and app/app/page.tsx.
  * ============================================================
  */
 
 import { NextRequest, NextResponse } from "next/server";
 
-import {
-  defaultLocale,
-  isLocale,
-} from "@/lib/i18n/config";
+const MARKETING_HOSTS = new Set([
+  "export.rootym.com",
+  "export.localhost",
+]);
 
-const MARKETING_HOST = "export.rootym.com";
-const SAAS_HOST = "app.export.rootym.com";
+const SAAS_HOSTS = new Set([
+  "app.export.rootym.com",
+  "app.export.localhost",
+]);
+
+const PUBLIC_ADMIN_ROUTES = new Set([
+  "/admin/login",
+]);
+
+function isStaticAsset(pathname: string) {
+  return (
+    pathname.startsWith("/_next") ||
+    pathname === "/favicon.ico" ||
+    pathname.includes(".")
+  );
+}
+
+function protectAdminRoute(
+  request: NextRequest,
+  pathname: string
+) {
+  if (!pathname.startsWith("/admin")) {
+    return null;
+  }
+
+  if (PUBLIC_ADMIN_ROUTES.has(pathname)) {
+    return null;
+  }
+
+  const token = request.cookies.get(
+    "rootym_admin_token"
+  )?.value;
+
+  if (token) {
+    return null;
+  }
+
+  const loginUrl = new URL(
+    "/admin/login",
+    request.url
+  );
+
+  loginUrl.searchParams.set(
+    "callbackUrl",
+    pathname
+  );
+
+  return NextResponse.redirect(loginUrl);
+}
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const hostname =
-    request.nextUrl.hostname.toLowerCase();
+  const hostHeader =
+  request.headers.get("host") ?? "";
+
+const hostname =
+  hostHeader
+    .split(":")[0]
+    .toLowerCase();
 
   /*
    * ==========================================================
    * 1. STATIC ASSETS
    * ==========================================================
    *
-   * Static resources must pass through without hostname or
-   * locale processing.
+   * Shared assets must pass through without hostname routing.
    * ==========================================================
    */
 
-  if (
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/favicon.ico") ||
-    pathname.includes(".")
-  ) {
+  if (isStaticAsset(pathname)) {
     return NextResponse.next();
   }
 
   /*
    * ==========================================================
-   * 2. MARKETING DOMAIN
+   * 2. SAAS HOST
    * ==========================================================
    *
-   * export.rootym.com
+   * Public SaaS surface:
    *
-   * The root route renders the ROOTYM AI marketing homepage
-   * through app/page.tsx.
+   *   /        → /saas
+   *   /login   → /login
    *
-   * Other public marketing routes are also allowed through
-   * without locale processing.
-   * ==========================================================
-   */
-
-  if (hostname === MARKETING_HOST) {
-    return NextResponse.next();
-  }
-
-  /*
-   * ==========================================================
-   * 3. SAAS DOMAIN
-   * ==========================================================
+   * Physical routes:
    *
-   * app.export.rootym.com
+   *   app/saas/page.tsx
+   *   app/login/page.tsx
    *
-   * The root of the SaaS domain enters the authenticated
-   * application workspace.
-   *
-   * Other SaaS routes such as:
-   *
-   *   /login
-   *   /app
-   *   /app/billing
-   *   /api/*
-   *
-   * continue normally and are handled by their respective
-   * application routes and authentication mechanisms.
+   * Admin routes remain on /admin.
+   * API routes remain on /api.
    * ==========================================================
    */
 
-  if (hostname === SAAS_HOST) {
+  if (SAAS_HOSTS.has(hostname)) {
     if (pathname === "/") {
       return NextResponse.rewrite(
-        new URL("/app", request.url)
+        new URL("/saas", request.url)
+      );
+    }
+
+    const adminResponse = protectAdminRoute(
+      request,
+      pathname
+    );
+
+    if (adminResponse) {
+      return adminResponse;
+    }
+
+    return NextResponse.next();
+  }
+
+  /*
+   * ==========================================================
+   * 3. MARKETING HOST
+   * ==========================================================
+   *
+   * Public marketing surface:
+   *
+   *   / → /marketing
+   *
+   * Physical route:
+   *
+   *   app/marketing/page.tsx
+   *
+   * The legacy /en route redirects to the marketing root.
+   * ==========================================================
+   */
+
+  if (MARKETING_HOSTS.has(hostname)) {
+    if (
+      pathname === "/en" ||
+      pathname === "/en/"
+    ) {
+      return NextResponse.redirect(
+        new URL("/", request.url)
+      );
+    }
+
+    if (pathname === "/") {
+      return NextResponse.rewrite(
+        new URL("/marketing", request.url)
       );
     }
 
@@ -107,43 +189,49 @@ export function proxy(request: NextRequest) {
 
   /*
    * ==========================================================
-   * 4. DEVELOPMENT / FALLBACK LOCALE
+   * 4. PLAIN LOCALHOST
    * ==========================================================
    *
-   * Local development and any non-production host retain the
-   * existing locale detection behavior.
+   * Development convenience:
+   *
+   *   localhost:3000/
+   *     → /marketing
+   *
    * ==========================================================
    */
 
-  if (pathname === "/") {
-    return NextResponse.redirect(
-      new URL(`/${defaultLocale}`, request.url)
-    );
+  if (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1"
+  ) {
+    if (
+      pathname === "/en" ||
+      pathname === "/en/"
+    ) {
+      return NextResponse.redirect(
+        new URL("/", request.url)
+      );
+    }
+
+    if (pathname === "/") {
+      return NextResponse.rewrite(
+        new URL("/marketing", request.url)
+      );
+    }
+
+    return NextResponse.next();
   }
 
-  const firstSegment = pathname.split("/")[1];
+  /*
+   * ==========================================================
+   * 5. UNKNOWN HOST
+   * ==========================================================
+   *
+   * No application-specific hostname routing.
+   * ==========================================================
+   */
 
-  const requestHeaders = new Headers(
-    request.headers
-  );
-
-  if (isLocale(firstSegment)) {
-    requestHeaders.set(
-      "x-locale",
-      firstSegment
-    );
-  } else {
-    requestHeaders.set(
-      "x-locale",
-      defaultLocale
-    );
-  }
-
-  return NextResponse.next({
-    request: {
-      headers: requestHeaders,
-    },
-  });
+  return NextResponse.next();
 }
 
 export const config = {
