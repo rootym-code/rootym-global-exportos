@@ -743,7 +743,7 @@ export default function CreateCmsPage() {
                     event.target.value
                   )
                 }
-                placeholder="https://www.rootym.com/..."
+             placeholder="https://export.rootym.com/..."
               />
             </div>
 

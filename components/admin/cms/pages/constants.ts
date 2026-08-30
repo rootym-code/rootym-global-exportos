@@ -85,7 +85,7 @@ export const PAGE_PLACEHOLDERS = {
     "keyword1, keyword2, keyword3",
 
   CANONICAL_URL:
-    "https://rootym.com/about-rootym",
+  "https://export.rootym.com/about",
 } as const;
 
 /* ============================================================

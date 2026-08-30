@@ -13,7 +13,7 @@ export const company = {
 
   email: "info@rootym.com",
 
-  website: "https://www.rootym.com",
+  website: "https://export.rootym.com",
 
   supportEmail: "support@rootym.com",
 

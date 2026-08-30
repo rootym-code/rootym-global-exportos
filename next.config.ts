@@ -1,3 +1,13 @@
+/**
+ * ============================================================
+ * ROOTYM ExportOS
+ * ============================================================
+ * Author: Prem Singh
+ * Purpose: Configures Next.js image handling and server
+ *          packages for the ROOTYM ExportOS application.
+ * ============================================================
+ */
+
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -6,10 +16,6 @@ const nextConfig: NextConfig = {
       {
         protocol: "http",
         hostname: "localhost",
-      },
-      {
-        protocol: "https",
-        hostname: "rootym.com",
       },
       {
         protocol: "https",

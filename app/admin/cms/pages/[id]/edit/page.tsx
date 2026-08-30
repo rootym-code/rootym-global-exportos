@@ -2200,7 +2200,7 @@ export default function EditCmsPage() {
                     event.target.value
                   )
                 }
-                placeholder="https://www.rootym.com/..."
+             placeholder="https://export.rootym.com/..."
               />
             </div>
 
