@@ -5,6 +5,17 @@
  * Author: Prem Singh
  * Purpose: Provides dedicated navigation for the ROOTYM AI
  *          public marketing website.
+ *
+ * Production:
+ *   export.rootym.com
+ *     → Marketing website
+ *
+ * SaaS:
+ *   app.export.rootym.com/login
+ *     → SaaS authentication
+ *
+ * The primary navbar CTA intentionally sends visitors directly
+ * to the production SaaS login surface.
  * ============================================================
  */
 
@@ -23,6 +34,8 @@ const NAV_ITEMS = [
   { label: "Technologies", href: "#technologies" },
   { label: "Why ROOTYM", href: "#why-rootym" },
 ];
+
+const SAAS_LOGIN_URL = "https://app.export.rootym.com/login";
 
 export default function MarketingNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -160,18 +173,19 @@ export default function MarketingNavbar() {
               scale: 0.97,
             }}
           >
-            <Link
-              href="#contact"
+            <a
+              href={SAAS_LOGIN_URL}
               className="group relative inline-flex overflow-hidden rounded-xl"
+              aria-label="Start your ROOTYM ExportOS free trial"
             >
               <span className="absolute inset-0 bg-gradient-to-r from-emerald-500 via-green-500 to-cyan-500" />
 
               <span className="absolute -left-20 top-0 h-full w-16 -skew-x-12 bg-white/20 transition-all duration-700 group-hover:left-[120%]" />
 
               <span className="relative px-5 py-2.5 text-sm font-semibold text-white">
-                Book a Demo
+                FREE TRIAL
               </span>
-            </Link>
+            </a>
           </motion.div>
         </div>
 
@@ -271,13 +285,13 @@ export default function MarketingNavbar() {
                 </Link>
               ))}
 
-              <Link
-                href="#contact"
+              <a
+                href={SAAS_LOGIN_URL}
                 onClick={handleNavigation}
                 className="mt-3 flex items-center justify-center rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 px-5 py-3.5 font-semibold text-white"
               >
-                Book a Demo
-              </Link>
+                FREE TRIAL
+              </a>
             </nav>
           </motion.div>
         )}

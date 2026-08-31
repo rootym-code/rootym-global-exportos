@@ -10,8 +10,14 @@
 
 "use client";
 
-import Link from "next/link";
-import { ArrowRight, BrainCircuit, Workflow, BarChart3, CloudCog } from "lucide-react";
+import {
+  ArrowRight,
+  BrainCircuit,
+  Workflow,
+  BarChart3,
+  CloudCog,
+} from "lucide-react";
+
 import { motion } from "framer-motion";
 
 const solutions = [
@@ -118,13 +124,13 @@ export default function Solutions() {
             </p>
           </div>
 
-          <Link
-            href="#contact"
+          <a
+            href="https://app.export.rootym.com/login"
             className="mt-7 inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 px-6 py-3.5 font-semibold text-white transition hover:scale-[1.02] md:ml-8 md:mt-0"
           >
             Book a Demo
             <ArrowRight className="h-5 w-5" />
-          </Link>
+          </a>
         </div>
       </div>
     </section>

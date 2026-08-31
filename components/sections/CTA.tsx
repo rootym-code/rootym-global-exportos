@@ -5,19 +5,31 @@
  * Author: Prem Singh
  * Purpose: Provides the primary conversion and contact section
  *          for the public ROOTYM AI marketing website.
+ *
+ * Primary conversion:
+ *   GET STARTED
+ *     → https://app.export.rootym.com/login
+ *
+ * Contact:
+ *   Contact Us
+ *     → sales@rootym.com
  * ============================================================
  */
 
 "use client";
 
 import Link from "next/link";
+
 import {
   ArrowRight,
   Mail,
   MessageSquare,
   Sparkles,
 } from "lucide-react";
+
 import { motion } from "framer-motion";
+
+const SAAS_LOGIN_URL = "https://app.export.rootym.com/login";
 
 export default function CTA() {
   return (
@@ -35,13 +47,21 @@ export default function CTA() {
 
       <div className="relative z-10 mx-auto max-w-5xl">
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          initial={{
+            opacity: 0,
+            y: 24,
+          }}
+          whileInView={{
+            opacity: 1,
+            y: 0,
+          }}
           viewport={{
             once: true,
             amount: 0.2,
           }}
-          transition={{ duration: 0.7 }}
+          transition={{
+            duration: 0.7,
+          }}
           className="overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.04] p-8 text-center shadow-2xl shadow-black/20 md:p-14"
         >
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-400/20 bg-emerald-400/10">
@@ -65,18 +85,20 @@ export default function CTA() {
 
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <a
-              href="mailto:prem@rootym.com"
+              href={SAAS_LOGIN_URL}
               className="group inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-500 via-green-500 to-cyan-500 px-8 py-4 font-semibold text-white transition hover:scale-[1.02]"
             >
-              Book a Demo
+              GET STARTED
+
               <ArrowRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" />
             </a>
 
             <a
-              href="mailto:prem@rootym.com"
+              href="mailto:sales@rootym.com"
               className="inline-flex items-center gap-2 rounded-2xl border border-white/15 px-8 py-4 font-semibold text-white transition hover:bg-white/10"
             >
               Contact Us
+
               <MessageSquare className="h-5 w-5" />
             </a>
           </div>
@@ -85,7 +107,7 @@ export default function CTA() {
             <Mail className="h-4 w-4 text-emerald-400" />
 
             <a
-              href="mailto:prem@rootym.com"
+              href="mailto:sales@rootym.com"
               className="transition hover:text-emerald-400"
             >
               sales@rootym.com

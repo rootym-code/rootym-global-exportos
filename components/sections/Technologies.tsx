@@ -5,6 +5,10 @@
  * Author: Prem Singh
  * Purpose: Presents ROOTYM AI's technology capabilities and
  *          engineering ecosystem on the public marketing website.
+ *
+ * Primary conversion:
+ *   BOOK A DEMO
+ *     → https://app.export.rootym.com/login
  * ============================================================
  */
 
@@ -26,6 +30,8 @@ import {
   Workflow,
 } from "lucide-react";
 import { motion } from "framer-motion";
+
+const SAAS_LOGIN_URL = "https://app.export.rootym.com/login";
 
 const technologyGroups = [
   {
@@ -149,8 +155,14 @@ export default function Technologies() {
             return (
               <motion.article
                 key={group.title}
-                initial={{ opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                initial={{
+                  opacity: 0,
+                  y: 24,
+                }}
+                whileInView={{
+                  opacity: 1,
+                  y: 0,
+                }}
                 viewport={{
                   once: true,
                   amount: 0.15,
@@ -237,13 +249,15 @@ export default function Technologies() {
             </p>
           </div>
 
-          <Link
-            href="#contact"
+          <a
+            href={SAAS_LOGIN_URL}
             className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 px-6 py-3.5 font-semibold text-white transition hover:scale-[1.02]"
+            aria-label="Book a demo with ROOTYM ExportOS"
           >
-            Book a Demo
+            BOOK A DEMO
+
             <ArrowRight className="h-5 w-5" />
-          </Link>
+          </a>
         </div>
       </div>
     </section>

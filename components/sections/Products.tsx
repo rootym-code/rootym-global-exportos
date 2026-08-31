@@ -5,6 +5,10 @@
  * Author: Prem Singh
  * Purpose: Presents ROOTYM AI's product and platform
  *          capabilities on the public marketing website.
+ *
+ * Primary conversion:
+ *   BOOK A DEMO
+ *     → https://app.export.rootym.com/login
  * ============================================================
  */
 
@@ -21,6 +25,8 @@ import {
   Workflow,
 } from "lucide-react";
 import { motion } from "framer-motion";
+
+const SAAS_LOGIN_URL = "https://app.export.rootym.com/login";
 
 const products = [
   {
@@ -69,6 +75,7 @@ export default function Products() {
     >
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute left-0 top-1/3 h-96 w-96 rounded-full bg-emerald-500/5 blur-3xl" />
+
         <div className="absolute right-0 bottom-0 h-96 w-96 rounded-full bg-blue-500/5 blur-3xl" />
       </div>
 
@@ -97,8 +104,14 @@ export default function Products() {
             return (
               <motion.article
                 key={product.title}
-                initial={{ opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                initial={{
+                  opacity: 0,
+                  y: 24,
+                }}
+                whileInView={{
+                  opacity: 1,
+                  y: 0,
+                }}
                 viewport={{
                   once: true,
                   amount: 0.15,
@@ -126,6 +139,7 @@ export default function Products() {
 
                   <div className="mt-7 flex items-center gap-2 text-sm font-semibold text-emerald-400 transition-all duration-300 group-hover:gap-3">
                     Learn more
+
                     <ArrowRight className="h-4 w-4" />
                   </div>
                 </div>
@@ -146,13 +160,15 @@ export default function Products() {
             </p>
           </div>
 
-          <Link
-            href="#contact"
+          <a
+            href={SAAS_LOGIN_URL}
             className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 px-6 py-3.5 font-semibold text-white transition hover:scale-[1.02]"
+            aria-label="Book a demo with ROOTYM ExportOS"
           >
-            Book a Demo
+            BOOK A DEMO
+
             <ArrowRight className="h-5 w-5" />
-          </Link>
+          </a>
         </div>
       </div>
     </section>

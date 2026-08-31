@@ -93,13 +93,13 @@ export default function About() {
               are practical today and ready for tomorrow.
             </p>
 
-            <Link
-              href="#contact"
-              className="mt-8 inline-flex items-center gap-2 rounded-xl bg-slate-950 px-6 py-3.5 font-semibold text-white transition hover:bg-slate-800"
-            >
-              Talk to ROOTYM AI
-              <ArrowRight className="h-5 w-5" />
-            </Link>
+            <a
+  href="https://app.export.rootym.com/login"
+  className="mt-8 inline-flex items-center gap-2 rounded-xl bg-slate-950 px-6 py-3.5 font-semibold text-white transition hover:bg-slate-800"
+>
+  Talk to ROOTYM AI
+  <ArrowRight className="h-5 w-5" />
+</a>
           </motion.div>
 
           <motion.div

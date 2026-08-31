@@ -5,6 +5,10 @@
  * Author: Prem Singh
  * Purpose: Provides the public ROOTYM AI marketing website
  *          footer and section navigation.
+ *
+ * Primary conversion:
+ *   BOOK A DEMO
+ *     → https://app.export.rootym.com/login
  * ============================================================
  */
 
@@ -13,6 +17,8 @@ import {
   ArrowUpRight,
   Mail,
 } from "lucide-react";
+
+const SAAS_LOGIN_URL = "https://app.export.rootym.com/login";
 
 const solutionLinks = [
   {
@@ -129,13 +135,15 @@ export default function Footer() {
               Let's discuss what you want to build.
             </p>
 
-            <Link
-              href="#contact"
+            <a
+              href={SAAS_LOGIN_URL}
               className="mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 px-5 py-3 text-sm font-semibold text-white transition hover:scale-[1.02]"
+              aria-label="Book a demo with ROOTYM ExportOS"
             >
-              Book a Demo
+              BOOK A DEMO
+
               <ArrowUpRight className="h-4 w-4" />
-            </Link>
+            </a>
           </div>
         </div>
 

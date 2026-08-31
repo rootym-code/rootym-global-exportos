@@ -1,0 +1,172 @@
+﻿diff --git a/proxy.ts b/proxy.ts
+index 0968027..4723243 100644
+--- a/proxy.ts
++++ b/proxy.ts
+@@ -1,19 +1,51 @@
++/**
++ * ============================================================
++ * ROOTYM ExportOS
++ * ============================================================
++ * Author: Prem Singh
++ * Purpose: Provides hostname-based routing for the ROOTYM
++ *          ExportOS marketing website and SaaS application.
++ *
++ *          Production domains:
++ *
++ *            export.rootym.com
++ *              ΓåÆ ROOTYM AI Marketing Website
++ *
++ *            app.export.rootym.com
++ *              ΓåÆ ROOTYM ExportOS SaaS
++ *
++ *          The legacy rootym.com website is deployed from a
++ *          separate repository and is intentionally outside
++ *          this application's routing architecture.
++ * ============================================================
++ */
++
+ import { NextRequest, NextResponse } from "next/server";
+-import { defaultLocale, isLocale } from "@/lib/i18n/config";
+ 
+-const PUBLIC_ADMIN_ROUTES = ["/admin/login"];
++import {
++  defaultLocale,
++  isLocale,
++} from "@/lib/i18n/config";
++
++const MARKETING_HOST = "export.rootym.com";
++const SAAS_HOST = "app.export.rootym.com";
+ 
+ export function proxy(request: NextRequest) {
+   const { pathname } = request.nextUrl;
+ 
+-  // Root redirect
+-  if (pathname === "/") {
+-    return NextResponse.redirect(
+-      new URL(`/${defaultLocale}`, request.url)
+-    );
+-  }
++  const hostname =
++    request.nextUrl.hostname.toLowerCase();
++
++  /*
++   * ==========================================================
++   * 1. STATIC ASSETS
++   * ==========================================================
++   *
++   * Static resources must pass through without hostname or
++   * locale processing.
++   * ==========================================================
++   */
+ 
+-  // Skip Next.js assets
+   if (
+     pathname.startsWith("/_next") ||
+     pathname.startsWith("/favicon.ico") ||
+@@ -22,28 +54,89 @@ export function proxy(request: NextRequest) {
+     return NextResponse.next();
+   }
+ 
+-  // Detect locale from first URL segment
+-  const firstSegment = pathname.split("/")[1];
+-
+-  const requestHeaders = new Headers(request.headers);
++  /*
++   * ==========================================================
++   * 2. MARKETING DOMAIN
++   * ==========================================================
++   *
++   * export.rootym.com
++   *
++   * The root route renders the ROOTYM AI marketing homepage
++   * through app/page.tsx.
++   *
++   * Other public marketing routes are also allowed through
++   * without locale processing.
++   * ==========================================================
++   */
+ 
+-  if (isLocale(firstSegment)) {
+-    requestHeaders.set("x-locale", firstSegment);
+-  } else {
+-    requestHeaders.set("x-locale", defaultLocale);
++  if (hostname === MARKETING_HOST) {
++    return NextResponse.next();
+   }
+ 
+-  // Existing admin authentication
+-  if (pathname.startsWith("/admin")) {
+-    if (!PUBLIC_ADMIN_ROUTES.includes(pathname)) {
+-      const token = request.cookies.get("rootym_admin_token")?.value;
++  /*
++   * ==========================================================
++   * 3. SAAS DOMAIN
++   * ==========================================================
++   *
++   * app.export.rootym.com
++   *
++   * The root of the SaaS domain enters the authenticated
++   * application workspace.
++   *
++   * Other SaaS routes such as:
++   *
++   *   /login
++   *   /app
++   *   /app/billing
++   *   /api/*
++   *
++   * continue normally and are handled by their respective
++   * application routes and authentication mechanisms.
++   * ==========================================================
++   */
+ 
+-      if (!token) {
+-        const loginUrl = new URL("/admin/login", request.url);
+-        loginUrl.searchParams.set("callbackUrl", pathname);
+-        return NextResponse.redirect(loginUrl);
+-      }
++  if (hostname === SAAS_HOST) {
++    if (pathname === "/") {
++      return NextResponse.rewrite(
++        new URL("/app", request.url)
++      );
+     }
++
++    return NextResponse.next();
++  }
++
++  /*
++   * ==========================================================
++   * 4. DEVELOPMENT / FALLBACK LOCALE
++   * ==========================================================
++   *
++   * Local development and any non-production host retain the
++   * existing locale detection behavior.
++   * ==========================================================
++   */
++
++  if (pathname === "/") {
++    return NextResponse.redirect(
++      new URL(`/${defaultLocale}`, request.url)
++    );
++  }
++
++  const firstSegment = pathname.split("/")[1];
++
++  const requestHeaders = new Headers(
++    request.headers
++  );
++
++  if (isLocale(firstSegment)) {
++    requestHeaders.set(
++      "x-locale",
++      firstSegment
++    );
++  } else {
++    requestHeaders.set(
++      "x-locale",
++      defaultLocale
++    );
+   }
+ 
+   return NextResponse.next({
