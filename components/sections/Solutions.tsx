@@ -5,6 +5,13 @@
  * Author: Prem Singh
  * Purpose: Presents ROOTYM AI's core enterprise solution
  *          capabilities on the public marketing website.
+ *
+ * Primary conversion:
+ *   Book a Demo
+ *     → centralized SAAS_LOGIN_URL
+ *
+ * The SaaS destination is environment-aware and configured
+ * through lib/config/urls.ts.
  * ============================================================
  */
 
@@ -19,6 +26,8 @@ import {
 } from "lucide-react";
 
 import { motion } from "framer-motion";
+
+import { SAAS_LOGIN_URL } from "@/lib/config/urls";
 
 const solutions = [
   {
@@ -55,6 +64,7 @@ export default function Solutions() {
     >
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute left-1/4 top-20 h-72 w-72 rounded-full bg-emerald-500/5 blur-3xl" />
+
         <div className="absolute bottom-10 right-1/4 h-72 w-72 rounded-full bg-cyan-500/5 blur-3xl" />
       </div>
 
@@ -105,6 +115,7 @@ export default function Solutions() {
 
                 <div className="mt-7 flex items-center gap-2 text-sm font-semibold text-emerald-400 transition group-hover:gap-3">
                   Explore capability
+
                   <ArrowRight className="h-4 w-4" />
                 </div>
               </motion.article>
@@ -125,10 +136,11 @@ export default function Solutions() {
           </div>
 
           <a
-            href="https://app.export.rootym.com/login"
+            href={SAAS_LOGIN_URL}
             className="mt-7 inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 px-6 py-3.5 font-semibold text-white transition hover:scale-[1.02] md:ml-8 md:mt-0"
           >
             Book a Demo
+
             <ArrowRight className="h-5 w-5" />
           </a>
         </div>

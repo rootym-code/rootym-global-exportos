@@ -1,6 +1,16 @@
 /**
+ * ============================================================
+ * ROOTYM ExportOS
+ * ============================================================
  * Author: Prem Singh
- * Purpose: Creates a paid ROOTYM subscription plan change using the configured development billing provider.
+ * Purpose: Creates a paid ROOTYM subscription plan change
+ *          using the configured development billing provider.
+ *
+ * The generic billing provider may support multiple billing
+ * capabilities. This route explicitly verifies that the
+ * selected provider supports plan-change payments before
+ * passing it to the plan-change domain service.
+ * ============================================================
  */
 
 import { NextResponse } from "next/server";
@@ -16,12 +26,16 @@ import {
 } from "@/lib/auth/customer-jwt";
 
 import {
-    createPaidPlanChange,
-  } from "@/app/lib/billing/plan-change.service";
-  
-  import {
-    testBillingProvider,
-  } from "@/app/lib/billing/providers/test.provider";
+  createPaidPlanChange,
+} from "@/app/lib/billing/plan-change.service";
+
+import {
+  testBillingProvider,
+} from "@/app/lib/billing/providers/test.provider";
+
+import type {
+  BillingPlanChangeProvider,
+} from "@/app/lib/billing/providers/types";
 
 export async function POST(
   request: Request,
@@ -110,6 +124,47 @@ export async function POST(
       );
     }
 
+    /**
+     * ========================================================
+     * Resolve the Test Provider capability.
+     * ========================================================
+     *
+     * The Test Provider is currently represented by the
+     * generic BillingProvider contract.
+     *
+     * Plan changes require the more specific
+     * BillingPlanChangeProvider capability.
+     *
+     * Keep this capability check here until the central
+     * provider registry is introduced.
+     * ========================================================
+     */
+    const createPlanChangePayment =
+      testBillingProvider.createPlanChangePayment;
+
+    if (!createPlanChangePayment) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "The configured development billing provider does not support plan changes.",
+        },
+        {
+          status: 501,
+        },
+      );
+    }
+
+    const planChangeProvider: BillingPlanChangeProvider =
+      {
+        createPlanChangePayment,
+      };
+
+    /**
+     * ========================================================
+     * Execute provider-independent plan-change billing.
+     * ========================================================
+     */
     const result =
       await createPaidPlanChange({
         tenantId:
@@ -117,14 +172,8 @@ export async function POST(
 
         billingInterval,
 
-        /*
-         * Development provider only.
-         *
-         * Razorpay will later implement the same
-         * BillingPlanChangeProvider contract.
-         */
         provider:
-          testBillingProvider,
+          planChangeProvider,
       });
 
     return NextResponse.json(
@@ -149,22 +198,27 @@ export async function POST(
 
           currentPlan: {
             code:
-              result.planChange.fromPlan.code,
+              result.planChange
+                .fromPlan.code,
 
             name:
-              result.planChange.fromPlan.name,
+              result.planChange
+                .fromPlan.name,
           },
 
           targetPlan: {
             code:
-              result.planChange.toPlan.code,
+              result.planChange
+                .toPlan.code,
 
             name:
-              result.planChange.toPlan.name,
+              result.planChange
+                .toPlan.name,
           },
 
           effectiveAt:
-            result.planChange.effectiveAt,
+            result.planChange
+              .effectiveAt,
         },
       },
       {
@@ -180,7 +234,6 @@ export async function POST(
     return NextResponse.json(
       {
         success: false,
-
         message:
           error instanceof Error
             ? error.message

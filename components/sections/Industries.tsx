@@ -5,12 +5,17 @@
  * Author: Prem Singh
  * Purpose: Presents the industries and business domains where
  *          ROOTYM AI solutions can deliver digital transformation.
+ *
+ * Primary SaaS destination:
+ *   centralized SAAS_LOGIN_URL
+ *
+ * The SaaS destination is environment-aware and configured
+ * through lib/config/urls.ts.
  * ============================================================
  */
 
 "use client";
 
-import Link from "next/link";
 import {
   ArrowRight,
   Building2,
@@ -21,7 +26,10 @@ import {
   ShoppingCart,
   Truck,
 } from "lucide-react";
+
 import { motion } from "framer-motion";
+
+import { SAAS_LOGIN_URL } from "@/lib/config/urls";
 
 const industries = [
   {
@@ -100,12 +108,13 @@ export default function Industries() {
             </p>
 
             <a
-  href="https://app.export.rootym.com/login"
-  className="mt-8 inline-flex items-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-6 py-3.5 font-semibold text-emerald-300 transition hover:bg-emerald-400/20"
->
-  Discuss your industry
-  <ArrowRight className="h-5 w-5" />
-</a>
+              href={SAAS_LOGIN_URL}
+              className="mt-8 inline-flex items-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-6 py-3.5 font-semibold text-emerald-300 transition hover:bg-emerald-400/20"
+            >
+              Discuss your industry
+
+              <ArrowRight className="h-5 w-5" />
+            </a>
           </div>
 
           <div className="grid gap-5 sm:grid-cols-2">
@@ -173,12 +182,13 @@ export default function Industries() {
               </p>
 
               <a
-  href="https://app.export.rootym.com/login"
-  className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-emerald-400"
->
-  Talk to our team
-  <ArrowRight className="h-4 w-4" />
-</a>
+                href={SAAS_LOGIN_URL}
+                className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-emerald-400"
+              >
+                Talk to our team
+
+                <ArrowRight className="h-4 w-4" />
+              </a>
             </motion.div>
           </div>
         </div>

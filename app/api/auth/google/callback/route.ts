@@ -17,6 +17,9 @@
  *   app.export.rootym.com callback
  *     → customer/workspace resolution
  *     → customer session cookie
+ *
+ * SaaS origins are centralized through:
+ *   lib/config/urls.ts
  * ============================================================
  */
 
@@ -37,17 +40,16 @@ import {
   signCustomerToken,
 } from "@/lib/auth/customer-jwt";
 
+import { SAAS_APP_URL } from "@/lib/config/urls";
+
 const STATE_COOKIE =
   "rootym_google_oauth_state";
 
 const LOCAL_OAUTH_HOST =
   "localhost:3000";
 
-const LOCAL_SAAS_ORIGIN =
-  "http://app.export.localhost:3000";
-
-const PRODUCTION_SAAS_ORIGIN =
-  "https://app.export.rootym.com";
+const LOCAL_OAUTH_ORIGIN =
+  "http://localhost:3000";
 
 const GOOGLE_TOKEN_ENDPOINT =
   "https://oauth2.googleapis.com/token";
@@ -60,7 +62,7 @@ const secret =
 
 if (!secret) {
   throw new Error(
-    "CUSTOMER_JWT_SECRET is not defined."
+    "CUSTOMER_JWT_SECRET is not defined.",
   );
 }
 
@@ -69,40 +71,67 @@ const secretKey =
 
 /**
  * ============================================================
- * Validate SaaS callback origin.
+ * Resolve the configured SaaS origin.
+ * ============================================================
+ *
+ * The public SaaS origin is centralized through:
+ *
+ *   NEXT_PUBLIC_SAAS_APP_URL
+ *
+ * Local:
+ *   http://app.export.localhost:3000
+ *
+ * Production:
+ *   https://app.export.rootym.com
+ *
+ * The localhost OAuth bootstrap remains separate because
+ * Google OAuth uses localhost as the local redirect URI.
  * ============================================================
  */
 function getSaaSOrigin(
-  request: NextRequest
+  request: NextRequest,
 ) {
   const host =
     request.headers.get("host") ??
     "";
 
+  const configuredUrl =
+    new URL(SAAS_APP_URL);
+
+  const configuredHostname =
+    configuredUrl.hostname.toLowerCase();
+
+  const configuredPort =
+    configuredUrl.port;
+
+  const requestHostname =
+    host.split(":")[0].toLowerCase();
+
+  const requestPort =
+    host.includes(":")
+      ? host.split(":")[1]
+      : "";
+
   if (
-    host ===
-    "app.export.localhost:3000"
+    requestHostname !==
+    configuredHostname
   ) {
-    return LOCAL_SAAS_ORIGIN;
+    throw new Error(
+      `Invalid SaaS OAuth callback host: ${host}`,
+    );
   }
 
   if (
-    host ===
-    "app.export.localhost"
+    configuredPort &&
+    requestPort &&
+    configuredPort !== requestPort
   ) {
-    return "http://app.export.localhost";
+    throw new Error(
+      `Invalid SaaS OAuth callback port: ${host}`,
+    );
   }
 
-  if (
-    host ===
-    "app.export.rootym.com"
-  ) {
-    return PRODUCTION_SAAS_ORIGIN;
-  }
-
-  throw new Error(
-    `Invalid SaaS OAuth callback host: ${host}`
-  );
+  return SAAS_APP_URL;
 }
 
 /**
@@ -115,7 +144,7 @@ function getSaaSOrigin(
  *
  * The handoff carries only the ROOTYM customer identifiers
  * required to establish the SaaS session on the actual
- * app.export.localhost host.
+ * configured SaaS hostname.
  *
  * It is deliberately short-lived.
  * ============================================================
@@ -124,10 +153,11 @@ async function createLocalHandoff(
   returnOrigin: string,
   userId: string,
   tenantId: string,
-  membershipId: string
+  membershipId: string,
 ) {
   return new SignJWT({
-    type: "customer_oauth_handoff",
+    type:
+      "customer_oauth_handoff",
     returnOrigin,
     userId,
     tenantId,
@@ -147,14 +177,14 @@ async function createLocalHandoff(
  * ============================================================
  */
 async function completeLocalHandoff(
-  request: NextRequest
+  request: NextRequest,
 ) {
   const appOrigin =
     getSaaSOrigin(request);
 
   const handoff =
     request.nextUrl.searchParams.get(
-      "handoff"
+      "handoff",
     );
 
   if (!handoff) {
@@ -164,7 +194,7 @@ async function completeLocalHandoff(
   const { payload } =
     await jwtVerify(
       handoff,
-      secretKey
+      secretKey,
     );
 
   if (
@@ -180,7 +210,7 @@ async function completeLocalHandoff(
       "string"
   ) {
     throw new Error(
-      "Invalid OAuth handoff."
+      "Invalid OAuth handoff.",
     );
   }
 
@@ -196,27 +226,27 @@ async function completeLocalHandoff(
 
   const response =
     NextResponse.redirect(
-      `${appOrigin}/`
+      `${appOrigin}/`,
     );
 
   response.cookies.set(
     CUSTOMER_AUTH_COOKIE_NAME,
     customerToken,
-    CUSTOMER_AUTH_COOKIE_OPTIONS
+    CUSTOMER_AUTH_COOKIE_OPTIONS,
   );
 
   return response;
 }
 
 export async function GET(
-  request: NextRequest
+  request: NextRequest,
 ) {
   try {
     const host =
       request.headers.get("host") ??
       "";
 
-    /*
+    /**
      * ========================================================
      * LOCAL HANDOFF COMPLETION
      * ========================================================
@@ -225,21 +255,27 @@ export async function GET(
      * profile has been resolved and the customer workspace has
      * been created.
      *
-     * This request is now on app.export.localhost, allowing the
-     * final customer session cookie to be created on the SaaS
-     * hostname.
+     * This request is now on the configured SaaS hostname,
+     * allowing the final customer session cookie to be created
+     * on the SaaS hostname.
      * ========================================================
      */
 
+    const configuredSaaSUrl =
+      new URL(SAAS_APP_URL);
+
+    const configuredSaaSHost =
+      configuredSaaSUrl.host;
+
     if (
       host ===
-        "app.export.localhost:3000" ||
+        configuredSaaSHost ||
       host ===
-        "app.export.localhost"
+        configuredSaaSUrl.hostname
     ) {
       const handoffResponse =
         await completeLocalHandoff(
-          request
+          request,
         );
 
       if (handoffResponse) {
@@ -247,9 +283,18 @@ export async function GET(
       }
     }
 
-    /*
+    /**
      * ========================================================
      * Determine callback mode.
+     * ========================================================
+     *
+     * Local development:
+     *
+     *   localhost:3000
+     *
+     * Production:
+     *
+     *   configured SaaS hostname
      * ========================================================
      */
 
@@ -258,15 +303,15 @@ export async function GET(
 
     const appOrigin =
       isLocalCallback
-        ? LOCAL_SAAS_ORIGIN
+        ? SAAS_APP_URL
         : getSaaSOrigin(request);
 
     const redirectUri =
       isLocalCallback
-        ? `http://${LOCAL_OAUTH_HOST}/api/auth/google/callback`
+        ? `${LOCAL_OAUTH_ORIGIN}/api/auth/google/callback`
         : `${appOrigin}/api/auth/google/callback`;
 
-    /*
+    /**
      * ========================================================
      * Read Google OAuth response.
      * ========================================================
@@ -274,17 +319,17 @@ export async function GET(
 
     const code =
       request.nextUrl.searchParams.get(
-        "code"
+        "code",
       );
 
     const state =
       request.nextUrl.searchParams.get(
-        "state"
+        "state",
       );
 
     const storedState =
       request.cookies.get(
-        STATE_COOKIE
+        STATE_COOKIE,
       )?.value;
 
     const clientId =
@@ -299,11 +344,11 @@ export async function GET(
       !storedState
     ) {
       return NextResponse.redirect(
-        `${appOrigin}/login?error=oauth_state`
+        `${appOrigin}/login?error=oauth_state`,
       );
     }
 
-    /*
+    /**
      * ========================================================
      * Verify signed OAuth state.
      * ========================================================
@@ -312,18 +357,18 @@ export async function GET(
     const { payload } =
       await jwtVerify(
         storedState,
-        secretKey
+        secretKey,
       );
 
     if (
       payload.state !== state
     ) {
       throw new Error(
-        "OAuth state mismatch."
+        "OAuth state mismatch.",
       );
     }
 
-    /*
+    /**
      * ========================================================
      * Validate the expected return origin.
      * ========================================================
@@ -339,7 +384,7 @@ export async function GET(
         appOrigin
     ) {
       throw new Error(
-        "Invalid OAuth return origin."
+        "Invalid OAuth return origin.",
       );
     }
 
@@ -348,11 +393,11 @@ export async function GET(
       !clientSecret
     ) {
       throw new Error(
-        "Google OAuth is not configured."
+        "Google OAuth is not configured.",
       );
     }
 
-    /*
+    /**
      * ========================================================
      * Exchange authorization code for Google access token.
      * ========================================================
@@ -380,12 +425,12 @@ export async function GET(
                 "authorization_code",
             }),
           cache: "no-store",
-        }
+        },
       );
 
     if (!tokenResponse.ok) {
       throw new Error(
-        "Google token exchange failed."
+        "Google token exchange failed.",
       );
     }
 
@@ -398,11 +443,11 @@ export async function GET(
       !tokenData.access_token
     ) {
       throw new Error(
-        "Google access token missing."
+        "Google access token missing.",
       );
     }
 
-    /*
+    /**
      * ========================================================
      * Retrieve verified Google profile.
      * ========================================================
@@ -417,12 +462,12 @@ export async function GET(
               `Bearer ${tokenData.access_token}`,
           },
           cache: "no-store",
-        }
+        },
       );
 
     if (!profileResponse.ok) {
       throw new Error(
-        "Google profile lookup failed."
+        "Google profile lookup failed.",
       );
     }
 
@@ -441,11 +486,11 @@ export async function GET(
       profile.email_verified === false
     ) {
       throw new Error(
-        "Google account email could not be verified."
+        "Google account email could not be verified.",
       );
     }
 
-    /*
+    /**
      * ========================================================
      * Resolve/create ROOTYM SaaS customer, workspace and trial.
      * ========================================================
@@ -468,17 +513,17 @@ export async function GET(
           profile.email,
       });
 
-    /*
+    /**
      * ========================================================
      * LOCAL DEVELOPMENT HANDOFF
      * ========================================================
      *
      * Google returned to localhost, so the final SaaS
-     * customer cookie cannot be established on
-     * app.export.localhost from this response.
+     * customer cookie cannot be established on the SaaS
+     * hostname from this response.
      *
      * Create a short-lived signed handoff and return to the
-     * deterministic SaaS hostname.
+     * deterministic configured SaaS hostname.
      * ========================================================
      */
 
@@ -488,17 +533,17 @@ export async function GET(
           appOrigin,
           workspace.user.id,
           workspace.membership.tenantId,
-          workspace.membership.id
+          workspace.membership.id,
         );
 
       const response =
         NextResponse.redirect(
           `${appOrigin}/api/auth/google/callback?handoff=${encodeURIComponent(
-            handoff
-          )}`
+            handoff,
+          )}`,
         );
 
-      /*
+      /**
        * Clear the localhost OAuth state cookie.
        */
       response.cookies.set(
@@ -512,15 +557,15 @@ export async function GET(
           sameSite: "lax",
           path: "/",
           maxAge: 0,
-        }
+        },
       );
 
       return response;
     }
 
-    /*
+    /**
      * ========================================================
-     * PRODUCTION CUSTOMER SESSION
+     * PRODUCTION / CONFIGURED SAAS CUSTOMER SESSION
      * ========================================================
      */
 
@@ -536,16 +581,16 @@ export async function GET(
 
     const response =
       NextResponse.redirect(
-        `${appOrigin}/`
+        `${appOrigin}/`,
       );
 
     response.cookies.set(
       CUSTOMER_AUTH_COOKIE_NAME,
       customerToken,
-      CUSTOMER_AUTH_COOKIE_OPTIONS
+      CUSTOMER_AUTH_COOKIE_OPTIONS,
     );
 
-    /*
+    /**
      * Clear OAuth state cookie.
      */
     response.cookies.set(
@@ -559,47 +604,61 @@ export async function GET(
         sameSite: "lax",
         path: "/",
         maxAge: 0,
-      }
+      },
     );
 
     return response;
   } catch (error) {
     console.error(
       "Google OAuth callback failed:",
-      error
+      error,
     );
 
+    /**
+     * ========================================================
+     * Safe error destination
+     * ========================================================
+     *
+     * Prefer the configured SaaS URL rather than maintaining
+     * a separate production hostname constant.
+     *
+     * During localhost OAuth, the browser has not yet reached
+     * the SaaS hostname, so the configured SaaS URL remains the
+     * intended customer-facing destination.
+     * ========================================================
+     */
+
     let errorOrigin =
-      LOCAL_SAAS_ORIGIN;
+      SAAS_APP_URL;
 
     try {
       const host =
         request.headers.get("host") ??
         "";
 
+      const configuredSaaSUrl =
+        new URL(SAAS_APP_URL);
+
+      const configuredSaaSHost =
+        configuredSaaSUrl.host;
+
       if (
         host ===
-          "app.export.localhost:3000" ||
+          configuredSaaSHost ||
         host ===
-          "app.export.localhost"
-      ) {
-        errorOrigin =
-          getSaaSOrigin(request);
-      } else if (
-        host ===
-        "app.export.rootym.com"
+          configuredSaaSUrl.hostname
       ) {
         errorOrigin =
           getSaaSOrigin(request);
       }
     } catch {
-      /*
-       * Keep the safe local SaaS fallback.
+      /**
+       * Keep the configured SaaS URL as the safe fallback.
        */
     }
 
     return NextResponse.redirect(
-      `${errorOrigin}/login?error=oauth_failed`
+      `${errorOrigin}/login?error=oauth_failed`,
     );
   }
 }

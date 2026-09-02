@@ -87,6 +87,83 @@ model InquiryStatusHistory {
   @@index([createdAt])
 }
 
+/**
+ * ============================================================
+ * ROOTYM ExportOS
+ * ============================================================
+ * Author: Prem Singh
+ * Purpose: Stores administrator-controlled billing provider
+ * availability for each ROOTYM deployment environment.
+ * Provider credentials are intentionally NOT stored here.
+ * Credentials remain deployment secrets/environment variables.
+ * This model controls provider availability only.
+ * ============================================================
+ */
+
+enum BillingEnvironment {
+  DEVELOPMENT
+  STAGING
+  PRODUCTION
+}
+
+/**
+ * ============================================================
+ * Billing Provider Configuration
+ * ============================================================
+ * One provider may be configured independently for each
+ * environment.
+ * Examples:
+ * DEVELOPMENT + TEST       + enabled
+ * DEVELOPMENT + RAZORPAY   + disabled
+ * STAGING     + TEST       + enabled
+ * STAGING     + RAZORPAY   + enabled
+ * PRODUCTION  + RAZORPAY   + enabled
+ * PRODUCTION  + TEST       + disabled
+ * The provider field remains String rather than a Prisma enum
+ * so adding future providers does not require a database enum
+ * migration.
+ * ============================================================
+ */
+
+model BillingProviderConfig {
+  id String @id @default(cuid())
+
+  environment BillingEnvironment
+
+  /**
+   * Provider registry key.
+   * Examples:
+   * TEST
+   * RAZORPAY
+   * STRIPE
+   * PAYPAL
+   */
+  provider String
+
+  /**
+   * Administrator-controlled availability.
+   */
+  enabled Boolean @default(false)
+
+  /**
+   * Optional administrator-facing display name.
+   */
+  displayName String?
+
+  /**
+   * Controls ordering in the customer billing UI.
+   */
+  sortOrder Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([environment, provider])
+  @@index([environment])
+  @@index([environment, enabled])
+  @@index([provider])
+}
+
 model InquiryNote {
   id          String   @id @default(cuid())
   inquiryId   String

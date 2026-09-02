@@ -25,6 +25,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { Menu, X } from "lucide-react";
+import { SAAS_LOGIN_URL } from "@/lib/config/urls";
 
 const NAV_ITEMS = [
   { label: "Solutions", href: "#solutions" },
@@ -35,7 +36,7 @@ const NAV_ITEMS = [
   { label: "Why ROOTYM", href: "#why-rootym" },
 ];
 
-const SAAS_LOGIN_URL = "https://app.export.rootym.com/login";
+
 
 export default function MarketingNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false);

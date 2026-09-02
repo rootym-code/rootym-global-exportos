@@ -16,6 +16,7 @@ import {
   FileText,
   ImageIcon,
   ClipboardCheck,
+  CreditCard,
 } from "lucide-react";
 
 
@@ -78,20 +79,20 @@ const navigationGroups: NavigationGroup[] = [
   },
   {
     title: "CMS",
-  
+
     items: [
       {
         title: "Company Settings",
         href: "/admin/cms/company",
         icon: Settings,
       },
-  
+
       {
         title: "Google Integration",
         href: "/admin/cms/integrations/google",
         icon: Settings,
       },
-  
+
       {
         title: "WhatsApp Integration",
         href: "/admin/cms/integrations/whatsapp",
@@ -101,7 +102,7 @@ const navigationGroups: NavigationGroup[] = [
   },
 
 
-  
+
 
   {
     title: "BUSINESS",
@@ -137,6 +138,17 @@ const navigationGroups: NavigationGroup[] = [
     ],
   },
 
+  {
+    title: "BILLING",
+
+    items: [
+      {
+        title: "Billing Providers",
+        href: "/admin/billing/providers",
+        icon: CreditCard,
+      },
+    ],
+  },
 
   {
     title: "SYSTEM",

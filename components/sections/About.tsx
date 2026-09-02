@@ -6,12 +6,20 @@
  * Purpose: Presents the ROOTYM AI story, technology vision
  *          and approach to building intelligent business
  *          systems on the public marketing website.
+ *
+ * Primary conversion:
+ *   Talk to ROOTYM AI
+ *     → centralized SAAS_LOGIN_URL
+ *
+ * The SaaS destination is environment-aware and configured
+ * through lib/config/urls.ts.
  * ============================================================
  */
 
 "use client";
 
 import Link from "next/link";
+
 import {
   ArrowRight,
   Lightbulb,
@@ -19,7 +27,10 @@ import {
   Target,
   Zap,
 } from "lucide-react";
+
 import { motion } from "framer-motion";
+
+import { SAAS_LOGIN_URL } from "@/lib/config/urls";
 
 const principles = [
   {
@@ -94,12 +105,13 @@ export default function About() {
             </p>
 
             <a
-  href="https://app.export.rootym.com/login"
-  className="mt-8 inline-flex items-center gap-2 rounded-xl bg-slate-950 px-6 py-3.5 font-semibold text-white transition hover:bg-slate-800"
->
-  Talk to ROOTYM AI
-  <ArrowRight className="h-5 w-5" />
-</a>
+              href={SAAS_LOGIN_URL}
+              className="mt-8 inline-flex items-center gap-2 rounded-xl bg-slate-950 px-6 py-3.5 font-semibold text-white transition hover:bg-slate-800"
+            >
+              Talk to ROOTYM AI
+
+              <ArrowRight className="h-5 w-5" />
+            </a>
           </motion.div>
 
           <motion.div

@@ -5,12 +5,17 @@
  * Author: Prem Singh
  * Purpose: Communicates the key reasons businesses choose
  *          ROOTYM AI for intelligent technology solutions.
+ *
+ * Primary SaaS destination:
+ *   centralized SAAS_LOGIN_URL
+ *
+ * The SaaS destination is environment-aware and configured
+ * through lib/config/urls.ts.
  * ============================================================
  */
 
 "use client";
 
-import Link from "next/link";
 import {
   ArrowRight,
   BrainCircuit,
@@ -20,7 +25,10 @@ import {
   Rocket,
   Settings2,
 } from "lucide-react";
+
 import { motion } from "framer-motion";
+
+import { SAAS_LOGIN_URL } from "@/lib/config/urls";
 
 const reasons = [
   {
@@ -109,12 +117,13 @@ export default function WhyRootym() {
             </p>
 
             <a
-  href="https://app.export.rootym.com/login"
-  className="mt-8 inline-flex items-center gap-2 rounded-xl bg-slate-950 px-6 py-3.5 font-semibold text-white transition hover:bg-slate-800"
->
-  Start a Conversation
-  <ArrowRight className="h-5 w-5" />
-</a>
+              href={SAAS_LOGIN_URL}
+              className="mt-8 inline-flex items-center gap-2 rounded-xl bg-slate-950 px-6 py-3.5 font-semibold text-white transition hover:bg-slate-800"
+            >
+              Start a Conversation
+
+              <ArrowRight className="h-5 w-5" />
+            </a>
           </motion.div>
 
           <div className="space-y-5">

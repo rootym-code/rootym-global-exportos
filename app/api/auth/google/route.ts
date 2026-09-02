@@ -17,29 +17,27 @@
  *   app.export.rootym.com
  *     → Google
  *     → app.export.rootym.com callback
+ *
+ * SaaS origins are centralized through:
+ *   lib/config/urls.ts
  * ============================================================
  */
 
 import { randomBytes } from "node:crypto";
-
 import { SignJWT } from "jose";
-
 import {
   NextRequest,
   NextResponse,
 } from "next/server";
 
-const STATE_COOKIE =
-  "rootym_google_oauth_state";
+import { SAAS_APP_URL } from "@/lib/config/urls";
 
-const LOCAL_OAUTH_HOST =
-  "localhost:3000";
+const STATE_COOKIE = "rootym_google_oauth_state";
 
-const LOCAL_SAAS_ORIGIN =
-  "http://app.export.localhost:3000";
+const LOCAL_OAUTH_HOST = "localhost:3000";
 
-const PRODUCTION_SAAS_ORIGIN =
-  "https://app.export.rootym.com";
+const LOCAL_OAUTH_ORIGIN =
+  "http://localhost:3000";
 
 const GOOGLE_AUTHORIZATION_ENDPOINT =
   "https://accounts.google.com/o/oauth2/v2/auth";
@@ -49,7 +47,7 @@ const secret =
 
 if (!secret) {
   throw new Error(
-    "CUSTOMER_JWT_SECRET is not defined."
+    "CUSTOMER_JWT_SECRET is not defined.",
   );
 }
 
@@ -58,45 +56,126 @@ const secretKey =
 
 /**
  * ============================================================
+ * Resolve the configured SaaS origin.
+ * ============================================================
+ *
+ * The public SaaS destination is controlled by:
+ *
+ *   NEXT_PUBLIC_SAAS_APP_URL
+ *
+ * Local:
+ *   http://app.export.localhost:3000
+ *
+ * Production:
+ *   https://app.export.rootym.com
+ *
+ * The configured value is also used by the production OAuth
+ * flow so the SaaS hostname is not duplicated in this route.
+ * ============================================================
+ */
+function getConfiguredSaaSOrigin() {
+  return SAAS_APP_URL;
+}
+
+/**
+ * ============================================================
+ * Validate a SaaS origin.
+ * ============================================================
+ *
+ * Only the configured SaaS origin is accepted for the normal
+ * SaaS OAuth flow.
+ *
+ * The localhost OAuth bootstrap remains a separate, explicit
+ * exception because Google OAuth redirects to localhost during
+ * local development.
+ * ============================================================
+ */
+function isConfiguredSaaSOrigin(
+  origin: string,
+) {
+  return (
+    origin ===
+    getConfiguredSaaSOrigin()
+  );
+}
+
+/**
+ * ============================================================
  * Resolve the current SaaS origin.
  * ============================================================
  *
- * Only the two deterministic SaaS hosts are accepted here.
- * The marketing hosts must never initiate the customer OAuth
- * flow.
+ * For the normal SaaS request, the browser must already be
+ * using the configured SaaS hostname.
+ *
+ * During local development:
+ *
+ *   app.export.localhost:3000
+ *
+ * is represented by SAAS_APP_URL.
+ *
+ * Production:
+ *
+ *   app.export.rootym.com
+ *
+ * is represented by SAAS_APP_URL.
  * ============================================================
  */
 function getSaaSOrigin(
-  request: NextRequest
+  request: NextRequest,
 ) {
   const host =
     request.headers.get("host") ??
     "";
 
-  if (
-    host ===
-    "app.export.localhost:3000"
-  ) {
-    return LOCAL_SAAS_ORIGIN;
-  }
+  const configuredOrigin =
+    getConfiguredSaaSOrigin();
+
+  const configuredUrl =
+    new URL(configuredOrigin);
+
+  const configuredHostname =
+    configuredUrl.hostname;
+
+  const configuredPort =
+    configuredUrl.port;
+
+  const requestHostname =
+    host.split(":")[0].toLowerCase();
+
+  const requestPort =
+    host.includes(":")
+      ? host.split(":")[1]
+      : "";
 
   if (
-    host ===
-    "app.export.localhost"
+    requestHostname !==
+    configuredHostname
   ) {
-    return "http://app.export.localhost";
+    throw new Error(
+      `Invalid SaaS OAuth host: ${host}`,
+    );
   }
 
+  /**
+   * ==========================================================
+   * Local configured SaaS host
+   * ==========================================================
+   *
+   * When the configured URL explicitly uses port 3000,
+   * accept the development request with that port.
+   * ==========================================================
+   */
   if (
-    host ===
-    "app.export.rootym.com"
+    configuredPort &&
+    requestPort &&
+    configuredPort !== requestPort
   ) {
-    return PRODUCTION_SAAS_ORIGIN;
+    throw new Error(
+      `Invalid SaaS OAuth port: ${host}`,
+    );
   }
 
-  throw new Error(
-    `Invalid SaaS OAuth host: ${host}`
-  );
+  return configuredOrigin;
 }
 
 /**
@@ -107,7 +186,7 @@ function getSaaSOrigin(
 async function createAuthorizationResponse(
   request: NextRequest,
   redirectUri: string,
-  returnOrigin: string
+  returnOrigin: string,
 ) {
   const clientId =
     process.env.GOOGLE_CLIENT_ID;
@@ -121,7 +200,7 @@ async function createAuthorizationResponse(
       },
       {
         status: 500,
-      }
+      },
     );
   }
 
@@ -142,42 +221,42 @@ async function createAuthorizationResponse(
 
   const googleUrl =
     new URL(
-      GOOGLE_AUTHORIZATION_ENDPOINT
+      GOOGLE_AUTHORIZATION_ENDPOINT,
     );
 
   googleUrl.searchParams.set(
     "client_id",
-    clientId
+    clientId,
   );
 
   googleUrl.searchParams.set(
     "redirect_uri",
-    redirectUri
+    redirectUri,
   );
 
   googleUrl.searchParams.set(
     "response_type",
-    "code"
+    "code",
   );
 
   googleUrl.searchParams.set(
     "scope",
-    "openid email profile"
+    "openid email profile",
   );
 
   googleUrl.searchParams.set(
     "state",
-    state
+    state,
   );
 
   googleUrl.searchParams.set(
     "access_type",
-    "online"
+    "online",
   );
 
   const response =
     NextResponse.redirect(
-      googleUrl
+      googleUrl,
     );
 
   response.cookies.set(
@@ -191,35 +270,37 @@ async function createAuthorizationResponse(
       sameSite: "lax",
       path: "/",
       maxAge: 60 * 10,
-    }
+    },
   );
 
   return response;
 }
 
 export async function GET(
-  request: NextRequest
+  request: NextRequest,
 ) {
   try {
     const host =
       request.headers.get("host") ??
       "";
 
-    /*
+    /**
      * ========================================================
      * LOCAL DEVELOPMENT
      * ========================================================
      *
-     * Google accepts localhost as a local OAuth redirect
-     * URI, but rejects app.export.localhost.
+     * Google accepts localhost as a local OAuth redirect URI,
+     * but does not use app.export.localhost as the callback
+     * destination.
      *
-     * Therefore the browser is temporarily moved to the
-     * localhost OAuth endpoint. The signed state records the
-     * intended SaaS origin so the callback can safely return
-     * to app.export.localhost.
+     * Therefore the browser is temporarily moved to:
+     *
+     *   http://localhost:3000/api/auth/google
+     *
+     * The signed state records the configured SaaS origin so
+     * the callback can safely return to the SaaS application.
      * ========================================================
      */
-
     if (
       host ===
         "app.export.localhost:3000" ||
@@ -231,52 +312,52 @@ export async function GET(
 
       const bootstrapUrl =
         new URL(
-          `http://${LOCAL_OAUTH_HOST}/api/auth/google`
+          `http://${LOCAL_OAUTH_HOST}/api/auth/google`,
         );
 
       bootstrapUrl.searchParams.set(
         "local",
-        "1"
+        "1",
       );
 
       bootstrapUrl.searchParams.set(
         "return_origin",
-        appOrigin
+        appOrigin,
       );
 
       return NextResponse.redirect(
-        bootstrapUrl
+        bootstrapUrl,
       );
     }
 
-    /*
+    /**
      * ========================================================
      * LOCALHOST OAUTH BOOTSTRAP
      * ========================================================
      *
-     * This request is generated only by the SaaS hostname
-     * above. The return origin is therefore restricted to the
-     * known local SaaS origin.
+     * This request is generated only by the local SaaS
+     * hostname above.
      *
      * The OAuth state cookie is created on localhost because
      * Google's callback will also arrive on localhost.
      * ========================================================
      */
-
     if (
       host === LOCAL_OAUTH_HOST &&
       request.nextUrl.searchParams.get(
-        "local"
+        "local",
       ) === "1"
     ) {
       const returnOrigin =
         request.nextUrl.searchParams.get(
-          "return_origin"
+          "return_origin",
         );
 
       if (
-        returnOrigin !==
-        LOCAL_SAAS_ORIGIN
+        !returnOrigin ||
+        !isConfiguredSaaSOrigin(
+          returnOrigin,
+        )
       ) {
         return NextResponse.json(
           {
@@ -286,54 +367,40 @@ export async function GET(
           },
           {
             status: 400,
-          }
+          },
         );
       }
 
       return createAuthorizationResponse(
         request,
-        `http://${LOCAL_OAUTH_HOST}/api/auth/google/callback`,
-        returnOrigin
+        `${LOCAL_OAUTH_ORIGIN}/api/auth/google/callback`,
+        returnOrigin,
       );
     }
 
-    /*
+    /**
      * ========================================================
-     * PRODUCTION
+     * PRODUCTION / CONFIGURED SAAS HOST
      * ========================================================
      *
-     * Production uses the actual SaaS hostname directly.
+     * The normal SaaS OAuth flow uses the configured SaaS
+     * application origin directly.
+     *
+     * This removes the production hostname from this route.
      * ========================================================
      */
+    const appOrigin =
+      getSaaSOrigin(request);
 
-    if (
-      host ===
-      "app.export.rootym.com"
-    ) {
-      const appOrigin =
-        getSaaSOrigin(request);
-
-      return createAuthorizationResponse(
-        request,
-        `${appOrigin}/api/auth/google/callback`,
-        appOrigin
-      );
-    }
-
-    return NextResponse.json(
-      {
-        success: false,
-        message:
-          "Google OAuth is available only from the ROOTYM SaaS host.",
-      },
-      {
-        status: 400,
-      }
+    return createAuthorizationResponse(
+      request,
+      `${appOrigin}/api/auth/google/callback`,
+      appOrigin,
     );
   } catch (error) {
     console.error(
       "Google OAuth start failed:",
-      error
+      error,
     );
 
     return NextResponse.json(
@@ -344,7 +411,7 @@ export async function GET(
       },
       {
         status: 500,
-      }
+      },
     );
   }
 }

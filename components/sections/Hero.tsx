@@ -8,7 +8,10 @@
  *
  * Primary conversion:
  *   GET STARTED
- *     → https://app.export.rootym.com/login
+ *     → centralized SAAS_LOGIN_URL
+ *
+ * The SaaS destination is environment-aware and configured
+ * through lib/config/urls.ts.
  * ============================================================
  */
 
@@ -25,9 +28,10 @@ import {
 import { motion } from "framer-motion";
 
 import HeroBackground from "@/components/hero/HeroBackground";
+
 import HeroDashboard from "@/components/hero/HeroDashboard";
 
-const SAAS_LOGIN_URL = "https://app.export.rootym.com/login";
+import { SAAS_LOGIN_URL } from "@/lib/config/urls";
 
 const trustItems = [
   "AI Powered",
@@ -61,7 +65,6 @@ export default function Hero() {
               className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-300"
             >
               <Sparkles className="h-4 w-4" />
-
               AI-Powered Enterprise Solutions
             </motion.div>
 

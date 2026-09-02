@@ -295,7 +295,7 @@ export default async function BillingPage() {
         <header className="mb-10 flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <Link
-              href="/app"
+             href="/"
               className="text-sm font-medium text-emerald-600 hover:text-emerald-700"
             >
               ← ROOTYM SaaS
@@ -765,14 +765,14 @@ export default async function BillingPage() {
 
             <div className="flex gap-5">
               <Link
-                href="/app"
+             href="/"
                 className="hover:text-slate-900"
               >
                 Workspace
               </Link>
 
               <Link
-                href="/app/settings"
+           href="/settings"
                 className="hover:text-slate-900"
               >
                 Settings

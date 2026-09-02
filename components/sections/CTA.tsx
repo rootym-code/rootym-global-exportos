@@ -8,11 +8,14 @@
  *
  * Primary conversion:
  *   GET STARTED
- *     → https://app.export.rootym.com/login
+ *     → centralized SAAS_LOGIN_URL
  *
  * Contact:
  *   Contact Us
  *     → sales@rootym.com
+ *
+ * The SaaS destination is environment-aware and configured
+ * through lib/config/urls.ts.
  * ============================================================
  */
 
@@ -29,7 +32,7 @@ import {
 
 import { motion } from "framer-motion";
 
-const SAAS_LOGIN_URL = "https://app.export.rootym.com/login";
+import { SAAS_LOGIN_URL } from "@/lib/config/urls";
 
 export default function CTA() {
   return (

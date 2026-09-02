@@ -1,3 +1,13 @@
+/**
+ * ============================================================
+ * ROOTYM ExportOS
+ * ============================================================
+ * Author: Prem Singh
+ * Purpose: Provides the floating R-CAPTAIN launcher while
+ *          keeping it clear of customer-page navigation.
+ * ============================================================
+ */
+
 "use client";
 
 import Avatar from "./Avatar";
@@ -14,7 +24,7 @@ export default function FloatingButton() {
       className="
         fixed
         bottom-6
-        right-6
+        right-72
         z-[999]
         group
       "
@@ -91,5 +101,3 @@ export default function FloatingButton() {
     </button>
   );
 }
-
- 

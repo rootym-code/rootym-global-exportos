@@ -21,13 +21,20 @@
  *   app.export.localhost
  *     → /saas
  *
- * Public SaaS login:
+ * Public SaaS routes:
  *   /login
  *     → app/login/page.tsx
  *
+ *   /
+ *     → /saas
+ *
+ *   /settings
+ *     → /saas/settings
+ *
  * The physical route structure intentionally uses explicit
  * "marketing" and "saas" directories to avoid ambiguity
- * between app/page.tsx and app/app/page.tsx.
+ * between marketing pages, SaaS pages and administrative
+ * functionality.
  * ============================================================
  */
 
@@ -92,14 +99,13 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const hostHeader =
-  request.headers.get("host") ?? "";
+    request.headers.get("host") ?? "";
 
-const hostname =
-  hostHeader
+  const hostname = hostHeader
     .split(":")[0]
     .toLowerCase();
 
-  /*
+  /**
    * ==========================================================
    * 1. STATIC ASSETS
    * ==========================================================
@@ -112,20 +118,22 @@ const hostname =
     return NextResponse.next();
   }
 
-  /*
+  /**
    * ==========================================================
    * 2. SAAS HOST
    * ==========================================================
    *
    * Public SaaS surface:
    *
-   *   /        → /saas
-   *   /login   → /login
+   *   /          → /saas
+   *   /login     → /login
+   *   /settings  → /saas/settings
    *
    * Physical routes:
    *
    *   app/saas/page.tsx
    *   app/login/page.tsx
+   *   app/saas/settings/page.tsx
    *
    * Admin routes remain on /admin.
    * API routes remain on /api.
@@ -133,11 +141,45 @@ const hostname =
    */
 
   if (SAAS_HOSTS.has(hostname)) {
+    /**
+     * SaaS Control Page
+     *
+     * Public:
+     *   /
+     *
+     * Internal:
+     *   /saas
+     */
+
     if (pathname === "/") {
       return NextResponse.rewrite(
         new URL("/saas", request.url)
       );
     }
+
+    /**
+     * Customer Settings
+     *
+     * Public:
+     *   /settings
+     *
+     * Internal:
+     *   /saas/settings
+     *
+     * This keeps the customer-facing URL clean while
+     * preserving the explicit SaaS physical directory.
+     */
+
+    if (pathname === "/settings") {
+      return NextResponse.rewrite(
+        new URL("/saas/settings", request.url)
+      );
+    }
+
+    /**
+     * Admin protection remains independent from
+     * customer authentication.
+     */
 
     const adminResponse = protectAdminRoute(
       request,
@@ -151,7 +193,7 @@ const hostname =
     return NextResponse.next();
   }
 
-  /*
+  /**
    * ==========================================================
    * 3. MARKETING HOST
    * ==========================================================
@@ -187,14 +229,14 @@ const hostname =
     return NextResponse.next();
   }
 
-  /*
+  /**
    * ==========================================================
    * 4. PLAIN LOCALHOST
    * ==========================================================
    *
    * Development convenience:
    *
-   *   localhost:3000/
+   *   localhost:3000/*
    *     → /marketing
    *
    * ==========================================================
@@ -222,7 +264,7 @@ const hostname =
     return NextResponse.next();
   }
 
-  /*
+  /**
    * ==========================================================
    * 5. UNKNOWN HOST
    * ==========================================================

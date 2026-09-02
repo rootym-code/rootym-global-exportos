@@ -8,13 +8,17 @@
  *
  * Primary conversion:
  *   BOOK A DEMO
- *     → https://app.export.rootym.com/login
+ *     → centralized SAAS_LOGIN_URL
+ *
+ * The SaaS destination is environment-aware and configured
+ * through lib/config/urls.ts.
  * ============================================================
  */
 
 "use client";
 
 import Link from "next/link";
+
 import {
   ArrowRight,
   Bot,
@@ -24,9 +28,10 @@ import {
   Database,
   Workflow,
 } from "lucide-react";
+
 import { motion } from "framer-motion";
 
-const SAAS_LOGIN_URL = "https://app.export.rootym.com/login";
+import { SAAS_LOGIN_URL } from "@/lib/config/urls";
 
 const products = [
   {
@@ -139,7 +144,6 @@ export default function Products() {
 
                   <div className="mt-7 flex items-center gap-2 text-sm font-semibold text-emerald-400 transition-all duration-300 group-hover:gap-3">
                     Learn more
-
                     <ArrowRight className="h-4 w-4" />
                   </div>
                 </div>
