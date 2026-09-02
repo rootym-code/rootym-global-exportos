@@ -674,6 +674,38 @@ export async function POST(
         );
       }
 
+      await prisma.$transaction(
+        async (tx) => {
+          await tx.subscriptionPlanChange.update({
+            where: {
+              id:
+                planChange.id,
+            },
+            data: {
+              razorpayStartAt:
+                toDateFromUnix(
+                  razorpaySubscription.start_at
+                ),
+
+              razorpayEndAt:
+                toDateFromUnix(
+                  razorpaySubscription.end_at
+                ),
+
+              razorpayCurrentStart:
+                toDateFromUnix(
+                  razorpaySubscription.current_start
+                ),
+
+              razorpayCurrentEnd:
+                toDateFromUnix(
+                  razorpaySubscription.current_end
+                ),
+            },
+          });
+        }
+      );
+
       const existingPayment =
         await prisma.payment.findUnique({
           where: {
@@ -1020,6 +1052,26 @@ export async function POST(
                   ),
 
                 currentPeriodEnd:
+                  toDateFromUnix(
+                    razorpaySubscription.current_end
+                  ),
+
+                razorpayStartAt:
+                  toDateFromUnix(
+                    razorpaySubscription.start_at
+                  ),
+
+                razorpayEndAt:
+                  toDateFromUnix(
+                    razorpaySubscription.end_at
+                  ),
+
+                razorpayCurrentStart:
+                  toDateFromUnix(
+                    razorpaySubscription.current_start
+                  ),
+
+                razorpayCurrentEnd:
                   toDateFromUnix(
                     razorpaySubscription.current_end
                   ),

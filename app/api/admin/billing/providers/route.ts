@@ -138,10 +138,6 @@ export async function GET(
 
           configured:
             Boolean(configuration),
-
-          supportsPlanChange:
-            typeof provider.createPlanChangePayment ===
-            "function",
         };
       },
     );

@@ -1,14 +1,18 @@
 /**
+ * ============================================================
+ * ROOTYM ExportOS
+ * ============================================================
  * Author: Prem Singh
- * Purpose: Implements the ROOTYM plan-change billing domain independently of the payment provider.
+ * Purpose: Implements the ROOTYM plan-change billing domain
+ *          independently of the payment provider while
+ *          maintaining separate upcoming ROOTYM billing dates.
+ * ============================================================
  */
 
 import prisma from "@/lib/prisma";
-import type { Prisma } from "@/lib/generated/prisma";
 
 import {
   BillingInterval,
-  PaymentStatus,
   PlanChangeStatus,
   SubscriptionStatus,
 } from "@/lib/generated/prisma";
@@ -30,6 +34,29 @@ function getTargetPlan(
       createdAt: "asc",
     },
   });
+}
+
+function getUpcomingPeriodEnd(
+  periodStart: Date,
+  billingInterval: BillingInterval,
+) {
+  const periodEnd =
+    new Date(periodStart);
+
+  if (
+    billingInterval ===
+    BillingInterval.ANNUAL
+  ) {
+    periodEnd.setFullYear(
+      periodEnd.getFullYear() + 1,
+    );
+  } else {
+    periodEnd.setMonth(
+      periodEnd.getMonth() + 1,
+    );
+  }
+
+  return periodEnd;
 }
 
 export async function createPaidPlanChange(
@@ -97,7 +124,6 @@ export async function createPaidPlanChange(
       where: {
         subscriptionId:
           currentSubscription.id,
-
         status: {
           in: [
             PlanChangeStatus.PAYMENT_PENDING,
@@ -105,7 +131,6 @@ export async function createPaidPlanChange(
           ],
         },
       },
-
       orderBy: {
         createdAt: "desc",
       },
@@ -137,169 +162,149 @@ export async function createPaidPlanChange(
     );
   }
 
-  /*
-   * Ask the selected payment provider to process
-   * the immediate plan-change payment.
+  if (!targetPlan.razorpayPlanId) {
+    throw new Error(
+      `The ${input.billingInterval.toLowerCase()} plan is not mapped to a Razorpay plan.`,
+    );
+  }
+
+  /**
+   * ROOTYM owns the business-effective date and the
+   * upcoming ROOTYM billing period.
    *
-   * The provider does not modify ROOTYM billing data.
+   * The current subscription remains unchanged until the
+   * plan change becomes effective.
+   */
+  const upcomingPeriodStart =
+    currentSubscription.currentPeriodEnd;
+
+  const upcomingPeriodEnd =
+    getUpcomingPeriodEnd(
+      upcomingPeriodStart,
+      input.billingInterval,
+    );
+
+  /**
+   * Ask the selected payment provider to initialize
+   * the plan-change checkout.
+   *
+   * Provider-specific subscription timing is intentionally
+   * not supplied here. The provider owns its own lifecycle
+   * dates, while ROOTYM maintains its business-period dates
+   * separately.
+   *
+   * Payment confirmation is handled separately by the
+   * provider verification/reconciliation flow.
    */
   const providerResult =
-    await input.provider.createPlanChangePayment(
+    await input.provider.createPlanChangeCheckout(
       {
         tenantId:
           input.tenantId,
-
         fromBillingInterval:
           currentSubscription.billingInterval ??
           BillingInterval.MONTHLY,
-
         toBillingInterval:
           input.billingInterval,
-
         amount:
           targetPlan.amount,
-
         currency:
           targetPlan.currency,
+        razorpayPlanId:
+          targetPlan.razorpayPlanId,
+        razorpayCustomerId:
+          currentSubscription.razorpayCustomerId ??
+          "",
+        totalCount:
+          input.billingInterval ===
+          BillingInterval.ANNUAL
+            ? 1
+            : 12,
       },
     );
 
-  /*
+  if (
+    providerResult.providerSubscriptionId
+  ) {
+    /**
+     * The provider subscription ID is required by the
+     * existing Razorpay verification flow to locate the
+     * pending ROOTYM plan change after Checkout.
+     */
+  }
+
+  /**
    * The current subscription remains unchanged.
    *
-   * This is the critical business rule:
+   * ROOTYM business state:
    *
    * Monthly ACTIVE
    *      +
-   * Annual payment captured
+   * Annual checkout initialized
    *      =
    * Monthly still ACTIVE
    * until currentPeriodEnd.
+   *
+   * The upcoming ROOTYM period is stored separately on
+   * SubscriptionPlanChange.
    */
-  const result =
-    await prisma.$transaction(
-      async (tx) => {
-        const planChange =
-          await tx.subscriptionPlanChange.create(
-            {
-              data: {
-                tenantId:
-                  input.tenantId,
-
-                subscriptionId:
-                  currentSubscription.id,
-
-                fromPlanId:
-                  currentSubscription.planId,
-
-                toPlanId:
-                  targetPlan.id,
-
-                effectiveAt:
-                  currentSubscription.currentPeriodEnd!,
-
-                status:
-                  providerResult.status ===
-                  "CAPTURED"
-                    ? PlanChangeStatus.PAYMENT_CONFIRMED
-                    : PlanChangeStatus.PAYMENT_PENDING,
-              },
-
-              include: {
-                fromPlan: true,
-
-                toPlan: true,
-              },
-            },
-          );
-
-        const payment =
-          await tx.payment.create({
-            data: {
-              tenantId:
-                input.tenantId,
-
-              subscriptionId:
-                currentSubscription.id,
-
-              planChangeId:
-                planChange.id,
-
-              provider:
-                providerResult.provider,
-
-              providerPaymentId:
-                providerResult.providerPaymentId,
-
-              providerSubscriptionId:
-                providerResult.providerSubscriptionId ??
-                null,
-
-              amount:
-                providerResult.amount,
-
-              currency:
-                providerResult.currency,
-
-              status:
-                providerResult.status ===
-                "CAPTURED"
-                  ? PaymentStatus.CAPTURED
-                  : providerResult.status ===
-                      "FAILED"
-                    ? PaymentStatus.FAILED
-                    : providerResult.status ===
-                        "AUTHORIZED"
-                      ? PaymentStatus.AUTHORIZED
-                      : PaymentStatus.CREATED,
-
-              paidAt:
-                providerResult.paidAt ??
-                null,
-
-              failedAt:
-                providerResult.status ===
-                "FAILED"
-                  ? new Date()
-                  : null,
-
-              failureCode:
-                providerResult.failureCode ??
-                null,
-
-                failureReason:
-                providerResult.failureReason ??
-                null,
-              
-                metadata:
-                providerResult.metadata
-                  ? (providerResult.metadata as Prisma.InputJsonValue)
-                  : undefined,
-            },
-          });
-
-        return {
-          planChange,
-
-          payment,
-
-          subscription:
-            currentSubscription,
-        };
+  const planChange =
+    await prisma.subscriptionPlanChange.create(
+      {
+        data: {
+          tenantId:
+            input.tenantId,
+          subscriptionId:
+            currentSubscription.id,
+          razorpaySubscriptionId:
+            providerResult.providerSubscriptionId ??
+            null,
+          fromPlanId:
+            currentSubscription.planId,
+          toPlanId:
+            targetPlan.id,
+          effectiveAt:
+            currentSubscription.currentPeriodEnd,
+          upcomingPeriodStart,
+          upcomingPeriodEnd,
+          status:
+            PlanChangeStatus.PAYMENT_PENDING,
+        },
+        include: {
+          fromPlan: true,
+          toPlan: true,
+        },
       },
     );
 
   return {
-    planChange:
-      result.planChange,
-
-    payment:
-      result.payment,
-
+    planChange,
     subscription:
-      result.subscription,
-
+      currentSubscription,
     provider:
       providerResult.provider,
+    checkout: {
+      providerCheckoutId:
+        providerResult.providerCheckoutId ??
+        null,
+      providerSubscriptionId:
+        providerResult.providerSubscriptionId ??
+        null,
+      checkoutKey:
+        providerResult.checkoutKey ??
+        null,
+      checkoutUrl:
+        providerResult.checkoutUrl ??
+        null,
+      amount:
+        providerResult.amount,
+      currency:
+        providerResult.currency,
+      status:
+        providerResult.status,
+      metadata:
+        providerResult.metadata ??
+        null,
+    },
   };
 }

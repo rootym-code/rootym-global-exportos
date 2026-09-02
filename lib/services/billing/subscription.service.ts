@@ -62,6 +62,13 @@ async function getOrCreateBillingCustomer(
     return existingCustomer;
   }
 
+  /*
+   * Razorpay customers are merchant-global.
+   *
+   * fail_existing=0 makes customer provisioning idempotent at the
+   * Razorpay level: if the same customer already exists, Razorpay
+   * returns that customer instead of failing with a duplicate error.
+   */
   const customer =
     await razorpayRequest<RazorpayCustomerResponse>(
       "/customers",
@@ -70,6 +77,7 @@ async function getOrCreateBillingCustomer(
         body: {
           name,
           email,
+          fail_existing: "0",
           notes: {
             rootymTenantId: tenantId,
           },
@@ -80,6 +88,33 @@ async function getOrCreateBillingCustomer(
   if (!customer.id) {
     throw new Error(
       "Razorpay customer ID was not returned."
+    );
+  }
+
+  /*
+   * Never attach a Razorpay customer that is explicitly owned by a
+   * different ROOTYM tenant. This prevents cross-tenant billing
+   * contamination when two ROOTYM workspaces use the same email.
+   */
+  const razorpayTenantId =
+    customer.notes?.rootymTenantId?.trim();
+
+  if (
+    razorpayTenantId &&
+    razorpayTenantId !== tenantId
+  ) {
+    throw new Error(
+      "The existing Razorpay customer is already associated with another ROOTYM workspace."
+    );
+  }
+
+  if (
+    customer.email &&
+    customer.email.trim().toLowerCase() !==
+      email.trim().toLowerCase()
+  ) {
+    throw new Error(
+      "Razorpay returned a customer with a different email address."
     );
   }
 

@@ -4,16 +4,16 @@
  * ============================================================
  * Author: Prem Singh
  * Purpose: Creates a paid ROOTYM subscription plan change
- *          using the configured development billing provider.
+ *          using the first enabled billing provider configured
+ *          for the active billing environment.
  *
- * The generic billing provider may support multiple billing
- * capabilities. This route explicitly verifies that the
- * selected provider supports plan-change payments before
- * passing it to the plan-change domain service.
+ * The selected provider is resolved through the central billing
+ * provider registry and environment configuration.
  * ============================================================
  */
 
 import { NextResponse } from "next/server";
+
 import { cookies } from "next/headers";
 
 import {
@@ -30,8 +30,8 @@ import {
 } from "@/app/lib/billing/plan-change.service";
 
 import {
-  testBillingProvider,
-} from "@/app/lib/billing/providers/test.provider";
+  getConfiguredBillingProviders,
+} from "@/app/lib/billing/providers";
 
 import type {
   BillingPlanChangeProvider,
@@ -126,28 +126,61 @@ export async function POST(
 
     /**
      * ========================================================
-     * Resolve the Test Provider capability.
+     * Resolve the first enabled billing provider.
      * ========================================================
      *
-     * The Test Provider is currently represented by the
-     * generic BillingProvider contract.
+     * Providers are resolved through the central billing
+     * provider registry and BillingProviderConfig.
      *
-     * Plan changes require the more specific
-     * BillingPlanChangeProvider capability.
+     * getConfiguredBillingProviders() already orders providers
+     * by sortOrder ASC and provider name.
      *
-     * Keep this capability check here until the central
-     * provider registry is introduced.
+     * The first enabled provider is therefore the provider
+     * selected for this plan-change request.
      * ========================================================
      */
-    const createPlanChangePayment =
-      testBillingProvider.createPlanChangePayment;
 
-    if (!createPlanChangePayment) {
+    const configuredProviders =
+      await getConfiguredBillingProviders();
+
+    const selectedProvider =
+      configuredProviders[0];
+
+    if (!selectedProvider) {
       return NextResponse.json(
         {
           success: false,
           message:
-            "The configured development billing provider does not support plan changes.",
+            "No enabled billing provider is configured for the active billing environment.",
+        },
+        {
+          status: 503,
+        },
+      );
+    }
+
+    /**
+     * ========================================================
+     * Resolve the plan-change checkout capability.
+     * ========================================================
+     *
+     * Not every billing provider is required to support
+     * plan-change checkout.
+     *
+     * The capability is therefore checked explicitly before
+     * passing the provider to the plan-change domain service.
+     * ========================================================
+     */
+
+    const createPlanChangeCheckout =
+      selectedProvider.createPlanChangeCheckout;
+
+    if (!createPlanChangeCheckout) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            `The configured billing provider ${selectedProvider.displayName} does not support plan-change checkout.`,
         },
         {
           status: 501,
@@ -155,9 +188,10 @@ export async function POST(
       );
     }
 
-    const planChangeProvider: BillingPlanChangeProvider =
+    const planChangeProvider:
+      BillingPlanChangeProvider =
       {
-        createPlanChangePayment,
+        createPlanChangeCheckout,
       };
 
     /**
@@ -165,6 +199,7 @@ export async function POST(
      * Execute provider-independent plan-change billing.
      * ========================================================
      */
+
     const result =
       await createPaidPlanChange({
         tenantId:
@@ -180,46 +215,79 @@ export async function POST(
       {
         success: true,
 
+
+
         message:
-          "Payment successful. Your new plan has been paid for and will become effective when the current billing period ends.",
+        "Plan-change checkout initialized. Complete the payment to confirm your new plan.",
 
-        data: {
-          planChangeId:
-            result.planChange.id,
+      data: {
+        planChangeId:
+          result.planChange.id,
 
-          paymentId:
-            result.payment.id,
+        provider:
+          result.provider,
 
-          paymentStatus:
-            result.payment.status,
+        checkout: {
+          providerCheckoutId:
+            result.checkout
+              .providerCheckoutId,
 
-          planChangeStatus:
-            result.planChange.status,
+          providerSubscriptionId:
+            result.checkout
+              .providerSubscriptionId,
 
-          currentPlan: {
-            code:
-              result.planChange
-                .fromPlan.code,
+          checkoutKey:
+            result.checkout
+              .checkoutKey,
 
-            name:
-              result.planChange
-                .fromPlan.name,
-          },
+          checkoutUrl:
+            result.checkout
+              .checkoutUrl,
 
-          targetPlan: {
-            code:
-              result.planChange
-                .toPlan.code,
+          amount:
+            result.checkout.amount,
 
-            name:
-              result.planChange
-                .toPlan.name,
-          },
+          currency:
+            result.checkout.currency,
 
-          effectiveAt:
-            result.planChange
-              .effectiveAt,
+          status:
+            result.checkout.status,
+
+          metadata:
+            result.checkout.metadata,
         },
+
+        planChangeStatus:
+          result.planChange.status,
+
+        currentPlan: {
+          code:
+            result.planChange
+              .fromPlan.code,
+
+          name:
+            result.planChange
+              .fromPlan.name,
+        },
+
+        targetPlan: {
+          code:
+            result.planChange
+              .toPlan.code,
+
+          name:
+            result.planChange
+              .toPlan.name,
+        },
+
+        effectiveAt:
+          result.planChange
+            .effectiveAt,
+      },
+
+
+
+
       },
       {
         status: 200,
@@ -234,6 +302,7 @@ export async function POST(
     return NextResponse.json(
       {
         success: false,
+
         message:
           error instanceof Error
             ? error.message

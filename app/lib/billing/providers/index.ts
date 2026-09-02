@@ -14,19 +14,40 @@ import prisma from "@/lib/prisma";
 import type {
   BillingProviderName,
   BillingProviderPaymentResult,
+  BillingProviderCheckoutResult,
   BillingPlanChangeRequest,
+  BillingSubscriptionRequest,
 } from "./types";
 
 import { testBillingProvider } from "./test.provider";
+import { razorpayBillingProvider } from "./razorpay.provider";
 
 import { getBillingEnvironment } from "../environment";
 
+/**
+ * ============================================================
+ * Registry-facing provider definition
+ * ============================================================
+ *
+ * This interface describes the capabilities that the billing
+ * registry can expose to the rest of the application.
+ *
+ * Provider availability is still controlled separately by
+ * BillingProviderConfig.
+ * ============================================================
+ */
 export interface BillingProvider {
   name: BillingProviderName;
+
   displayName: string;
-  createPlanChangePayment?: (
+
+  createSubscriptionCheckout?: (
+    input: BillingSubscriptionRequest,
+  ) => Promise<BillingProviderCheckoutResult>;
+
+  createPlanChangeCheckout?: (
     input: BillingPlanChangeRequest,
-  ) => Promise<BillingProviderPaymentResult>;
+  ) => Promise<BillingProviderCheckoutResult>;
 }
 
 /**
@@ -36,9 +57,11 @@ export interface BillingProvider {
  *
  * This is the application-level provider registry.
  *
- * Adding a new provider here makes the provider available to
- * the billing system. Whether customers can actually use it is
- * controlled separately through BillingProviderConfig.
+ * Adding a provider here makes the provider available to the
+ * billing system.
+ *
+ * Whether customers can actually use the provider is controlled
+ * separately through BillingProviderConfig.
  *
  * Example future providers:
  *
@@ -54,19 +77,33 @@ const BILLING_PROVIDER_REGISTRY: Record<
 > = {
   TEST: {
     name: "TEST",
+
     displayName: "Test Payment",
-    createPlanChangePayment:
-      testBillingProvider.createPlanChangePayment,
+
+    createSubscriptionCheckout:
+      testBillingProvider.createSubscriptionCheckout,
+
+    createPlanChangeCheckout:
+      testBillingProvider.createPlanChangeCheckout,
   },
 
   RAZORPAY: {
     name: "RAZORPAY",
+
     displayName: "Razorpay",
+
+    createSubscriptionCheckout:
+      razorpayBillingProvider.createSubscriptionCheckout,
+
+    createPlanChangeCheckout:
+      razorpayBillingProvider.createPlanChangeCheckout,
   },
 };
 
 /**
+ * ============================================================
  * Return the complete application provider registry.
+ * ============================================================
  *
  * This does not check database configuration.
  */
@@ -75,7 +112,9 @@ export function getBillingProviderRegistry(): BillingProvider[] {
 }
 
 /**
+ * ============================================================
  * Resolve one provider from the application registry.
+ * ============================================================
  */
 export function getBillingProviderDefinition(
   providerName: BillingProviderName,
@@ -102,7 +141,7 @@ export function getBillingProviderDefinition(
  *
  * Therefore:
  *
- *   Registry
+ *   Application Registry
  *       ↓
  *   Provider exists
  *
@@ -121,6 +160,7 @@ export async function getConfiguredBillingProviders() {
         environment,
         enabled: true,
       },
+
       orderBy: [
         {
           sortOrder: "asc",
@@ -137,9 +177,7 @@ export async function getConfiguredBillingProviders() {
         configuration.provider as BillingProviderName;
 
       const definition =
-        BILLING_PROVIDER_REGISTRY[
-          providerName
-        ];
+        BILLING_PROVIDER_REGISTRY[providerName];
 
       if (!definition) {
         return null;
@@ -147,37 +185,43 @@ export async function getConfiguredBillingProviders() {
 
       return {
         name: definition.name,
+
         displayName:
-          configuration.displayName?.trim() ||
+          configuration.displayName ??
           definition.displayName,
+
         sortOrder:
           configuration.sortOrder,
+
         environment,
-        createPlanChangePayment:
-          definition.createPlanChangePayment,
+
+        createSubscriptionCheckout:
+          definition.createSubscriptionCheckout,
+
+        createPlanChangeCheckout:
+          definition.createPlanChangeCheckout,
       };
     })
     .filter(
       (
         provider,
-      ): provider is NonNullable<
-        typeof provider
-      > => provider !== null,
+      ): provider is NonNullable<typeof provider> =>
+        provider !== null,
     );
 }
 
 /**
  * ============================================================
- * Resolve a configured provider
+ * Resolve one configured provider
  * ============================================================
  *
- * This function should be used by billing operations when a
- * specific provider is requested.
- *
- * It verifies BOTH:
+ * This performs both checks:
  *
  *   1. Provider exists in the application registry.
  *   2. Provider is enabled for the current environment.
+ *
+ * This is the backend enforcement boundary that prevents a
+ * customer request from bypassing administrator configuration.
  * ============================================================
  */
 export async function getConfiguredBillingProvider(
@@ -186,36 +230,55 @@ export async function getConfiguredBillingProvider(
   const environment =
     getBillingEnvironment();
 
+  const definition =
+    BILLING_PROVIDER_REGISTRY[providerName];
+
+  if (!definition) {
+    throw new Error(
+      `Unsupported billing provider: ${providerName}`,
+    );
+  }
+
   const configuration =
     await prisma.billingProviderConfig.findUnique({
       where: {
         environment_provider: {
           environment,
-          provider: providerName,
+
+          provider:
+            providerName,
         },
       },
     });
 
-  if (!configuration?.enabled) {
+  if (!configuration) {
     throw new Error(
-      `Billing provider "${providerName}" is not enabled for the ${environment.toLowerCase()} environment.`,
+      `Billing provider ${providerName} is not configured for ${environment}.`,
     );
   }
 
-  const definition =
-    getBillingProviderDefinition(
-      providerName,
+  if (!configuration.enabled) {
+    throw new Error(
+      `Billing provider ${providerName} is disabled for ${environment}.`,
     );
+  }
 
   return {
     name: definition.name,
+
     displayName:
-      configuration.displayName?.trim() ||
+      configuration.displayName ??
       definition.displayName,
+
     sortOrder:
       configuration.sortOrder,
+
     environment,
-    createPlanChangePayment:
-      definition.createPlanChangePayment,
+
+    createSubscriptionCheckout:
+      definition.createSubscriptionCheckout,
+
+    createPlanChangeCheckout:
+      definition.createPlanChangeCheckout,
   };
 }

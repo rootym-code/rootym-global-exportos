@@ -12,7 +12,7 @@
 import type {
   BillingPlanChangeProvider,
   BillingPlanChangeRequest,
-  BillingProviderPaymentResult,
+  BillingProviderCheckoutResult,
   BillingProvider,
   BillingSubscriptionProvider,
   BillingSubscriptionRequest,
@@ -26,42 +26,46 @@ function createTestPaymentId(
     .slice(2, 10)}`;
 }
 
+function createTestSubscriptionId() {
+  return `test_subscription_${Date.now()}_${Math.random()
+    .toString(36)
+    .slice(2, 10)}`;
+}
+
 /**
  * ============================================================
  * Initial subscription checkout
  * ============================================================
+ *
+ * The TEST provider simulates a completed checkout
+ * immediately. This preserves the existing development
+ * behavior without requiring an external payment gateway.
  */
 const testSubscriptionProvider: BillingSubscriptionProvider =
   {
-    async createSubscriptionPayment(
+    async createSubscriptionCheckout(
       input: BillingSubscriptionRequest,
-    ): Promise<BillingProviderPaymentResult> {
-      const now = new Date();
-
+    ): Promise<BillingProviderCheckoutResult> {
       return {
         provider: "TEST",
 
-        providerPaymentId:
+        providerCheckoutId:
           createTestPaymentId(
-            "subscription_payment",
+            "subscription_checkout",
           ),
 
         providerSubscriptionId:
-          `test_subscription_${Date.now()}_${Math.random()
-            .toString(36)
-            .slice(2, 10)}`,
+          createTestSubscriptionId(),
+
+        checkoutKey: null,
+
+        checkoutUrl: null,
 
         amount: input.amount,
 
         currency: input.currency,
 
         status: "CAPTURED",
-
-        paidAt: now,
-
-        failureCode: null,
-
-        failureReason: null,
 
         metadata: {
           testMode: true,
@@ -88,24 +92,29 @@ const testSubscriptionProvider: BillingSubscriptionProvider =
  * ============================================================
  * Paid plan change
  * ============================================================
+ *
+ * The TEST provider simulates the plan-change checkout
+ * immediately. No external payment gateway is required.
  */
 const testPlanChangeProvider: BillingPlanChangeProvider =
   {
-    async createPlanChangePayment(
+    async createPlanChangeCheckout(
       input: BillingPlanChangeRequest,
-    ): Promise<BillingProviderPaymentResult> {
-      const now = new Date();
-
+    ): Promise<BillingProviderCheckoutResult> {
       return {
         provider: "TEST",
 
-        providerPaymentId:
+        providerCheckoutId:
           createTestPaymentId(
-            "plan_change",
+            "plan_change_checkout",
           ),
 
         providerSubscriptionId:
           null,
+
+        checkoutKey: null,
+
+        checkoutUrl: null,
 
         amount:
           input.amount,
@@ -115,15 +124,6 @@ const testPlanChangeProvider: BillingPlanChangeProvider =
 
         status:
           "CAPTURED",
-
-        paidAt:
-          now,
-
-        failureCode:
-          null,
-
-        failureReason:
-          null,
 
         metadata: {
           testMode:
@@ -156,9 +156,9 @@ const testPlanChangeProvider: BillingPlanChangeProvider =
 export const testBillingProvider: BillingProvider = {
   name: "TEST",
 
-  createSubscriptionPayment:
-    testSubscriptionProvider.createSubscriptionPayment,
+  createSubscriptionCheckout:
+    testSubscriptionProvider.createSubscriptionCheckout,
 
-  createPlanChangePayment:
-    testPlanChangeProvider.createPlanChangePayment,
+  createPlanChangeCheckout:
+    testPlanChangeProvider.createPlanChangeCheckout,
 };
