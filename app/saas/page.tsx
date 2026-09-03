@@ -448,19 +448,17 @@ export default async function AppPage() {
 
             </div>
 
-            <button
-              type="button"
-              disabled
-              className="mt-7 inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl bg-white/10 px-5 py-3.5 text-sm font-semibold text-slate-400 ring-1 ring-white/10"
-              title="Customer Workspace will be connected in Phase C"
-            >
-              Go to Workspace
-              <ArrowRight className="h-4 w-4" />
-            </button>
+            <Link
+  href="/app/workspace"
+  className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-emerald-700"
+>
+  Go to Workspace
+  <ArrowRight className="h-4 w-4" />
+</Link>
 
-            <p className="mt-3 text-center text-xs text-slate-500">
-              Workspace application connection will be enabled in Phase C.
-            </p>
+<p className="mt-3 text-center text-xs text-slate-500">
+  Open your ROOTYM customer workspace.
+</p>
 
           </aside>
         </section>

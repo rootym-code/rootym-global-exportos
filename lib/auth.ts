@@ -1,7 +1,13 @@
+/**
+ * Author: Prem Singh
+ * Purpose: Provides admin authentication, JWT creation, and active-admin authorization.
+ */
+
 import { NextRequest } from "next/server";
 import { SignJWT, type JWTPayload } from "jose";
 
 import { verifyAdminToken } from "./jwt";
+import { prisma } from "@/lib/prisma";
 import { AdminRole } from "@/lib/generated/prisma";
 
 const secret = process.env.JWT_SECRET;
@@ -72,13 +78,42 @@ export async function authenticateAdmin(
 
     const payload = await verifyAdminToken(token);
 
+    const admin = await prisma.admin.findUnique({
+      where: {
+        id: payload.adminId,
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        isActive: true,
+      },
+    });
+
+    if (!admin) {
+      return {
+        authenticated: false,
+        error: "Admin account not found.",
+        status: 401,
+      };
+    }
+
+    if (!admin.isActive) {
+      return {
+        authenticated: false,
+        error: "Admin account is inactive.",
+        status: 403,
+      };
+    }
+
     return {
       authenticated: true,
       admin: {
-        adminId: payload.adminId,
-        email: payload.email,
-        name: payload.name,
-        role: payload.role,
+        adminId: admin.id,
+        email: admin.email,
+        name: admin.name,
+        role: admin.role,
       },
     };
   } catch {

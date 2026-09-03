@@ -3,9 +3,9 @@
  * ROOTYM ExportOS
  * ============================================================
  * Author: Prem Singh
- * Purpose: Provides deterministic hostname-based separation
- *          between the ROOTYM marketing website and the
- *          ExportOS SaaS application.
+ * Purpose: Provides deterministic hostname-based separation,
+ *          cryptographic admin JWT route protection, and
+ *          application routing.
  *
  * Production:
  *   export.rootym.com
@@ -40,6 +40,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
+import { verifyAdminToken } from "@/lib/jwt";
+
 const MARKETING_HOSTS = new Set([
   "export.rootym.com",
   "export.localhost",
@@ -62,7 +64,7 @@ function isStaticAsset(pathname: string) {
   );
 }
 
-function protectAdminRoute(
+async function protectAdminRoute(
   request: NextRequest,
   pathname: string
 ) {
@@ -78,24 +80,52 @@ function protectAdminRoute(
     "rootym_admin_token"
   )?.value;
 
-  if (token) {
-    return null;
+  if (!token) {
+    const loginUrl = new URL(
+      "/admin/login",
+      request.url
+    );
+
+    loginUrl.searchParams.set(
+      "callbackUrl",
+      pathname
+    );
+
+    return NextResponse.redirect(loginUrl);
   }
 
-  const loginUrl = new URL(
-    "/admin/login",
-    request.url
-  );
+  try {
+    /**
+     * Proxy-level protection intentionally performs
+     * cryptographic JWT verification only.
+     *
+     * Database-level admin validation, including
+     * existence, active status and current role,
+     * remains the responsibility of authenticateAdmin().
+     */
+    await verifyAdminToken(token);
 
-  loginUrl.searchParams.set(
-    "callbackUrl",
-    pathname
-  );
+    return null;
+  } catch {
+    /**
+     * Invalid or expired admin tokens must not be
+     * allowed to reach protected Admin pages.
+     */
+    const loginUrl = new URL(
+      "/admin/login",
+      request.url
+    );
 
-  return NextResponse.redirect(loginUrl);
+    loginUrl.searchParams.set(
+      "callbackUrl",
+      pathname
+    );
+
+    return NextResponse.redirect(loginUrl);
+  }
 }
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const hostHeader =
@@ -158,6 +188,26 @@ export function proxy(request: NextRequest) {
     }
 
     /**
+     * SaaS Control Center
+     *
+     * Public:
+     *   /app
+     *
+     * Internal:
+     *   /saas
+     *
+     * The explicit rewrite prevents the marketing
+     * [locale] route from interpreting "app" as a
+     * marketing locale.
+     */
+
+    if (pathname === "/app") {
+      return NextResponse.rewrite(
+        new URL("/saas", request.url)
+      );
+    }
+
+    /**
      * Customer Settings
      *
      * Public:
@@ -179,9 +229,15 @@ export function proxy(request: NextRequest) {
     /**
      * Admin protection remains independent from
      * customer authentication.
+     *
+     * The proxy validates only the cryptographic
+     * integrity and expiry of the admin JWT.
+     *
+     * Full database authorization is handled by
+     * authenticateAdmin() inside protected APIs.
      */
 
-    const adminResponse = protectAdminRoute(
+    const adminResponse = await protectAdminRoute(
       request,
       pathname
     );

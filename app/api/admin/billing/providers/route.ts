@@ -3,17 +3,19 @@
  * ROOTYM ExportOS
  * ============================================================
  * Author: Prem Singh
- * Purpose: Provides the admin API for managing billing-provider
- *          availability by development, staging and production
- *          environment.
+ * Purpose: Provides the authenticated admin API for managing
+ *          billing-provider availability by development,
+ *          staging and production environment.
  * ============================================================
  */
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 import prisma from "@/lib/prisma";
 
 import { BillingEnvironment } from "@/lib/generated/prisma";
+
+import { authenticateAdmin } from "@/lib/auth";
 
 import {
   getBillingProviderRegistry,
@@ -59,8 +61,22 @@ function getRegisteredProviderNames() {
  */
 
 export async function GET(
-  request: Request,
+  request: NextRequest,
 ) {
+  const auth = await authenticateAdmin(request);
+
+  if (!auth.authenticated) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: auth.error,
+      },
+      {
+        status: auth.status,
+      },
+    );
+  }
+
   try {
     const url = new URL(request.url);
 
@@ -179,8 +195,22 @@ export async function GET(
  */
 
 export async function PUT(
-  request: Request,
+  request: NextRequest,
 ) {
+  const auth = await authenticateAdmin(request);
+
+  if (!auth.authenticated) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: auth.error,
+      },
+      {
+        status: auth.status,
+      },
+    );
+  }
+
   try {
     let body: {
       environment?: string;
