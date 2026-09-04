@@ -10,12 +10,11 @@
  */
 
 import Link from "next/link";
+
 import {
   ArrowLeft,
   ArrowRight,
   Building2,
-  CheckCircle2,
-  CircleUserRound,
   FileCheck2,
   Globe2,
   LayoutDashboard,
@@ -34,56 +33,72 @@ const businessModules = [
     description:
       "Manage the core business identity and information associated with your ROOTYM workspace.",
     icon: Building2,
-    status: "Preparing",
+    status: "Available",
+    href: "/app/workspace/business/profile",
+  },
+  {
+    title: "Business Address",
+    description:
+      "Manage the primary business address associated with your ROOTYM workspace.",
+    icon: Building2,
+    status: "Available",
+    href: "/app/workspace/business/address",
   },
   {
     title: "Company Information",
     description:
       "Maintain legal name, registered address, contact details and other company information.",
-    icon: CircleUserRound,
-    status: "Preparing",
+    icon: Building2,
+    status: "Available",
+    href: "/app/workspace/business/company-information",
   },
   {
     title: "Contact & Communication",
     description:
       "Configure business email, phone, WhatsApp and other customer communication details.",
     icon: UsersRound,
-    status: "Preparing",
+    status: "Available",
+    href: "/app/workspace/business/contact-communication",
   },
   {
     title: "Export Credentials",
     description:
       "Manage export-related business credentials and identification information.",
     icon: Globe2,
-    status: "Preparing",
+    status: "Available",
+    href: "/app/workspace/business/export-credentials",
   },
   {
     title: "Tax & Compliance",
     description:
       "Configure tax, regulatory and compliance information required for export operations.",
     icon: FileCheck2,
-    status: "Preparing",
+    status: "Available",
+    href: "/app/workspace/business/tax-compliance",
   },
   {
     title: "Financial Settings",
     description:
       "Manage business financial configuration used by future ROOTYM operational workflows.",
     icon: WalletCards,
-    status: "Preparing",
+    status: "Available",
+    href: "/app/workspace/business/financial-settings",
   },
   {
     title: "Operating Preferences",
     description:
       "Configure business operating preferences and defaults used across ROOTYM applications.",
     icon: SlidersHorizontal,
-    status: "Preparing",
+    status: "Available",
+    href: "/app/workspace/business/operating-preferences",
   },
   {
     title: "Team & Access",
     description:
       "Manage future workspace users, roles and access permissions for your business.",
     icon: ShieldCheck,
-    status: "Preparing",
+    status: "Available",
+    href: "/app/workspace/business/team-access",
   },
 ];
 
@@ -166,8 +181,8 @@ export default async function BusinessConfigurationPage() {
                 {String(membership.role)}
               </div>
 
-              <div className="inline-flex items-center gap-2 rounded-full bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-300 ring-1 ring-white/10">
-                Module Preparing
+              <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 ring-1 ring-emerald-400/20">
+                All Modules Available
               </div>
             </div>
           </div>
@@ -220,9 +235,8 @@ export default async function BusinessConfigurationPage() {
             </h2>
 
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-              Business configuration capabilities will be
-              progressively enabled here as the ROOTYM customer
-              platform is built.
+              Access the business configuration capabilities available
+              within your ROOTYM customer workspace.
             </p>
           </div>
 
@@ -230,17 +244,14 @@ export default async function BusinessConfigurationPage() {
             {businessModules.map((module) => {
               const Icon = module.icon;
 
-              return (
-                <div
-                  key={module.title}
-                  className="rounded-3xl bg-white p-7 shadow-sm ring-1 ring-slate-200 transition hover:shadow-md"
-                >
+              const cardContent = (
+                <>
                   <div className="flex items-start justify-between gap-5">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 ring-1 ring-emerald-100">
                       <Icon className="h-6 w-6 text-emerald-600" />
                     </div>
 
-                    <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-500">
+                    <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
                       {module.status}
                     </span>
                   </div>
@@ -254,12 +265,23 @@ export default async function BusinessConfigurationPage() {
                   </p>
 
                   <div className="mt-6">
-                    <span className="inline-flex items-center gap-2 text-sm font-semibold text-slate-400">
-                      Coming soon
+                    <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-600">
+                      Open {module.title}
+
                       <ArrowRight className="h-4 w-4" />
                     </span>
                   </div>
-                </div>
+                </>
+              );
+
+              return (
+                <Link
+                  key={module.title}
+                  href={module.href}
+                  className="block rounded-3xl bg-white p-7 shadow-sm ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  {cardContent}
+                </Link>
               );
             })}
           </div>
@@ -286,7 +308,7 @@ export default async function BusinessConfigurationPage() {
                 </h2>
 
                 <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-600">
-                  This workspace area will provide the central
+                  This workspace area provides the central
                   customer-facing configuration layer for business
                   identity, export credentials, compliance and
                   operating preferences. Future ROOTYM applications

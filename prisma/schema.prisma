@@ -87,76 +87,28 @@ model InquiryStatusHistory {
   @@index([createdAt])
 }
 
-/**
- * ============================================================
- * ROOTYM ExportOS
- * ============================================================
- * Author: Prem Singh
- * Purpose: Stores administrator-controlled billing provider
- * availability for each ROOTYM deployment environment.
- * Provider credentials are intentionally NOT stored here.
- * Credentials remain deployment secrets/environment variables.
- * This model controls provider availability only.
- * ============================================================
- */
-
-enum BillingEnvironment {
-  DEVELOPMENT
-  STAGING
-  PRODUCTION
-}
-
-/**
- * ============================================================
- * Billing Provider Configuration
- * ============================================================
- * One provider may be configured independently for each
- * environment.
- * Examples:
- * DEVELOPMENT + TEST       + enabled
- * DEVELOPMENT + RAZORPAY   + disabled
- * STAGING     + TEST       + enabled
- * STAGING     + RAZORPAY   + enabled
- * PRODUCTION  + RAZORPAY   + enabled
- * PRODUCTION  + TEST       + disabled
- * The provider field remains String rather than a Prisma enum
- * so adding future providers does not require a database enum
- * migration.
- * ============================================================
- */
-
 model BillingProviderConfig {
-  id String @id @default(cuid())
-
+  id          String             @id @default(cuid())
   environment BillingEnvironment
-
-  /**
-   * Provider registry key.
-   * Examples:
-   * TEST
-   * RAZORPAY
-   * STRIPE
-   * PAYPAL
-   */
-  provider String
-
-  /**
-   * Administrator-controlled availability.
-   */
-  enabled Boolean @default(false)
-
-  /**
-   * Optional administrator-facing display name.
-   */
+  /// *
+  /// * Provider registry key.
+  /// * Examples:
+  /// * TEST
+  /// * RAZORPAY
+  /// * STRIPE
+  /// * PAYPAL
+  provider    String
+  /// *
+  /// * Administrator-controlled availability.
+  enabled     Boolean            @default(false)
+  /// *
+  /// * Optional administrator-facing display name.
   displayName String?
-
-  /**
-   * Controls ordering in the customer billing UI.
-   */
-  sortOrder Int @default(0)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  /// *
+  /// * Controls ordering in the customer billing UI.
+  sortOrder   Int                @default(0)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
 
   @@unique([environment, provider])
   @@index([environment])
@@ -672,6 +624,653 @@ model Redirect {
   @@index([redirectType])
 }
 
+model User {
+  id              String         @id @default(cuid())
+  email           String         @unique
+  name            String
+  avatarUrl       String?
+  emailVerifiedAt DateTime?
+  isActive        Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  identities      AuthIdentity[]
+  memberships     Membership[]
+
+  @@index([isActive])
+}
+
+model AuthIdentity {
+  id                String   @id @default(cuid())
+  userId            String
+  provider          String
+  providerAccountId String
+  providerEmail     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@index([provider])
+}
+
+model Tenant {
+  id                           String                        @id @default(cuid())
+  name                         String
+  slug                         String                        @unique
+  isActive                     Boolean                       @default(true)
+  createdAt                    DateTime                      @default(now())
+  updatedAt                    DateTime                      @updatedAt
+  billingCustomer              BillingCustomer?
+  businessAddress              BusinessAddress?
+  businessProfile              BusinessProfile?
+  businessContactCommunication BusinessContactCommunication?
+  businessExportCredentials    BusinessExportCredentials?
+  businessTaxCompliance        BusinessTaxCompliance?
+  businessFinancialSettings    BusinessFinancialSettings?
+  businessOperatingPreferences BusinessOperatingPreferences?
+  memberships                  Membership[]
+  payments                     Payment[]
+  subscriptions                Subscription[]
+  planChanges                  SubscriptionPlanChange[]
+
+  @@index([isActive])
+}
+
+model BusinessProfile {
+  id           String   @id @default(cuid())
+  tenantId     String   @unique
+  businessName String
+  legalName    String?
+  businessType String?
+  email        String?
+  phone        String?
+  country      String?
+  website      String?
+  description  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([businessName])
+}
+
+model BusinessAddress {
+  id           String   @id @default(cuid())
+  tenantId     String   @unique
+  addressLine1 String
+  addressLine2 String?
+  city         String?
+  state        String?
+  postalCode   String?
+  country      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([country])
+  @@index([state])
+  @@index([city])
+}
+
+// ============================================================
+// ROOTYM Business Contact & Communication
+// Author: Prem Singh
+// Purpose: Stores tenant-scoped business contact, communication,
+//          social media and online business presence details.
+// ============================================================
+
+model BusinessContactCommunication {
+  id       String @id @default(cuid())
+  tenantId String @unique
+
+  // Business Email
+  primaryEmail    String?
+  alternateEmail1 String?
+  alternateEmail2 String?
+  salesEmail      String?
+  infoEmail       String?
+
+  // Business Phone
+  primaryPhone   String?
+  alternatePhone String?
+  whatsapp       String?
+
+  // Social & Online Business Presence
+  linkedinUrl       String?
+  facebookUrl       String?
+  instagramUrl      String?
+  youtubeUrl        String?
+  googleBusinessUrl String?
+  xTwitterUrl       String?
+  pinterestUrl      String?
+  otherSocialUrls   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([primaryEmail])
+  @@index([primaryPhone])
+  @@index([whatsapp])
+}
+
+/**
+ * ============================================================
+ * ROOTYM Business Export Credentials
+ * ============================================================
+ * Author: Prem Singh
+ * Purpose: Stores tenant-scoped export, business registration,
+ * regulatory credential and license information.
+ * ============================================================
+ */
+
+model BusinessExportCredentials {
+  id       String @id @default(cuid())
+  tenantId String @unique
+
+  // ==========================================================
+  // IEC / DGFT
+  // ==========================================================
+
+  iecNumber      String?
+  iecStatus      String?
+  iecIssueDate   DateTime?
+  dgftProfileUrl String?
+
+  // ==========================================================
+  // GST
+  // ==========================================================
+
+  gstin               String?
+  gstStatus           String?
+  gstRegistrationDate DateTime?
+
+  // ==========================================================
+  // UDYAM / MSME
+  // ==========================================================
+
+  udyamNumber           String?
+  udyamStatus           String?
+  udyamRegistrationDate DateTime?
+
+  // ==========================================================
+  // Authorized Dealer Code
+  // ==========================================================
+
+  adCode         String?
+  adCodeStatus   String?
+  adCodeBankName String?
+
+  // ==========================================================
+  // ICEGATE
+  // ==========================================================
+
+  icegateRegistrationId String?
+  icegateStatus         String?
+
+  // ==========================================================
+  // RCMC
+  // ==========================================================
+
+  rcmcNumber           String?
+  rcmcIssuingAuthority String?
+  rcmcStatus           String?
+  rcmcIssueDate        DateTime?
+  rcmcExpiryDate       DateTime?
+
+  // ==========================================================
+  // Other License 1
+  // ==========================================================
+
+  otherLicense1Name       String?
+  otherLicense1Number     String?
+  otherLicense1Status     String?
+  otherLicense1ExpiryDate DateTime?
+
+  // ==========================================================
+  // Other License 2
+  // ==========================================================
+
+  otherLicense2Name       String?
+  otherLicense2Number     String?
+  otherLicense2Status     String?
+  otherLicense2ExpiryDate DateTime?
+
+  // ==========================================================
+  // Other License 3
+  // ==========================================================
+
+  otherLicense3Name       String?
+  otherLicense3Number     String?
+  otherLicense3Status     String?
+  otherLicense3ExpiryDate DateTime?
+
+  // ==========================================================
+  // Additional Information
+  // ==========================================================
+
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([iecNumber])
+  @@index([gstin])
+  @@index([udyamNumber])
+  @@index([adCode])
+  @@index([icegateRegistrationId])
+  @@index([rcmcNumber])
+}
+
+/**
+ * ============================================================
+ * ROOTYM Business Tax & Compliance
+ * ============================================================
+ * Author: Prem Singh
+ * Purpose: Stores tenant-scoped tax configuration, export tax
+ * treatment, LUT/Bond information and compliance
+ * preferences for the ROOTYM business workspace.
+ * ============================================================
+ */
+
+model BusinessTaxCompliance {
+  id       String @id @default(cuid())
+  tenantId String @unique
+
+  // ==========================================================
+  // GST Configuration
+  // ==========================================================
+
+  gstRegistrationType String?
+  gstExportTreatment  String?
+  defaultTaxRate      Decimal? @db.Decimal(5, 2)
+  taxNotes            String?
+
+  // ==========================================================
+  // LUT / Bond
+  // ==========================================================
+
+  lutBondStatus        String?
+  lutBondNumber        String?
+  lutBondFinancialYear String?
+  lutBondIssueDate     DateTime?
+  lutBondExpiryDate    DateTime?
+
+  // ==========================================================
+  // TDS
+  // ==========================================================
+
+  tdsApplicable Boolean @default(false)
+  tdsNotes      String?
+
+  // ==========================================================
+  // TCS
+  // ==========================================================
+
+  tcsApplicable Boolean @default(false)
+  tcsNotes      String?
+
+  // ==========================================================
+  // Compliance
+  // ==========================================================
+
+  complianceStatus   String?
+  nextComplianceDate DateTime?
+  complianceNotes    String?
+
+  // ==========================================================
+  // Audit
+  // ==========================================================
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([lutBondNumber])
+  @@index([nextComplianceDate])
+  @@index([complianceStatus])
+}
+
+/**
+ * ============================================================
+ * ROOTYM Business Financial Settings
+ * ============================================================
+ * Author: Prem Singh
+ * Purpose: Stores tenant-scoped financial configuration,
+ * payment terms, beneficiary banking details and
+ * foreign-remittance instructions for the business.
+ * ============================================================
+ */
+
+model BusinessFinancialSettings {
+  id       String @id @default(cuid())
+  tenantId String @unique
+
+  // ==========================================================
+  // Currency
+  // ==========================================================
+
+  baseCurrency           String?
+  defaultInvoiceCurrency String?
+  currencyNotes          String?
+
+  // ==========================================================
+  // Payment Terms
+  // ==========================================================
+
+  defaultPaymentTermsDays Int?
+  defaultPaymentMethod    String?
+  paymentTermsNotes       String?
+
+  // ==========================================================
+  // Beneficiary / Bank Details
+  // ==========================================================
+
+  beneficiaryName String?
+  bankName        String?
+  branchName      String?
+  accountNumber   String?
+  accountCurrency String?
+  ifscCode        String?
+  swiftBic        String?
+  iban            String?
+  bankAddress     String?
+  bankCountry     String?
+
+  // ==========================================================
+  // Foreign Remittance Details
+  // ==========================================================
+
+  remittanceBankName     String?
+  remittanceBankSwiftBic String?
+
+  correspondentBankName     String?
+  correspondentBankSwiftBic String?
+
+  intermediaryBankName     String?
+  intermediaryBankSwiftBic String?
+
+  foreignBankAccountNumber String?
+  foreignBankIban          String?
+  routingOrSortCode        String?
+
+  remittanceCurrency String?
+  rbiPurposeCode     String?
+
+  foreignRemittanceInstructions   String?
+  remittanceReferenceInstructions String?
+
+  bankChargesArrangement String?
+
+  foreignRemittanceNotes String?
+
+  // ==========================================================
+  // Audit
+  // ==========================================================
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([baseCurrency])
+  @@index([defaultInvoiceCurrency])
+  @@index([bankName])
+  @@index([swiftBic])
+  @@index([remittanceCurrency])
+  @@index([rbiPurposeCode])
+}
+/**
+ * ============================================================
+ * ROOTYM Business Operating Preferences
+ * ============================================================
+ * Author: Prem Singh
+ * Purpose: Stores tenant-scoped operational, document,
+ *          shipment, workflow and business working preferences.
+ * ============================================================
+ */
+
+model BusinessOperatingPreferences {
+  id       String @id @default(cuid())
+  tenantId String @unique
+
+  // Order & Export Operations
+  defaultOrderProcessingPriority String?
+  defaultShipmentMode             String?
+  defaultIncoterm                 String?
+  defaultPortOfLoading            String?
+  defaultDestinationHandling      String?
+  allowPartialShipment            Boolean @default(false)
+  allowSplitShipment              Boolean @default(false)
+
+  // Document Preferences
+  defaultDocumentLanguage       String?
+  documentNumberingPreference   String?
+  invoiceNumberPrefix           String?
+  quoteNumberPrefix             String?
+  packingListNumberPrefix       String?
+  shippingDocumentNumberPrefix  String?
+  documentNotes                 String?
+
+  // Shipment Preferences
+  defaultTransportMode        String?
+  defaultShipmentType        String?
+  defaultPackageUnit         String?
+  defaultWeightUnit          String?
+  defaultDimensionUnit       String?
+  shipmentHandlingInstructions String?
+
+  // Communication & Workflow
+  defaultCustomerCommunicationChannel String?
+  internalApprovalRequired             Boolean @default(false)
+  orderApprovalRequired                Boolean @default(false)
+  shipmentApprovalRequired             Boolean @default(false)
+  documentApprovalRequired             Boolean @default(false)
+  workflowNotes                        String?
+
+  // Business Working Preferences
+  businessWorkingDays String?
+  businessTimezone    String?
+  defaultDateFormat   String?
+  defaultNumberFormat String?
+  operationalNotes    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([defaultShipmentMode])
+  @@index([defaultIncoterm])
+  @@index([defaultTransportMode])
+  @@index([businessTimezone])
+}
+
+model Membership {
+  id        String         @id @default(cuid())
+  userId    String
+  tenantId  String
+  role      MembershipRole @default(OWNER)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  tenant    Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tenantId])
+  @@index([userId])
+  @@index([tenantId])
+  @@index([role])
+}
+
+model Plan {
+  id              String                   @id @default(cuid())
+  code            String                   @unique
+  name            String
+  description     String?
+  trialDays       Int                      @default(0)
+  isActive        Boolean                  @default(true)
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  amount          Int                      @default(0)
+  billingInterval BillingInterval          @default(MONTHLY)
+  currency        String                   @default("INR")
+  razorpayPlanId  String?                  @unique
+  type            PlanType                 @default(PAID)
+  subscriptions   Subscription[]
+  planChangesFrom SubscriptionPlanChange[] @relation("PlanChangeFromPlan")
+  planChangesTo   SubscriptionPlanChange[] @relation("PlanChangeToPlan")
+
+  @@index([isActive])
+  @@index([type])
+  @@index([billingInterval])
+  @@index([currency])
+}
+
+model Subscription {
+  id                     String                   @id @default(cuid())
+  tenantId               String
+  planId                 String
+  status                 SubscriptionStatus       @default(TRIALING)
+  startedAt              DateTime                 @default(now())
+  trialStartedAt         DateTime?
+  trialEndsAt            DateTime?
+  currentPeriodStart     DateTime?
+  currentPeriodEnd       DateTime?
+  canceledAt             DateTime?
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+  amount                 Int?
+  billingInterval        BillingInterval?
+  currency               String?
+  razorpayCustomerId     String?
+  razorpaySubscriptionId String?                  @unique
+  razorpayCurrentEnd     DateTime?
+  razorpayCurrentStart   DateTime?
+  razorpayEndAt          DateTime?
+  razorpayStartAt        DateTime?
+  payments               Payment[]
+  plan                   Plan                     @relation(fields: [planId], references: [id])
+  tenant                 Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  planChanges            SubscriptionPlanChange[]
+
+  @@index([tenantId])
+  @@index([planId])
+  @@index([status])
+  @@index([trialEndsAt])
+  @@index([razorpayCustomerId])
+}
+
+/// *
+/// * Author: Prem Singh
+/// * Purpose: Stores a paid future subscription plan change without changing the currently effective plan.
+model SubscriptionPlanChange {
+  id                     String           @id @default(cuid())
+  tenantId               String
+  subscriptionId         String
+  fromPlanId             String
+  toPlanId               String
+  effectiveAt            DateTime
+  status                 PlanChangeStatus @default(PAYMENT_PENDING)
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  razorpaySubscriptionId String?
+  upcomingPeriodEnd      DateTime?
+  upcomingPeriodStart    DateTime?
+  razorpayCurrentEnd     DateTime?
+  razorpayCurrentStart   DateTime?
+  razorpayEndAt          DateTime?
+  razorpayStartAt        DateTime?
+  payments               Payment[]
+  fromPlan               Plan             @relation("PlanChangeFromPlan", fields: [fromPlanId], references: [id])
+  subscription           Subscription     @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  tenant                 Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  toPlan                 Plan             @relation("PlanChangeToPlan", fields: [toPlanId], references: [id])
+
+  @@index([tenantId])
+  @@index([subscriptionId])
+  @@index([razorpaySubscriptionId])
+  @@index([fromPlanId])
+  @@index([toPlanId])
+  @@index([effectiveAt])
+  @@index([status])
+}
+
+model BillingCustomer {
+  id                 String   @id @default(cuid())
+  tenantId           String   @unique
+  provider           String   @default("RAZORPAY")
+  providerCustomerId String   @unique
+  email              String?
+  name               String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  tenant             Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([provider])
+}
+
+model Payment {
+  id                     String                  @id @default(cuid())
+  tenantId               String
+  subscriptionId         String?
+  provider               String                  @default("RAZORPAY")
+  providerPaymentId      String                  @unique
+  providerOrderId        String?
+  providerInvoiceId      String?
+  providerSubscriptionId String?
+  amount                 Int
+  currency               String                  @default("INR")
+  status                 PaymentStatus           @default(CREATED)
+  paidAt                 DateTime?
+  failedAt               DateTime?
+  failureCode            String?
+  failureReason          String?
+  metadata               Json?
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  planChangeId           String?
+  planChange             SubscriptionPlanChange? @relation(fields: [planChangeId], references: [id])
+  subscription           Subscription?           @relation(fields: [subscriptionId], references: [id])
+  tenant                 Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([subscriptionId])
+  @@index([planChangeId])
+  @@index([status])
+  @@index([providerOrderId])
+  @@index([providerInvoiceId])
+  @@index([providerSubscriptionId])
+}
+
+model BillingWebhookEvent {
+  id           String               @id @default(cuid())
+  provider     String               @default("RAZORPAY")
+  eventId      String               @unique
+  eventType    String
+  status       BillingWebhookStatus @default(RECEIVED)
+  payload      Json
+  processedAt  DateTime?
+  errorMessage String?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  @@index([provider])
+  @@index([eventType])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum BillingEnvironment {
+  DEVELOPMENT
+  STAGING
+  PRODUCTION
+}
+
 enum MessageDirection {
   INBOUND
   OUTBOUND
@@ -856,309 +1455,6 @@ enum RedirectType {
   TEMPORARY
 }
 
-// -----------------------------------------------------------------------------
-// ROOTYM SaaS Identity & Subscription Foundation
-// Author: Prem Singh
-// Purpose: Defines SaaS users, tenants, memberships, plans, and subscriptions.
-// -----------------------------------------------------------------------------
-
-model User {
-  id              String    @id @default(cuid())
-  email           String    @unique
-  name            String
-  avatarUrl       String?
-  emailVerifiedAt DateTime?
-  isActive        Boolean   @default(true)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  identities  AuthIdentity[]
-  memberships Membership[]
-
-  @@index([isActive])
-}
-
-model AuthIdentity {
-  id                String   @id @default(cuid())
-  userId            String
-  provider          String
-  providerAccountId String
-  providerEmail     String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-  @@index([userId])
-  @@index([provider])
-}
-
-model Tenant {
-  id        String   @id @default(cuid())
-  name      String
-  slug      String   @unique
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  memberships     Membership[]
-  subscriptions   Subscription[]
-  planChanges     SubscriptionPlanChange[]
-  billingCustomer BillingCustomer?
-  payments        Payment[]
-
-  @@index([isActive])
-}
-
-model Membership {
-  id        String         @id @default(cuid())
-  userId    String
-  tenantId  String
-  role      MembershipRole @default(OWNER)
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, tenantId])
-  @@index([userId])
-  @@index([tenantId])
-  @@index([role])
-}
-
-/**
- * Author: Prem Singh
- * Purpose: Defines ROOTYM SaaS trial and paid billing plans used for subscription management.
- */
-
-model Plan {
-  id          String  @id @default(cuid())
-  code        String  @unique
-  name        String
-  description String?
-
-  type            PlanType        @default(PAID)
-  billingInterval BillingInterval @default(MONTHLY)
-
-  amount   Int    @default(0)
-  currency String @default("INR")
-
-  trialDays Int @default(0)
-
-  razorpayPlanId String? @unique
-
-  isActive Boolean @default(true)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  subscriptions   Subscription[]
-  planChangesFrom SubscriptionPlanChange[] @relation("PlanChangeFromPlan")
-  planChangesTo   SubscriptionPlanChange[] @relation("PlanChangeToPlan")
-
-  @@index([isActive])
-  @@index([type])
-  @@index([billingInterval])
-  @@index([currency])
-}
-
-/**
- * Author: Prem Singh
- * Purpose: Stores the tenant subscription lifecycle and Razorpay billing references.
- */
-
-model Subscription {
-  id              String             @id @default(cuid())
-  tenantId        String
-  planId          String
-  status          SubscriptionStatus @default(TRIALING)
-  billingInterval BillingInterval?
-  startedAt       DateTime           @default(now())
-
-  trialStartedAt DateTime?
-  trialEndsAt    DateTime?
-
-  currentPeriodStart DateTime?
-  currentPeriodEnd   DateTime?
-
-  canceledAt DateTime?
-
-  amount   Int?
-  currency String?
-
-  razorpayCustomerId     String?
-  razorpaySubscriptionId String? @unique
-
-  razorpayStartAt      DateTime?
-  razorpayEndAt        DateTime?
-  razorpayCurrentStart DateTime?
-  razorpayCurrentEnd   DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  plan Plan @relation(fields: [planId], references: [id])
-
-  payments    Payment[]
-  planChanges SubscriptionPlanChange[]
-
-  @@index([tenantId])
-  @@index([planId])
-  @@index([status])
-  @@index([trialEndsAt])
-  @@index([razorpayCustomerId])
-}
-
-/**
- * Author: Prem Singh
- * Purpose: Stores a paid future subscription plan change without changing the currently effective plan.
- */
-model SubscriptionPlanChange {
-  id                     String  @id @default(cuid())
-  tenantId               String
-  subscriptionId         String
-  razorpaySubscriptionId String?
-  fromPlanId             String
-  toPlanId               String
-
-  effectiveAt         DateTime
-  upcomingPeriodStart DateTime?
-  upcomingPeriodEnd   DateTime?
-
-  razorpayStartAt      DateTime?
-  razorpayEndAt        DateTime?
-  razorpayCurrentStart DateTime?
-  razorpayCurrentEnd   DateTime?
-
-  status    PlanChangeStatus @default(PAYMENT_PENDING)
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
-
-  fromPlan Plan @relation("PlanChangeFromPlan", fields: [fromPlanId], references: [id])
-
-  toPlan Plan @relation("PlanChangeToPlan", fields: [toPlanId], references: [id])
-
-  payments Payment[]
-
-  @@index([tenantId])
-  @@index([subscriptionId])
-  @@index([razorpaySubscriptionId])
-  @@index([fromPlanId])
-  @@index([toPlanId])
-  @@index([effectiveAt])
-  @@index([status])
-}
-
-/**
- * Author: Prem Singh
- * Purpose: Stores the Razorpay billing customer associated with a ROOTYM tenant.
- */
-
-model BillingCustomer {
-  id       String @id @default(cuid())
-  tenantId String @unique
-
-  provider           String @default("RAZORPAY")
-  providerCustomerId String @unique
-
-  email String?
-  name  String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([provider])
-}
-
-/**
- * Author: Prem Singh
- * Purpose: Stores individual SaaS payment transactions received through Razorpay.
- */
-
-model Payment {
-  id String @id @default(cuid())
-
-  tenantId       String
-  subscriptionId String?
-  planChangeId   String?
-
-  provider String @default("RAZORPAY")
-
-  providerPaymentId      String  @unique
-  providerOrderId        String?
-  providerInvoiceId      String?
-  providerSubscriptionId String?
-
-  amount   Int
-  currency String @default("INR")
-
-  status PaymentStatus @default(CREATED)
-
-  paidAt   DateTime?
-  failedAt DateTime?
-
-  failureCode   String?
-  failureReason String?
-
-  metadata Json?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
-
-  planChange SubscriptionPlanChange? @relation(fields: [planChangeId], references: [id], onDelete: SetNull)
-
-  @@index([tenantId])
-  @@index([subscriptionId])
-  @@index([planChangeId])
-  @@index([status])
-  @@index([providerOrderId])
-  @@index([providerInvoiceId])
-  @@index([providerSubscriptionId])
-}
-
-/**
- * Author: Prem Singh
- * Purpose: Provides idempotent storage and processing state for Razorpay webhook events.
- */
-
-model BillingWebhookEvent {
-  id String @id @default(cuid())
-
-  provider  String @default("RAZORPAY")
-  eventId   String @unique
-  eventType String
-
-  status BillingWebhookStatus @default(RECEIVED)
-
-  payload Json
-
-  processedAt  DateTime?
-  errorMessage String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([provider])
-  @@index([eventType])
-  @@index([status])
-  @@index([createdAt])
-}
-
 enum MembershipRole {
   OWNER
   ADMIN
@@ -1166,12 +1462,12 @@ enum MembershipRole {
 }
 
 enum SubscriptionStatus {
-  PENDING
   TRIALING
   ACTIVE
   PAST_DUE
   CANCELED
   EXPIRED
+  PENDING
 }
 
 enum BillingInterval {
