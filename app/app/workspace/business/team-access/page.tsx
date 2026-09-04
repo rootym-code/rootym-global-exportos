@@ -5,7 +5,7 @@
  * Author: Prem Singh
  * Purpose: Displays tenant-scoped workspace members and their
  *          roles and provides authorized Owners/Admins with
- *          workspace invitation controls.
+ *          workspace invitation and member-management controls.
  * ============================================================
  */
 
@@ -31,6 +31,7 @@ import {
 } from "@/app/lib/workspace/require-workspace-access";
 
 import TeamAccessInviteForm from "./TeamAccessInviteForm";
+import TeamAccessMemberActions from "./TeamAccessMemberActions";
 
 export const dynamic = "force-dynamic";
 
@@ -351,20 +352,32 @@ export default async function TeamAccessPage() {
                       </div>
                     </div>
 
-                    <div className="flex shrink-0 items-center gap-3">
-                      <div className="text-right">
-                        <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">
-                          {getRoleLabel(
-                            member.role,
-                          )}
-                        </span>
+                    <div className="flex shrink-0 flex-col items-end gap-2">
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">
+                            {getRoleLabel(
+                              member.role,
+                            )}
+                          </span>
 
-                        <p className="mt-1 max-w-xs text-xs text-slate-400">
-                          {getRoleDescription(
-                            member.role,
-                          )}
-                        </p>
+                          <p className="mt-1 max-w-xs text-xs text-slate-400">
+                            {getRoleDescription(
+                              member.role,
+                            )}
+                          </p>
+                        </div>
                       </div>
+
+                      <TeamAccessMemberActions
+                        membershipId={member.membershipId}
+                        userId={member.userId}
+                        name={member.name}
+                        email={member.email}
+                        role={member.role}
+                        currentUserId={membership.userId}
+                        currentUserRole={membership.role}
+                      />
                     </div>
                   </div>
                 ),
