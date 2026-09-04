@@ -1,15 +1,24 @@
 /**
+ * ============================================================
+ * ROOTYM SaaS Customer Workspace Service
+ * ============================================================
  * Author: Prem Singh
- * Purpose: Creates SaaS customer identities, tenants, and owner memberships without automatically starting a trial.
+ * Purpose: Creates SaaS customer identities, tenants, and owner
+ *          memberships without automatically starting a trial,
+ *          while also supporting invitation-based identity
+ *          resolution without creating an unintended workspace.
+ * ============================================================
  */
 
 import prisma from "@/lib/prisma";
+
 import { MembershipRole } from "@/lib/generated/prisma";
+
 import type { Prisma } from "@/lib/generated/prisma";
 
 function createTenantSlug(
   name: string,
-  email: string
+  email: string,
 ): string {
   const source =
     name?.trim() ||
@@ -28,9 +37,12 @@ function createTenantSlug(
 async function getUniqueTenantSlug(
   tx: Prisma.TransactionClient,
   name: string,
-  email: string
+  email: string,
 ): Promise<string> {
-  const base = createTenantSlug(name, email);
+  const base = createTenantSlug(
+    name,
+    email,
+  );
 
   let slug = base;
   let suffix = 2;
@@ -49,6 +61,116 @@ async function getUniqueTenantSlug(
   return slug;
 }
 
+/**
+ * ============================================================
+ * Resolve or create the ROOTYM customer identity only.
+ * ============================================================
+ *
+ * This function deliberately does not create a Tenant or
+ * Membership. It is used when an existing invitation determines
+ * which workspace the customer must join.
+ * ============================================================
+ */
+export async function resolveCustomerIdentity(
+  input: {
+    email: string;
+    name: string;
+    avatarUrl?: string | null;
+    provider: string;
+    providerAccountId: string;
+    providerEmail?: string | null;
+  },
+) {
+  const normalizedEmail =
+    input.email.toLowerCase().trim();
+
+  if (!normalizedEmail) {
+    throw new Error(
+      "A valid customer email is required.",
+    );
+  }
+
+  if (!input.providerAccountId) {
+    throw new Error(
+      "A valid authentication provider account is required.",
+    );
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const existingIdentity =
+      await tx.authIdentity.findUnique({
+        where: {
+          provider_providerAccountId: {
+            provider: input.provider,
+            providerAccountId:
+              input.providerAccountId,
+          },
+        },
+        include: {
+          user: true,
+        },
+      });
+
+    let user =
+      existingIdentity?.user ?? null;
+
+    if (!user) {
+      user = await tx.user.findUnique({
+        where: {
+          email: normalizedEmail,
+        },
+      });
+    }
+
+    if (!user) {
+      user = await tx.user.create({
+        data: {
+          email: normalizedEmail,
+          name:
+            input.name?.trim() ||
+            normalizedEmail.split("@")[0],
+          avatarUrl:
+            input.avatarUrl ?? null,
+          emailVerifiedAt: new Date(),
+        },
+      });
+    } else if (!user.isActive) {
+      throw new Error(
+        "This customer account is inactive. Please contact ROOTYM support.",
+      );
+    }
+
+    if (existingIdentity) {
+      await tx.authIdentity.update({
+        where: {
+          id: existingIdentity.id,
+        },
+        data: {
+          providerEmail:
+            input.providerEmail ??
+            normalizedEmail,
+        },
+      });
+    } else {
+      await tx.authIdentity.create({
+        data: {
+          userId: user.id,
+          provider: input.provider,
+          providerAccountId:
+            input.providerAccountId,
+          providerEmail:
+            input.providerEmail ??
+            normalizedEmail,
+        },
+      });
+    }
+
+    return {
+      user,
+    };
+  });
+}
+
 export async function createCustomerWorkspace(
   input: {
     email: string;
@@ -57,25 +179,25 @@ export async function createCustomerWorkspace(
     provider: string;
     providerAccountId: string;
     providerEmail?: string | null;
-  }
+  },
 ) {
   const normalizedEmail =
     input.email.toLowerCase().trim();
 
   if (!normalizedEmail) {
     throw new Error(
-      "A valid customer email is required."
+      "A valid customer email is required.",
     );
   }
 
   if (!input.providerAccountId) {
     throw new Error(
-      "A valid authentication provider account is required."
+      "A valid authentication provider account is required.",
     );
   }
 
   return prisma.$transaction(async (tx) => {
-    /*
+    /**
      * 1. Find the authentication identity first.
      */
     const existingIdentity =
@@ -92,9 +214,10 @@ export async function createCustomerWorkspace(
         },
       });
 
-    let user = existingIdentity?.user ?? null;
+    let user =
+      existingIdentity?.user ?? null;
 
-    /*
+    /**
      * 2. If this authentication identity is new,
      *    try matching an existing SaaS customer by email.
      */
@@ -106,7 +229,7 @@ export async function createCustomerWorkspace(
       });
     }
 
-    /*
+    /**
      * 3. Create the customer if this is a completely
      *    new SaaS account.
      */
@@ -124,11 +247,11 @@ export async function createCustomerWorkspace(
       });
     } else if (!user.isActive) {
       throw new Error(
-        "This customer account is inactive. Please contact ROOTYM support."
+        "This customer account is inactive. Please contact ROOTYM support.",
       );
     }
 
-    /*
+    /**
      * 4. Create or update the authentication identity.
      */
     if (existingIdentity) {
@@ -156,11 +279,11 @@ export async function createCustomerWorkspace(
       });
     }
 
-    /*
+    /**
      * 5. Resolve the customer's existing workspace.
      *
      * Phase 1 supports the initial single-workspace
-     * model. A subsequent login must reuse the existing
+     * model. A subsequent login reuses the existing
      * membership instead of creating another tenant.
      */
     let membership =
@@ -173,7 +296,7 @@ export async function createCustomerWorkspace(
         },
       });
 
-    /*
+    /**
      * 6. Create the initial workspace when this is the
      *    customer's first SaaS login.
      *
@@ -184,18 +307,13 @@ export async function createCustomerWorkspace(
      * OWNER membership
      *
      * No subscription is created here.
-     *
-     * The customer will later choose between:
-     *
-     *   A. Start 30-day free trial
-     *   B. Subscribe immediately through Razorpay
      */
     if (!membership) {
       const tenantSlug =
         await getUniqueTenantSlug(
           tx,
           user.name,
-          user.email
+          user.email,
         );
 
       const tenant =

@@ -4,22 +4,8 @@
  * ============================================================
  * Author: Prem Singh
  * Purpose: Completes Google OAuth and establishes the ROOTYM
- *          SaaS customer session on the correct SaaS hostname.
- *
- * Local OAuth:
- *   localhost callback
- *     → customer/workspace resolution
- *     → short-lived signed handoff
- *     → app.export.localhost callback
- *     → customer session cookie
- *
- * Production OAuth:
- *   app.export.rootym.com callback
- *     → customer/workspace resolution
- *     → customer session cookie
- *
- * SaaS origins are centralized through:
- *   lib/config/urls.ts
+ *          SaaS customer session on the correct SaaS hostname,
+ *          including invitation-aware workspace membership.
  * ============================================================
  */
 
@@ -32,7 +18,13 @@ import {
 
 import {
   createCustomerWorkspace,
+  resolveCustomerIdentity,
 } from "@/lib/services/saas/trial.service";
+
+import {
+  acceptWorkspaceInvitationById,
+  getWorkspaceInvitationById,
+} from "@/app/lib/workspace/business/workspace-invitation-acceptance.service";
 
 import {
   CUSTOMER_AUTH_COOKIE_NAME,
@@ -72,20 +64,6 @@ const secretKey =
 /**
  * ============================================================
  * Resolve the configured SaaS origin.
- * ============================================================
- *
- * The public SaaS origin is centralized through:
- *
- *   NEXT_PUBLIC_SAAS_APP_URL
- *
- * Local:
- *   http://app.export.localhost:3000
- *
- * Production:
- *   https://app.export.rootym.com
- *
- * The localhost OAuth bootstrap remains separate because
- * Google OAuth uses localhost as the local redirect URI.
  * ============================================================
  */
 function getSaaSOrigin(
@@ -137,16 +115,6 @@ function getSaaSOrigin(
 /**
  * ============================================================
  * Create the short-lived local OAuth handoff.
- * ============================================================
- *
- * The Google callback happens on localhost because Google does
- * not accept app.export.localhost as a redirect URI.
- *
- * The handoff carries only the ROOTYM customer identifiers
- * required to establish the SaaS session on the actual
- * configured SaaS hostname.
- *
- * It is deliberately short-lived.
  * ============================================================
  */
 async function createLocalHandoff(
@@ -238,6 +206,34 @@ async function completeLocalHandoff(
   return response;
 }
 
+/**
+ * ============================================================
+ * Clear the OAuth state cookie.
+ * ============================================================
+ */
+function clearOAuthStateCookie(
+  response: NextResponse,
+) {
+  response.cookies.set(
+    STATE_COOKIE,
+    "",
+    {
+      httpOnly: true,
+      secure:
+        process.env.NODE_ENV ===
+        "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 0,
+    },
+  );
+}
+
+/**
+ * ============================================================
+ * Google OAuth callback.
+ * ============================================================
+ */
 export async function GET(
   request: NextRequest,
 ) {
@@ -250,17 +246,7 @@ export async function GET(
      * ========================================================
      * LOCAL HANDOFF COMPLETION
      * ========================================================
-     *
-     * The localhost callback redirects here after the Google
-     * profile has been resolved and the customer workspace has
-     * been created.
-     *
-     * This request is now on the configured SaaS hostname,
-     * allowing the final customer session cookie to be created
-     * on the SaaS hostname.
-     * ========================================================
      */
-
     const configuredSaaSUrl =
       new URL(SAAS_APP_URL);
 
@@ -268,10 +254,8 @@ export async function GET(
       configuredSaaSUrl.host;
 
     if (
-      host ===
-        configuredSaaSHost ||
-      host ===
-        configuredSaaSUrl.hostname
+      host === configuredSaaSHost ||
+      host === configuredSaaSUrl.hostname
     ) {
       const handoffResponse =
         await completeLocalHandoff(
@@ -287,17 +271,7 @@ export async function GET(
      * ========================================================
      * Determine callback mode.
      * ========================================================
-     *
-     * Local development:
-     *
-     *   localhost:3000
-     *
-     * Production:
-     *
-     *   configured SaaS hostname
-     * ========================================================
      */
-
     const isLocalCallback =
       host === LOCAL_OAUTH_HOST;
 
@@ -316,7 +290,6 @@ export async function GET(
      * Read Google OAuth response.
      * ========================================================
      */
-
     const code =
       request.nextUrl.searchParams.get(
         "code",
@@ -353,7 +326,6 @@ export async function GET(
      * Verify signed OAuth state.
      * ========================================================
      */
-
     const { payload } =
       await jwtVerify(
         storedState,
@@ -373,7 +345,6 @@ export async function GET(
      * Validate the expected return origin.
      * ========================================================
      */
-
     const stateReturnOrigin =
       payload.returnOrigin;
 
@@ -385,6 +356,42 @@ export async function GET(
     ) {
       throw new Error(
         "Invalid OAuth return origin.",
+      );
+    }
+
+    /**
+     * ========================================================
+     * Resolve optional invitation context.
+     * ========================================================
+     *
+     * Invitation OAuth state contains only the authoritative
+     * invitation ID. No raw bearer token, tenant ID or role is
+     * trusted from the browser.
+     * ========================================================
+     */
+    const invitationId =
+      payload.type ===
+        "customer_invitation_oauth" &&
+      typeof payload.invitationId ===
+        "string"
+        ? payload.invitationId
+        : null;
+
+    if (
+      payload.type ===
+        "customer_invitation_oauth" &&
+      !invitationId
+    ) {
+      throw new Error(
+        "Invalid invitation OAuth state.",
+      );
+    }
+
+    if (
+      invitationId
+    ) {
+      await getWorkspaceInvitationById(
+        invitationId,
       );
     }
 
@@ -402,7 +409,6 @@ export async function GET(
      * Exchange authorization code for Google access token.
      * ========================================================
      */
-
     const tokenResponse =
       await fetch(
         GOOGLE_TOKEN_ENDPOINT,
@@ -452,7 +458,6 @@ export async function GET(
      * Retrieve verified Google profile.
      * ========================================================
      */
-
     const profileResponse =
       await fetch(
         GOOGLE_USERINFO_ENDPOINT,
@@ -492,10 +497,134 @@ export async function GET(
 
     /**
      * ========================================================
-     * Resolve/create ROOTYM SaaS customer, workspace and trial.
+     * INVITATION GOOGLE LOGIN
+     * ========================================================
+     *
+     * The invitation determines the destination workspace.
+     * The normal first-login workspace creation path is
+     * deliberately bypassed.
      * ========================================================
      */
+    if (invitationId) {
+      const invitation =
+        await getWorkspaceInvitationById(
+          invitationId,
+        );
 
+      const invitationEmail =
+        invitation.email
+          .trim()
+          .toLowerCase();
+
+      const googleEmail =
+        profile.email
+          .trim()
+          .toLowerCase();
+
+      if (
+        invitationEmail !==
+        googleEmail
+      ) {
+        throw new Error(
+          "The authenticated email address does not match the invitation.",
+        );
+      }
+
+      const identity =
+        await resolveCustomerIdentity({
+          email:
+            profile.email,
+          name:
+            profile.name ||
+            profile.email.split("@")[0],
+          avatarUrl:
+            profile.picture ??
+            null,
+          provider:
+            "google",
+          providerAccountId:
+            profile.sub,
+          providerEmail:
+            profile.email,
+        });
+
+      const result =
+        await acceptWorkspaceInvitationById(
+          invitationId,
+          identity.user.id,
+        );
+
+      /**
+       * ======================================================
+       * LOCAL DEVELOPMENT HANDOFF
+       * ======================================================
+       */
+      if (isLocalCallback) {
+        const handoff =
+          await createLocalHandoff(
+            appOrigin,
+            result.userId,
+            result.tenantId,
+            result.membershipId,
+          );
+
+        const response =
+          NextResponse.redirect(
+            `${appOrigin}/api/auth/google/callback?handoff=${encodeURIComponent(
+              handoff,
+            )}`,
+          );
+
+        clearOAuthStateCookie(
+          response,
+        );
+
+        return response;
+      }
+
+      /**
+       * ======================================================
+       * PRODUCTION / CONFIGURED SAAS CUSTOMER SESSION
+       * ======================================================
+       */
+      const customerToken =
+        await signCustomerToken({
+          userId:
+            result.userId,
+          tenantId:
+            result.tenantId,
+          membershipId:
+            result.membershipId,
+        });
+
+      const response =
+        NextResponse.redirect(
+          `${appOrigin}/`,
+        );
+
+      response.cookies.set(
+        CUSTOMER_AUTH_COOKIE_NAME,
+        customerToken,
+        CUSTOMER_AUTH_COOKIE_OPTIONS,
+      );
+
+      clearOAuthStateCookie(
+        response,
+      );
+
+      return response;
+    }
+
+    /**
+     * ========================================================
+     * NORMAL GOOGLE LOGIN
+     * ========================================================
+     *
+     * This is the pre-existing behavior. It may create the
+     * customer's initial Tenant + OWNER Membership when this
+     * is the customer's first SaaS login.
+     * ========================================================
+     */
     const workspace =
       await createCustomerWorkspace({
         email:
@@ -504,7 +633,8 @@ export async function GET(
           profile.name ||
           profile.email.split("@")[0],
         avatarUrl:
-          profile.picture ?? null,
+          profile.picture ??
+          null,
         provider:
           "google",
         providerAccountId:
@@ -517,16 +647,7 @@ export async function GET(
      * ========================================================
      * LOCAL DEVELOPMENT HANDOFF
      * ========================================================
-     *
-     * Google returned to localhost, so the final SaaS
-     * customer cookie cannot be established on the SaaS
-     * hostname from this response.
-     *
-     * Create a short-lived signed handoff and return to the
-     * deterministic configured SaaS hostname.
-     * ========================================================
      */
-
     if (isLocalCallback) {
       const handoff =
         await createLocalHandoff(
@@ -543,21 +664,8 @@ export async function GET(
           )}`,
         );
 
-      /**
-       * Clear the localhost OAuth state cookie.
-       */
-      response.cookies.set(
-        STATE_COOKIE,
-        "",
-        {
-          httpOnly: true,
-          secure:
-            process.env.NODE_ENV ===
-            "production",
-          sameSite: "lax",
-          path: "/",
-          maxAge: 0,
-        },
+      clearOAuthStateCookie(
+        response,
       );
 
       return response;
@@ -568,7 +676,6 @@ export async function GET(
      * PRODUCTION / CONFIGURED SAAS CUSTOMER SESSION
      * ========================================================
      */
-
     const customerToken =
       await signCustomerToken({
         userId:
@@ -590,21 +697,8 @@ export async function GET(
       CUSTOMER_AUTH_COOKIE_OPTIONS,
     );
 
-    /**
-     * Clear OAuth state cookie.
-     */
-    response.cookies.set(
-      STATE_COOKIE,
-      "",
-      {
-        httpOnly: true,
-        secure:
-          process.env.NODE_ENV ===
-          "production",
-        sameSite: "lax",
-        path: "/",
-        maxAge: 0,
-      },
+    clearOAuthStateCookie(
+      response,
     );
 
     return response;
@@ -618,16 +712,7 @@ export async function GET(
      * ========================================================
      * Safe error destination
      * ========================================================
-     *
-     * Prefer the configured SaaS URL rather than maintaining
-     * a separate production hostname constant.
-     *
-     * During localhost OAuth, the browser has not yet reached
-     * the SaaS hostname, so the configured SaaS URL remains the
-     * intended customer-facing destination.
-     * ========================================================
      */
-
     let errorOrigin =
       SAAS_APP_URL;
 
@@ -643,8 +728,7 @@ export async function GET(
         configuredSaaSUrl.host;
 
       if (
-        host ===
-          configuredSaaSHost ||
+        host === configuredSaaSHost ||
         host ===
           configuredSaaSUrl.hostname
       ) {
@@ -653,7 +737,8 @@ export async function GET(
       }
     } catch {
       /**
-       * Keep the configured SaaS URL as the safe fallback.
+       * Keep the configured SaaS URL as the
+       * safe fallback.
        */
     }
 

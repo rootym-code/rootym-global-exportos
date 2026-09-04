@@ -4,7 +4,8 @@
  * ============================================================
  * Author: Prem Singh
  * Purpose: Displays tenant-scoped workspace members and their
- *          roles within the Team & Access business configuration.
+ *          roles and provides authorized Owners/Admins with
+ *          workspace invitation controls.
  * ============================================================
  */
 
@@ -21,8 +22,15 @@ import {
   UsersRound,
 } from "lucide-react";
 
-import { getTeamAccess } from "@/app/lib/workspace/business/team-access.service";
-import { requireWorkspaceAccess } from "@/app/lib/workspace/require-workspace-access";
+import {
+  getTeamAccess,
+} from "@/app/lib/workspace/business/team-access.service";
+
+import {
+  requireWorkspaceAccess,
+} from "@/app/lib/workspace/require-workspace-access";
+
+import TeamAccessInviteForm from "./TeamAccessInviteForm";
 
 export const dynamic = "force-dynamic";
 
@@ -30,10 +38,13 @@ function getRoleLabel(role: string) {
   switch (role) {
     case "OWNER":
       return "Owner";
+
     case "ADMIN":
       return "Administrator";
+
     case "MEMBER":
       return "Member";
+
     default:
       return role;
   }
@@ -43,29 +54,38 @@ function getRoleDescription(role: string) {
   switch (role) {
     case "OWNER":
       return "Full workspace ownership and administrative access.";
+
     case "ADMIN":
       return "Administrative access to the workspace.";
+
     case "MEMBER":
       return "Standard workspace member access.";
+
     default:
       return "Workspace membership access.";
   }
 }
 
 export default async function TeamAccessPage() {
-  const { tenant, membership } = await requireWorkspaceAccess();
-  const teamAccess = await getTeamAccess();
+  const { tenant, membership } =
+    await requireWorkspaceAccess();
 
-  const activeMembers = teamAccess.members.filter(
-    (member) => member.isActive,
-  );
+  const teamAccess =
+    await getTeamAccess();
 
-  const inactiveMembers = teamAccess.members.filter(
-    (member) => !member.isActive,
-  );
+  const activeMembers =
+    teamAccess.members.filter(
+      (member) => member.isActive,
+    );
+
+  const inactiveMembers =
+    teamAccess.members.filter(
+      (member) => !member.isActive,
+    );
 
   const canManageAccess =
-    membership.role === "OWNER" || membership.role === "ADMIN";
+    membership.role === "OWNER" ||
+    membership.role === "ADMIN";
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
@@ -84,6 +104,7 @@ export default async function TeamAccessPage() {
               <div className="text-sm font-semibold tracking-wide text-slate-900">
                 ROOTYM
               </div>
+
               <div className="text-xs text-slate-500">
                 Business Configuration
               </div>
@@ -112,7 +133,9 @@ export default async function TeamAccessPage() {
 
             <ChevronRight className="h-4 w-4" />
 
-            <span className="text-slate-300">Team & Access</span>
+            <span className="text-slate-300">
+              Team & Access
+            </span>
           </div>
 
           <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
@@ -134,8 +157,9 @@ export default async function TeamAccessPage() {
               </div>
 
               <p className="max-w-3xl text-sm leading-6 text-slate-300">
-                View the users who have access to this ROOTYM workspace and
-                their assigned membership roles.
+                View the users who have access to this ROOTYM
+                workspace, manage authorized invitations and
+                review their assigned membership roles.
               </p>
             </div>
 
@@ -145,7 +169,9 @@ export default async function TeamAccessPage() {
               </span>
 
               <span className="rounded-full border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-medium text-slate-300">
-                {canManageAccess ? "Admin Access" : "View Access"}
+                {canManageAccess
+                  ? "Admin Access"
+                  : "View Access"}
               </span>
             </div>
           </div>
@@ -164,8 +190,9 @@ export default async function TeamAccessPage() {
               </h2>
 
               <p className="mt-1 text-sm text-slate-600">
-                Membership information is loaded from the authenticated
-                workspace and is scoped to the current tenant.
+                Membership information is loaded from the
+                authenticated workspace and is scoped to the
+                current tenant.
               </p>
             </div>
           </div>
@@ -223,13 +250,20 @@ export default async function TeamAccessPage() {
                 </p>
 
                 <p className="mt-1 text-lg font-semibold text-slate-900">
-                  {getRoleLabel(membership.role)}
+                  {getRoleLabel(
+                    membership.role,
+                  )}
                 </p>
               </div>
             </div>
           </div>
         </div>
       </section>
+
+      {/* Invitation Management */}
+      {canManageAccess ? (
+        <TeamAccessInviteForm />
+      ) : null}
 
       {/* Team Members */}
       <section className="mx-auto max-w-7xl px-6 pb-8">
@@ -242,13 +276,16 @@ export default async function TeamAccessPage() {
                 </h2>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  Users currently associated with this workspace.
+                  Users currently associated with this
+                  workspace.
                 </p>
               </div>
 
               <div className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600">
                 {teamAccess.members.length}{" "}
-                {teamAccess.members.length === 1 ? "member" : "members"}
+                {teamAccess.members.length === 1
+                  ? "member"
+                  : "members"}
               </div>
             </div>
           </div>
@@ -262,66 +299,76 @@ export default async function TeamAccessPage() {
               </h3>
 
               <p className="mt-1 text-sm text-slate-500">
-                There are currently no membership records for this workspace.
+                There are currently no membership records for
+                this workspace.
               </p>
             </div>
           ) : (
             <div className="divide-y divide-slate-200">
-              {teamAccess.members.map((member) => (
-                <div
-                  key={member.membershipId}
-                  className="flex flex-col gap-4 px-6 py-5 md:flex-row md:items-center md:justify-between"
-                >
-                  <div className="flex min-w-0 items-center gap-4">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100">
-                      {member.avatarUrl ? (
-                        <img
-                          src={member.avatarUrl}
-                          alt=""
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <UserRound className="h-5 w-5 text-slate-500" />
-                      )}
-                    </div>
-
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="truncate text-sm font-semibold text-slate-900">
-                          {member.name}
-                        </p>
-
-                        {member.isActive ? (
-                          <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
-                            Active
-                          </span>
+              {teamAccess.members.map(
+                (member) => (
+                  <div
+                    key={member.membershipId}
+                    className="flex flex-col gap-4 px-6 py-5 md:flex-row md:items-center md:justify-between"
+                  >
+                    <div className="flex min-w-0 items-center gap-4">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100">
+                        {member.avatarUrl ? (
+                          <img
+                            src={member.avatarUrl}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
                         ) : (
-                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
-                            Inactive
-                          </span>
+                          <UserRound className="h-5 w-5 text-slate-500" />
                         )}
                       </div>
 
-                      <div className="mt-1 flex items-center gap-2 text-sm text-slate-500">
-                        <Mail className="h-3.5 w-3.5 shrink-0" />
-                        <span className="truncate">{member.email}</span>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="truncate text-sm font-semibold text-slate-900">
+                            {member.name}
+                          </p>
+
+                          {member.isActive ? (
+                            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+                              Active
+                            </span>
+                          ) : (
+                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
+                              Inactive
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="mt-1 flex items-center gap-2 text-sm text-slate-500">
+                          <Mail className="h-3.5 w-3.5 shrink-0" />
+
+                          <span className="truncate">
+                            {member.email}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex shrink-0 items-center gap-3">
+                      <div className="text-right">
+                        <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">
+                          {getRoleLabel(
+                            member.role,
+                          )}
+                        </span>
+
+                        <p className="mt-1 max-w-xs text-xs text-slate-400">
+                          {getRoleDescription(
+                            member.role,
+                          )}
+                        </p>
                       </div>
                     </div>
                   </div>
-
-                  <div className="flex shrink-0 items-center gap-3">
-                    <div className="text-right">
-                      <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">
-                        {getRoleLabel(member.role)}
-                      </span>
-
-                      <p className="mt-1 max-w-xs text-xs text-slate-400">
-                        {getRoleDescription(member.role)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                ),
+              )}
             </div>
           )}
         </div>
@@ -341,10 +388,10 @@ export default async function TeamAccessPage() {
               </h2>
 
               <p className="mt-1 text-sm leading-6 text-slate-600">
-                Team membership and role information is currently displayed
-                from the existing workspace membership system. Member
-                invitations, role changes, and member removal are not part of
-                this read-only configuration step.
+                Workspace access is tenant-scoped. Owners and
+                Administrators can create invitations and assign
+                membership roles. Invitation acceptance requires
+                authentication with the invited email address.
               </p>
 
               <div className="mt-4 rounded-xl bg-slate-50 px-4 py-3">
@@ -403,7 +450,8 @@ export default async function TeamAccessPage() {
       <footer className="border-t border-slate-800 bg-slate-950">
         <div className="mx-auto max-w-7xl px-6 py-5">
           <p className="text-xs text-slate-500">
-            ROOTYM Global ExportOS · Business Configuration · Team & Access
+            ROOTYM Global ExportOS · Business Configuration ·
+            Team & Access
           </p>
         </div>
       </footer>

@@ -625,16 +625,17 @@ model Redirect {
 }
 
 model User {
-  id              String         @id @default(cuid())
-  email           String         @unique
-  name            String
-  avatarUrl       String?
-  emailVerifiedAt DateTime?
-  isActive        Boolean        @default(true)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  identities      AuthIdentity[]
-  memberships     Membership[]
+  id                       String                @id @default(cuid())
+  email                    String                @unique
+  name                     String
+  avatarUrl                String?
+  emailVerifiedAt          DateTime?
+  isActive                 Boolean               @default(true)
+  createdAt                DateTime              @default(now())
+  updatedAt                DateTime              @updatedAt
+  identities               AuthIdentity[]
+  memberships              Membership[]
+  sentWorkspaceInvitations WorkspaceInvitation[] @relation("WorkspaceInvitationInviter")
 
   @@index([isActive])
 }
@@ -670,11 +671,40 @@ model Tenant {
   businessFinancialSettings    BusinessFinancialSettings?
   businessOperatingPreferences BusinessOperatingPreferences?
   memberships                  Membership[]
+  workspaceInvitations         WorkspaceInvitation[]
   payments                     Payment[]
   subscriptions                Subscription[]
   planChanges                  SubscriptionPlanChange[]
 
   @@index([isActive])
+}
+
+model WorkspaceInvitation {
+  id          String @id @default(cuid())
+  tenantId    String
+  invitedById String
+
+  email String
+  role  MembershipRole
+
+  tokenHash String @unique
+
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  revokedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  invitedBy User   @relation("WorkspaceInvitationInviter", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([invitedById])
+  @@index([email])
+  @@index([expiresAt])
+  @@index([acceptedAt])
+  @@index([revokedAt])
 }
 
 model BusinessProfile {
@@ -1025,13 +1055,14 @@ model BusinessFinancialSettings {
   @@index([remittanceCurrency])
   @@index([rbiPurposeCode])
 }
+
 /**
  * ============================================================
  * ROOTYM Business Operating Preferences
  * ============================================================
  * Author: Prem Singh
  * Purpose: Stores tenant-scoped operational, document,
- *          shipment, workflow and business working preferences.
+ * shipment, workflow and business working preferences.
  * ============================================================
  */
 
@@ -1041,37 +1072,37 @@ model BusinessOperatingPreferences {
 
   // Order & Export Operations
   defaultOrderProcessingPriority String?
-  defaultShipmentMode             String?
-  defaultIncoterm                 String?
-  defaultPortOfLoading            String?
-  defaultDestinationHandling      String?
-  allowPartialShipment            Boolean @default(false)
-  allowSplitShipment              Boolean @default(false)
+  defaultShipmentMode            String?
+  defaultIncoterm                String?
+  defaultPortOfLoading           String?
+  defaultDestinationHandling     String?
+  allowPartialShipment           Boolean @default(false)
+  allowSplitShipment             Boolean @default(false)
 
   // Document Preferences
-  defaultDocumentLanguage       String?
-  documentNumberingPreference   String?
-  invoiceNumberPrefix           String?
-  quoteNumberPrefix             String?
-  packingListNumberPrefix       String?
-  shippingDocumentNumberPrefix  String?
-  documentNotes                 String?
+  defaultDocumentLanguage      String?
+  documentNumberingPreference  String?
+  invoiceNumberPrefix          String?
+  quoteNumberPrefix            String?
+  packingListNumberPrefix      String?
+  shippingDocumentNumberPrefix String?
+  documentNotes                String?
 
   // Shipment Preferences
-  defaultTransportMode        String?
-  defaultShipmentType        String?
-  defaultPackageUnit         String?
-  defaultWeightUnit          String?
-  defaultDimensionUnit       String?
+  defaultTransportMode         String?
+  defaultShipmentType          String?
+  defaultPackageUnit           String?
+  defaultWeightUnit            String?
+  defaultDimensionUnit         String?
   shipmentHandlingInstructions String?
 
   // Communication & Workflow
   defaultCustomerCommunicationChannel String?
-  internalApprovalRequired             Boolean @default(false)
-  orderApprovalRequired                Boolean @default(false)
-  shipmentApprovalRequired             Boolean @default(false)
-  documentApprovalRequired             Boolean @default(false)
-  workflowNotes                        String?
+  internalApprovalRequired            Boolean @default(false)
+  orderApprovalRequired               Boolean @default(false)
+  shipmentApprovalRequired            Boolean @default(false)
+  documentApprovalRequired            Boolean @default(false)
+  workflowNotes                       String?
 
   // Business Working Preferences
   businessWorkingDays String?
