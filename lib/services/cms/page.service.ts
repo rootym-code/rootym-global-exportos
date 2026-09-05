@@ -552,15 +552,30 @@ class CmsPageService extends BaseCmsService {
         id
       );
 
-      return prisma.cmsPage.update({
-        where: {
-          id,
-        },
-        data: {
-          status:
-            CmsPageStatus.PUBLISHED,
-          publishedAt: new Date(),
-        },
+      return prisma.$transaction(async (tx) => {
+        const publishedAt = new Date();
+
+        const page = await tx.cmsPage.update({
+          where: {
+            id,
+          },
+          data: {
+            status:
+              CmsPageStatus.PUBLISHED,
+            publishedAt,
+          },
+        });
+
+        await tx.cmsPageTranslation.updateMany({
+          where: {
+            pageId: id,
+          },
+          data: {
+            isPublished: true,
+          },
+        });
+
+        return page;
       });
     });
   }
@@ -580,14 +595,27 @@ class CmsPageService extends BaseCmsService {
         id
       );
 
-      return prisma.cmsPage.update({
-        where: {
-          id,
-        },
-        data: {
-          status:
-            CmsPageStatus.ARCHIVED,
-        },
+      return prisma.$transaction(async (tx) => {
+        const page = await tx.cmsPage.update({
+          where: {
+            id,
+          },
+          data: {
+            status:
+              CmsPageStatus.ARCHIVED,
+          },
+        });
+
+        await tx.cmsPageTranslation.updateMany({
+          where: {
+            pageId: id,
+          },
+          data: {
+            isPublished: false,
+          },
+        });
+
+        return page;
       });
     });
   }
@@ -605,8 +633,33 @@ class CmsPageService extends BaseCmsService {
       return prisma.$transaction(async (tx) => {
         const pages = await tx.cmsPage.findMany({ where: { websiteId, id: { in: pageIds } }, select: { id: true } });
         if (pages.length !== pageIds.length) throw new Error("One or more selected CMS pages were not found for this Website.");
-        const result = await tx.cmsPage.updateMany({ where: { websiteId, id: { in: pageIds } }, data: { status: CmsPageStatus.PUBLISHED, publishedAt: new Date() } });
-        return { updatedCount: result.count, pageIds, status: CmsPageStatus.PUBLISHED };
+        const publishedAt = new Date();
+
+        const result = await tx.cmsPage.updateMany({
+          where: {
+            websiteId,
+            id: { in: pageIds },
+          },
+          data: {
+            status: CmsPageStatus.PUBLISHED,
+            publishedAt,
+          },
+        });
+
+        await tx.cmsPageTranslation.updateMany({
+          where: {
+            pageId: { in: pageIds },
+          },
+          data: {
+            isPublished: true,
+          },
+        });
+
+        return {
+          updatedCount: result.count,
+          pageIds,
+          status: CmsPageStatus.PUBLISHED,
+        };
       });
     });
   }
@@ -624,8 +677,31 @@ class CmsPageService extends BaseCmsService {
       return prisma.$transaction(async (tx) => {
         const pages = await tx.cmsPage.findMany({ where: { websiteId, id: { in: pageIds } }, select: { id: true } });
         if (pages.length !== pageIds.length) throw new Error("One or more selected CMS pages were not found for this Website.");
-        const result = await tx.cmsPage.updateMany({ where: { websiteId, id: { in: pageIds } }, data: { status: CmsPageStatus.DRAFT, publishedAt: null } });
-        return { updatedCount: result.count, pageIds, status: CmsPageStatus.DRAFT };
+        const result = await tx.cmsPage.updateMany({
+          where: {
+            websiteId,
+            id: { in: pageIds },
+          },
+          data: {
+            status: CmsPageStatus.DRAFT,
+            publishedAt: null,
+          },
+        });
+
+        await tx.cmsPageTranslation.updateMany({
+          where: {
+            pageId: { in: pageIds },
+          },
+          data: {
+            isPublished: false,
+          },
+        });
+
+        return {
+          updatedCount: result.count,
+          pageIds,
+          status: CmsPageStatus.DRAFT,
+        };
       });
     });
   }
@@ -643,8 +719,30 @@ class CmsPageService extends BaseCmsService {
       return prisma.$transaction(async (tx) => {
         const pages = await tx.cmsPage.findMany({ where: { websiteId, id: { in: pageIds } }, select: { id: true } });
         if (pages.length !== pageIds.length) throw new Error("One or more selected CMS pages were not found for this Website.");
-        const result = await tx.cmsPage.updateMany({ where: { websiteId, id: { in: pageIds } }, data: { status: CmsPageStatus.ARCHIVED } });
-        return { updatedCount: result.count, pageIds, status: CmsPageStatus.ARCHIVED };
+        const result = await tx.cmsPage.updateMany({
+          where: {
+            websiteId,
+            id: { in: pageIds },
+          },
+          data: {
+            status: CmsPageStatus.ARCHIVED,
+          },
+        });
+
+        await tx.cmsPageTranslation.updateMany({
+          where: {
+            pageId: { in: pageIds },
+          },
+          data: {
+            isPublished: false,
+          },
+        });
+
+        return {
+          updatedCount: result.count,
+          pageIds,
+          status: CmsPageStatus.ARCHIVED,
+        };
       });
     });
   }

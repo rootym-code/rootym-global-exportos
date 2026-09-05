@@ -3,17 +3,17 @@
  * ROOTYM SaaS Customer Workspace Service
  * ============================================================
  * Author: Prem Singh
- * Purpose: Creates SaaS customer identities, tenants, and owner
- *          memberships without automatically starting a trial,
- *          while also supporting invitation-based identity
- *          resolution without creating an unintended workspace.
+ * Purpose: Creates SaaS customer identities, tenants, websites,
+ *          and owner memberships without automatically starting
+ *          a trial, while also supporting invitation-based
+ *          identity resolution without creating an unintended
+ *          workspace.
  * ============================================================
  */
 
 import prisma from "@/lib/prisma";
 
 import { MembershipRole } from "@/lib/generated/prisma";
-
 import type { Prisma } from "@/lib/generated/prisma";
 
 function createTenantSlug(
@@ -66,9 +66,10 @@ async function getUniqueTenantSlug(
  * Resolve or create the ROOTYM customer identity only.
  * ============================================================
  *
- * This function deliberately does not create a Tenant or
- * Membership. It is used when an existing invitation determines
- * which workspace the customer must join.
+ * This function deliberately does not create a Tenant,
+ * Website, or Membership. It is used when an existing
+ * invitation determines which workspace the customer
+ * must join.
  * ============================================================
  */
 export async function resolveCustomerIdentity(
@@ -303,8 +304,8 @@ export async function createCustomerWorkspace(
      * User
      *   ↓
      * Tenant
-     *   ↓
-     * OWNER membership
+     *   ├── Website
+     *   └── OWNER membership
      *
      * No subscription is created here.
      */
@@ -324,6 +325,23 @@ export async function createCustomerWorkspace(
             isActive: true,
           },
         });
+
+      /**
+       * 7. Provision the customer Website as part
+       *    of the same initial workspace transaction.
+       *
+       * Website is the tenant-owned root entity for
+       * Website & Marketing. It must not be created
+       * lazily by an individual Website module.
+       */
+      await tx.website.create({
+        data: {
+          tenantId: tenant.id,
+          name: `${tenant.name} Website`,
+          slug: tenant.slug,
+          isActive: true,
+        },
+      });
 
       membership =
         await tx.membership.create({

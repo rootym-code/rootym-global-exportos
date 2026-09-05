@@ -9,6 +9,7 @@ import { notFound } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 
+import prisma from "@/lib/prisma";
 import cmsPageService from "@/lib/services/cms/page.service";
 import {
   CmsPageLayout,
@@ -19,17 +20,35 @@ import { renderCmsPageContent } from "@/components/public/cms-page-renderer";
 
 type PageProps = {
   params: Promise<{
+    websiteSlug: string;
     locale: string;
     slug: string;
   }>;
 };
 
-export default async function CmsPage({
+export default async function CustomerCmsPage({
   params,
 }: PageProps) {
-  const { locale, slug } = await params;
+  const { websiteSlug, locale, slug } = await params;
 
-  const page = await cmsPageService.getBySlug(slug);
+  const website = await prisma.website.findUnique({
+    where: {
+      slug: websiteSlug,
+    },
+    select: {
+      id: true,
+      isActive: true,
+    },
+  });
+
+  if (!website || !website.isActive) {
+    notFound();
+  }
+
+  const page = await cmsPageService.getByWebsiteAndSlug(
+    website.id,
+    slug
+  );
 
   if (!page) {
     notFound();
