@@ -1,3 +1,13 @@
+/**
+ * ============================================================
+ * ROOTYM Admin CMS Page API
+ * ============================================================
+ * Author: Prem Singh
+ * Purpose: Provides authenticated platform-admin CMS page
+ *          retrieval, update, and deletion scoped to a Website.
+ * ============================================================
+ */
+
 import { NextRequest } from "next/server";
 
 import ApiResponse from "@/lib/api/api-response";
@@ -18,11 +28,13 @@ export async function GET(
   { params }: RouteContext
 ) {
   try {
-    const auth = await authenticateAdmin(request);
+    const auth =
+      await authenticateAdmin(request);
 
     if (!auth.authenticated) {
       return ApiResponse.error({
-        message: auth.error ?? "Unauthorized.",
+        message:
+          auth.error ?? "Unauthorized.",
         code: "UNAUTHORIZED",
         status: auth.status,
       });
@@ -30,7 +42,28 @@ export async function GET(
 
     const { id } = await params;
 
-    const page = await cmsPageService.getById(id);
+    const { searchParams } =
+      new URL(request.url);
+
+    const websiteId =
+      searchParams
+        .get("websiteId")
+        ?.trim();
+
+    if (!websiteId) {
+      return ApiResponse.error({
+        message:
+          "Website ID is required.",
+        code: "WEBSITE_REQUIRED",
+        status: 400,
+      });
+    }
+
+    const page =
+      await cmsPageService.getById(
+        websiteId,
+        id
+      );
 
     return ApiResponse.success({
       data: page,
@@ -45,11 +78,13 @@ export async function PATCH(
   { params }: RouteContext
 ) {
   try {
-    const auth = await authenticateAdmin(request);
+    const auth =
+      await authenticateAdmin(request);
 
     if (!auth.authenticated) {
       return ApiResponse.error({
-        message: auth.error ?? "Unauthorized.",
+        message:
+          auth.error ?? "Unauthorized.",
         code: "UNAUTHORIZED",
         status: auth.status,
       });
@@ -57,15 +92,39 @@ export async function PATCH(
 
     const { id } = await params;
 
-    const body = await request.json();
+    const body =
+      await request.json();
 
-    const page = await cmsPageService.update(
-      id,
-      body
-    );
+    const websiteId =
+      typeof body?.websiteId ===
+        "string"
+        ? body.websiteId.trim()
+        : "";
+
+    if (!websiteId) {
+      return ApiResponse.error({
+        message:
+          "Website ID is required.",
+        code: "WEBSITE_REQUIRED",
+        status: 400,
+      });
+    }
+
+    const {
+      websiteId: _websiteId,
+      ...pageData
+    } = body;
+
+    const page =
+      await cmsPageService.update(
+        websiteId,
+        id,
+        pageData
+      );
 
     return ApiResponse.success({
-      message: "CMS page updated successfully.",
+      message:
+        "CMS page updated successfully.",
       data: page,
     });
   } catch (error) {
@@ -78,11 +137,13 @@ export async function DELETE(
   { params }: RouteContext
 ) {
   try {
-    const auth = await authenticateAdmin(request);
+    const auth =
+      await authenticateAdmin(request);
 
     if (!auth.authenticated) {
       return ApiResponse.error({
-        message: auth.error ?? "Unauthorized.",
+        message:
+          auth.error ?? "Unauthorized.",
         code: "UNAUTHORIZED",
         status: auth.status,
       });
@@ -90,12 +151,30 @@ export async function DELETE(
 
     const { id } = await params;
 
-    await cmsPageService.delete(id);
+    const { searchParams } =
+      new URL(request.url);
+
+    const websiteId =
+      searchParams
+        .get("websiteId")
+        ?.trim();
+
+    if (!websiteId) {
+      return ApiResponse.error({
+        message:
+          "Website ID is required.",
+        code: "WEBSITE_REQUIRED",
+        status: 400,
+      });
+    }
+
+    await cmsPageService.delete(
+      websiteId,
+      id
+    );
 
     return ApiResponse.noContent();
   } catch (error) {
     return handleApiError(error);
   }
 }
-
- 

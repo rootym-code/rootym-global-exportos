@@ -1,10 +1,11 @@
 /**
  * ============================================================
- * ROOTYM Admin CMS Pages API
+ * ROOTYM Customer Website Pages API
  * ============================================================
  * Author: Prem Singh
- * Purpose: Provides authenticated platform-admin CMS page
- *          listing and creation scoped to an explicit Website.
+ * Purpose: Provides tenant-safe customer Website page listing
+ *          and creation using the authenticated workspace
+ *          Website and the existing Website-scoped CMS service.
  * ============================================================
  */
 
@@ -12,38 +13,55 @@ import { NextRequest } from "next/server";
 
 import ApiResponse from "@/lib/api/api-response";
 import handleApiError from "@/lib/api/handle-api-error";
-
-import { authenticateAdmin } from "@/lib/auth";
-
 import cmsPageService from "@/lib/services/cms/page.service";
+import prisma from "@/lib/prisma";
+
+import { requireWorkspaceAccess } from "@/app/lib/workspace/require-workspace-access";
+
+async function getCustomerWebsite() {
+  const { tenant } = await requireWorkspaceAccess();
+
+  const website = await prisma.website.findUnique({
+    where: {
+      tenantId: tenant.id,
+    },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      isActive: true,
+      tenantId: true,
+    },
+  });
+
+  if (!website || !website.isActive) {
+    return {
+      website: null,
+      error: ApiResponse.error({
+        message: "Customer Website is not available.",
+        code: "WEBSITE_NOT_AVAILABLE",
+        status: 404,
+      }),
+    };
+  }
+
+  return {
+    website,
+    error: null,
+  };
+}
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await authenticateAdmin(request);
+    const { website, error } =
+      await getCustomerWebsite();
 
-    if (!auth.authenticated) {
-      return ApiResponse.error({
-        message:
-          auth.error ?? "Unauthorized.",
-        code: "UNAUTHORIZED",
-        status: auth.status,
-      });
+    if (error) {
+      return error;
     }
 
     const { searchParams } =
       new URL(request.url);
-
-    const websiteId =
-      searchParams.get("websiteId")?.trim();
-
-    if (!websiteId) {
-      return ApiResponse.error({
-        message:
-          "Website ID is required.",
-        code: "WEBSITE_REQUIRED",
-        status: 400,
-      });
-    }
 
     const page = Number(
       searchParams.get("page") ?? 1
@@ -63,7 +81,7 @@ export async function GET(request: NextRequest) {
 
     const result =
       await cmsPageService.list(
-        websiteId,
+        website.id,
         {
           status: status as never,
           search,
@@ -92,50 +110,38 @@ export async function POST(
   request: NextRequest
 ) {
   try {
-    const auth =
-      await authenticateAdmin(request);
+    const { website, error } =
+      await getCustomerWebsite();
 
-    if (!auth.authenticated) {
-      return ApiResponse.error({
-        message:
-          auth.error ?? "Unauthorized.",
-        code: "UNAUTHORIZED",
-        status: auth.status,
-      });
+    if (error) {
+      return error;
     }
 
     const body =
       await request.json();
 
-    const websiteId =
-      typeof body?.websiteId ===
-        "string"
-        ? body.websiteId.trim()
-        : "";
-
-    if (!websiteId) {
+    if (
+      !body ||
+      typeof body !== "object" ||
+      Array.isArray(body)
+    ) {
       return ApiResponse.error({
         message:
-          "Website ID is required.",
-        code: "WEBSITE_REQUIRED",
+          "Invalid CMS page payload.",
+        code: "INVALID_PAYLOAD",
         status: 400,
       });
     }
 
-    const {
-      websiteId: _websiteId,
-      ...pageData
-    } = body;
-
     const page =
       await cmsPageService.create(
-        websiteId,
-        pageData
+        website.id,
+        body
       );
 
     return ApiResponse.created({
       message:
-        "CMS page created successfully.",
+        "Website page created successfully.",
       data: page,
     });
   } catch (error) {

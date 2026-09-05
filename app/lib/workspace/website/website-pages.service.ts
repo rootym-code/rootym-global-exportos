@@ -5,9 +5,11 @@
  * Author: Prem Singh
  * Purpose: Provides the authenticated customer workspace
  *          context required by the Website Pages & Content
- *          module without exposing globally scoped CMS data.
+ *          module using the tenant-owned Website binding.
  * ============================================================
  */
+
+import prisma from "@/lib/prisma";
 
 import { requireWorkspaceAccess } from "../require-workspace-access";
 
@@ -44,19 +46,36 @@ export interface WebsitePagesOverview {
 }
 
 /**
+ * ============================================================
  * Returns the Pages & Content context for the
  * currently authenticated customer workspace.
  *
  * Tenant identity is derived exclusively from the
  * authenticated customer session.
  *
- * Existing global CMS records are intentionally not
- * queried here because they are not tenant-scoped.
+ * Website connectivity is resolved through the
+ * authenticated tenant's Website relationship.
+ *
+ * Existing CMS records are queried only when a valid,
+ * active Website is established for the tenant.
+ * ============================================================
  */
 export async function getWebsitePagesOverview(): Promise<WebsitePagesOverview> {
   const { user, tenant } = await requireWorkspaceAccess();
 
   const currentSubscription = tenant.subscriptions[0] ?? null;
+
+  const website = await prisma.website.findUnique({
+    where: {
+      tenantId: tenant.id,
+    },
+    select: {
+      id: true,
+      isActive: true,
+    },
+  });
+
+  const websiteConnected = Boolean(website?.isActive);
 
   return {
     workspace: {
@@ -79,9 +98,9 @@ export async function getWebsitePagesOverview(): Promise<WebsitePagesOverview> {
     },
 
     pages: {
-      status: "PREPARING",
-      publishingStatus: "PREPARING",
-      cmsStatus: "NOT_CONNECTED",
+      status: websiteConnected ? "READY" : "NOT_CONNECTED",
+      publishingStatus: websiteConnected ? "READY" : "NOT_CONNECTED",
+      cmsStatus: websiteConnected ? "READY" : "NOT_CONNECTED",
     },
   };
 }

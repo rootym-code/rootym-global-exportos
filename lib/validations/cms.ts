@@ -42,7 +42,12 @@ Final publishing validation should be handled separately so that
 an administrator can save incomplete work as a draft.
 ============================================================ */
 
-const heroSectionSchema = z.object({
+const sectionPresentationSchema = z.object({
+  sectionTitle: z.string().trim().max(200).optional(),
+  sectionDescription: z.string().trim().max(1000).optional(),
+});
+
+const heroSectionSchema = sectionPresentationSchema.extend({
   type: z.literal("hero"),
 
   heading: z.string().trim().max(300),
@@ -54,7 +59,7 @@ const heroSectionSchema = z.object({
   secondaryCtaText: z.string().trim().max(100),
 });
 
-const valuePropositionSectionSchema = z.object({
+const valuePropositionSectionSchema = sectionPresentationSchema.extend({
   type: z.literal("valueProposition"),
 
   heading: z.string().trim().max(300),
@@ -66,7 +71,7 @@ const valuePropositionSectionSchema = z.object({
     .max(20),
 });
 
-const productSectionSchema = z.object({
+const productSectionSchema = sectionPresentationSchema.extend({
   type: z.literal("product"),
 
   heading: z.string().trim().max(300),
@@ -88,7 +93,7 @@ const productSectionSchema = z.object({
     .max(30),
 });
 
-const applicationsSectionSchema = z.object({
+const applicationsSectionSchema = sectionPresentationSchema.extend({
   type: z.literal("applications"),
 
   heading: z.string().trim().max(300),
@@ -106,7 +111,7 @@ const applicationsSectionSchema = z.object({
     .max(30),
 });
 
-const whyRootymSectionSchema = z.object({
+const whyRootymSectionSchema = sectionPresentationSchema.extend({
   type: z.literal("whyRootym"),
 
   heading: z.string().trim().max(300),
@@ -122,7 +127,7 @@ const whyRootymSectionSchema = z.object({
     .max(30),
 });
 
-const buyerFocusSectionSchema = z.object({
+const buyerFocusSectionSchema = sectionPresentationSchema.extend({
   type: z.literal("buyerFocus"),
 
   heading: z.string().trim().max(300),
@@ -134,7 +139,7 @@ const buyerFocusSectionSchema = z.object({
     .max(30),
 });
 
-const packagingSectionSchema = z.object({
+const packagingSectionSchema = sectionPresentationSchema.extend({
   type: z.literal("packaging"),
 
   heading: z.string().trim().max(300),
@@ -146,7 +151,7 @@ const packagingSectionSchema = z.object({
     .max(30),
 });
 
-const exportDocumentsSectionSchema = z.object({
+const exportDocumentsSectionSchema = sectionPresentationSchema.extend({
   type: z.literal("exportDocuments"),
 
   heading: z.string().trim().max(300),
@@ -158,7 +163,7 @@ const exportDocumentsSectionSchema = z.object({
     .max(30),
 });
 
-const ctaSectionSchema = z.object({
+const ctaSectionSchema = sectionPresentationSchema.extend({
   type: z.literal("cta"),
 
   heading: z.string().trim().max(300),
@@ -170,7 +175,7 @@ const ctaSectionSchema = z.object({
   secondaryCtaText: z.string().trim().max(100),
 });
 
-const faqSectionSchema = z.object({
+const faqSectionSchema = sectionPresentationSchema.extend({
   type: z.literal("faq"),
 
   heading: z.string().trim().max(300),
@@ -220,7 +225,7 @@ CMS PAGE
 ============================================================ */
 
 const cmsPageEditorTranslationSchema = z.object({
-  languageId: z.string().cuid().optional(),
+  languageId: z.string().trim().min(1).max(100).optional(),
 
   title: z.string().trim().min(2).max(200),
 
@@ -310,7 +315,7 @@ export const createCmsPageTranslationSchema =
   z.object({
     pageId: z.string().cuid(),
 
-    languageId: z.string().cuid(),
+    languageId: z.string().trim().min(1).max(100),
 
     title: z.string().trim().min(2).max(200),
 

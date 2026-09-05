@@ -454,9 +454,12 @@ model CmsPage {
   template        CmsPageTemplate      @default(STANDARD)
   /// Public page presentation shell
   layout          CmsPageLayout        @default(WEBSITE)
+  websiteId       String
+  website         Website              @relation(fields: [websiteId], references: [id], onDelete: Cascade)
   translations    CmsPageTranslation[]
   menuItems       MenuItem[]
 
+  @@index([websiteId])
   @@index([status])
   @@index([slug])
   @@index([publishedAt])
@@ -655,6 +658,14 @@ model AuthIdentity {
   @@index([provider])
 }
 
+/// *
+///  * ============================================================
+///  * ROOTYM Customer Workspace
+///  * ============================================================
+///  * Author: Prem Singh
+///  * Purpose: Defines the tenant-owned customer website root
+///  *          used by Website & Marketing and its website resources.
+///  * ============================================================
 model Tenant {
   id                           String                        @id @default(cuid())
   name                         String
@@ -664,40 +675,65 @@ model Tenant {
   updatedAt                    DateTime                      @updatedAt
   billingCustomer              BillingCustomer?
   businessAddress              BusinessAddress?
-  businessProfile              BusinessProfile?
   businessContactCommunication BusinessContactCommunication?
   businessExportCredentials    BusinessExportCredentials?
-  businessTaxCompliance        BusinessTaxCompliance?
   businessFinancialSettings    BusinessFinancialSettings?
   businessOperatingPreferences BusinessOperatingPreferences?
+  businessProfile              BusinessProfile?
+  businessTaxCompliance        BusinessTaxCompliance?
   memberships                  Membership[]
-  workspaceInvitations         WorkspaceInvitation[]
   payments                     Payment[]
   subscriptions                Subscription[]
   planChanges                  SubscriptionPlanChange[]
+  website                      Website?
+  workspaceInvitations         WorkspaceInvitation[]
 
   @@index([isActive])
 }
 
+/// *
+///  * ============================================================
+///  * ROOTYM Customer Website
+///  * ============================================================
+///  * Author: Prem Singh
+///  * Purpose: Provides the tenant-owned root entity for the
+///  *          customer-facing Website & Marketing system.
+///  * ============================================================
+/// *
+///  * ============================================================
+///  * ROOTYM Customer Website
+///  * ============================================================
+///  * Author: Prem Singh
+///  * Purpose: Provides the tenant-owned root entity for the
+///  *          customer-facing Website & Marketing system and
+///  *          owns the website's CMS pages.
+///  * ============================================================
+model Website {
+  id        String    @id @default(cuid())
+  tenantId  String    @unique
+  name      String
+  slug      String    @unique
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  cmsPages  CmsPage[]
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
 model WorkspaceInvitation {
-  id          String @id @default(cuid())
+  id          String         @id @default(cuid())
   tenantId    String
   invitedById String
-
-  email String
-  role  MembershipRole
-
-  tokenHash String @unique
-
-  expiresAt  DateTime
-  acceptedAt DateTime?
-  revokedAt  DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  invitedBy User   @relation("WorkspaceInvitationInviter", fields: [invitedById], references: [id], onDelete: Cascade)
+  email       String
+  role        MembershipRole
+  tokenHash   String         @unique
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  invitedBy   User           @relation("WorkspaceInvitationInviter", fields: [invitedById], references: [id], onDelete: Cascade)
+  tenant      Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([invitedById])
@@ -743,30 +779,17 @@ model BusinessAddress {
   @@index([city])
 }
 
-// ============================================================
-// ROOTYM Business Contact & Communication
-// Author: Prem Singh
-// Purpose: Stores tenant-scoped business contact, communication,
-//          social media and online business presence details.
-// ============================================================
-
 model BusinessContactCommunication {
-  id       String @id @default(cuid())
-  tenantId String @unique
-
-  // Business Email
-  primaryEmail    String?
-  alternateEmail1 String?
-  alternateEmail2 String?
-  salesEmail      String?
-  infoEmail       String?
-
-  // Business Phone
-  primaryPhone   String?
-  alternatePhone String?
-  whatsapp       String?
-
-  // Social & Online Business Presence
+  id                String   @id @default(cuid())
+  tenantId          String   @unique
+  primaryEmail      String?
+  alternateEmail1   String?
+  alternateEmail2   String?
+  salesEmail        String?
+  infoEmail         String?
+  primaryPhone      String?
+  alternatePhone    String?
+  whatsapp          String?
   linkedinUrl       String?
   facebookUrl       String?
   instagramUrl      String?
@@ -775,118 +798,54 @@ model BusinessContactCommunication {
   xTwitterUrl       String?
   pinterestUrl      String?
   otherSocialUrls   String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([primaryEmail])
   @@index([primaryPhone])
   @@index([whatsapp])
 }
 
-/**
- * ============================================================
- * ROOTYM Business Export Credentials
- * ============================================================
- * Author: Prem Singh
- * Purpose: Stores tenant-scoped export, business registration,
- * regulatory credential and license information.
- * ============================================================
- */
-
 model BusinessExportCredentials {
-  id       String @id @default(cuid())
-  tenantId String @unique
-
-  // ==========================================================
-  // IEC / DGFT
-  // ==========================================================
-
-  iecNumber      String?
-  iecStatus      String?
-  iecIssueDate   DateTime?
-  dgftProfileUrl String?
-
-  // ==========================================================
-  // GST
-  // ==========================================================
-
-  gstin               String?
-  gstStatus           String?
-  gstRegistrationDate DateTime?
-
-  // ==========================================================
-  // UDYAM / MSME
-  // ==========================================================
-
-  udyamNumber           String?
-  udyamStatus           String?
-  udyamRegistrationDate DateTime?
-
-  // ==========================================================
-  // Authorized Dealer Code
-  // ==========================================================
-
-  adCode         String?
-  adCodeStatus   String?
-  adCodeBankName String?
-
-  // ==========================================================
-  // ICEGATE
-  // ==========================================================
-
-  icegateRegistrationId String?
-  icegateStatus         String?
-
-  // ==========================================================
-  // RCMC
-  // ==========================================================
-
-  rcmcNumber           String?
-  rcmcIssuingAuthority String?
-  rcmcStatus           String?
-  rcmcIssueDate        DateTime?
-  rcmcExpiryDate       DateTime?
-
-  // ==========================================================
-  // Other License 1
-  // ==========================================================
-
+  id                      String    @id @default(cuid())
+  tenantId                String    @unique
+  iecNumber               String?
+  iecStatus               String?
+  iecIssueDate            DateTime?
+  dgftProfileUrl          String?
+  gstin                   String?
+  gstStatus               String?
+  gstRegistrationDate     DateTime?
+  udyamNumber             String?
+  udyamStatus             String?
+  udyamRegistrationDate   DateTime?
+  adCode                  String?
+  adCodeStatus            String?
+  adCodeBankName          String?
+  icegateRegistrationId   String?
+  icegateStatus           String?
+  rcmcNumber              String?
+  rcmcIssuingAuthority    String?
+  rcmcStatus              String?
+  rcmcIssueDate           DateTime?
+  rcmcExpiryDate          DateTime?
   otherLicense1Name       String?
   otherLicense1Number     String?
   otherLicense1Status     String?
   otherLicense1ExpiryDate DateTime?
-
-  // ==========================================================
-  // Other License 2
-  // ==========================================================
-
   otherLicense2Name       String?
   otherLicense2Number     String?
   otherLicense2Status     String?
   otherLicense2ExpiryDate DateTime?
-
-  // ==========================================================
-  // Other License 3
-  // ==========================================================
-
   otherLicense3Name       String?
   otherLicense3Number     String?
   otherLicense3Status     String?
   otherLicense3ExpiryDate DateTime?
-
-  // ==========================================================
-  // Additional Information
-  // ==========================================================
-
-  notes String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  notes                   String?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  tenant                  Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([iecNumber])
   @@index([gstin])
@@ -896,157 +855,71 @@ model BusinessExportCredentials {
   @@index([rcmcNumber])
 }
 
-/**
- * ============================================================
- * ROOTYM Business Tax & Compliance
- * ============================================================
- * Author: Prem Singh
- * Purpose: Stores tenant-scoped tax configuration, export tax
- * treatment, LUT/Bond information and compliance
- * preferences for the ROOTYM business workspace.
- * ============================================================
- */
-
 model BusinessTaxCompliance {
-  id       String @id @default(cuid())
-  tenantId String @unique
-
-  // ==========================================================
-  // GST Configuration
-  // ==========================================================
-
-  gstRegistrationType String?
-  gstExportTreatment  String?
-  defaultTaxRate      Decimal? @db.Decimal(5, 2)
-  taxNotes            String?
-
-  // ==========================================================
-  // LUT / Bond
-  // ==========================================================
-
+  id                   String    @id @default(cuid())
+  tenantId             String    @unique
+  gstRegistrationType  String?
+  gstExportTreatment   String?
+  defaultTaxRate       Decimal?  @db.Decimal(5, 2)
+  taxNotes             String?
   lutBondStatus        String?
   lutBondNumber        String?
   lutBondFinancialYear String?
   lutBondIssueDate     DateTime?
   lutBondExpiryDate    DateTime?
-
-  // ==========================================================
-  // TDS
-  // ==========================================================
-
-  tdsApplicable Boolean @default(false)
-  tdsNotes      String?
-
-  // ==========================================================
-  // TCS
-  // ==========================================================
-
-  tcsApplicable Boolean @default(false)
-  tcsNotes      String?
-
-  // ==========================================================
-  // Compliance
-  // ==========================================================
-
-  complianceStatus   String?
-  nextComplianceDate DateTime?
-  complianceNotes    String?
-
-  // ==========================================================
-  // Audit
-  // ==========================================================
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tdsApplicable        Boolean   @default(false)
+  tdsNotes             String?
+  tcsApplicable        Boolean   @default(false)
+  tcsNotes             String?
+  complianceStatus     String?
+  nextComplianceDate   DateTime?
+  complianceNotes      String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  tenant               Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([lutBondNumber])
   @@index([nextComplianceDate])
   @@index([complianceStatus])
 }
 
-/**
- * ============================================================
- * ROOTYM Business Financial Settings
- * ============================================================
- * Author: Prem Singh
- * Purpose: Stores tenant-scoped financial configuration,
- * payment terms, beneficiary banking details and
- * foreign-remittance instructions for the business.
- * ============================================================
- */
-
 model BusinessFinancialSettings {
-  id       String @id @default(cuid())
-  tenantId String @unique
-
-  // ==========================================================
-  // Currency
-  // ==========================================================
-
-  baseCurrency           String?
-  defaultInvoiceCurrency String?
-  currencyNotes          String?
-
-  // ==========================================================
-  // Payment Terms
-  // ==========================================================
-
-  defaultPaymentTermsDays Int?
-  defaultPaymentMethod    String?
-  paymentTermsNotes       String?
-
-  // ==========================================================
-  // Beneficiary / Bank Details
-  // ==========================================================
-
-  beneficiaryName String?
-  bankName        String?
-  branchName      String?
-  accountNumber   String?
-  accountCurrency String?
-  ifscCode        String?
-  swiftBic        String?
-  iban            String?
-  bankAddress     String?
-  bankCountry     String?
-
-  // ==========================================================
-  // Foreign Remittance Details
-  // ==========================================================
-
-  remittanceBankName     String?
-  remittanceBankSwiftBic String?
-
-  correspondentBankName     String?
-  correspondentBankSwiftBic String?
-
-  intermediaryBankName     String?
-  intermediaryBankSwiftBic String?
-
-  foreignBankAccountNumber String?
-  foreignBankIban          String?
-  routingOrSortCode        String?
-
-  remittanceCurrency String?
-  rbiPurposeCode     String?
-
+  id                              String   @id @default(cuid())
+  tenantId                        String   @unique
+  baseCurrency                    String?
+  defaultInvoiceCurrency          String?
+  currencyNotes                   String?
+  defaultPaymentTermsDays         Int?
+  defaultPaymentMethod            String?
+  paymentTermsNotes               String?
+  beneficiaryName                 String?
+  bankName                        String?
+  branchName                      String?
+  accountNumber                   String?
+  accountCurrency                 String?
+  ifscCode                        String?
+  swiftBic                        String?
+  iban                            String?
+  bankAddress                     String?
+  bankCountry                     String?
+  remittanceBankName              String?
+  remittanceBankSwiftBic          String?
+  correspondentBankName           String?
+  correspondentBankSwiftBic       String?
+  intermediaryBankName            String?
+  intermediaryBankSwiftBic        String?
+  foreignBankAccountNumber        String?
+  foreignBankIban                 String?
+  routingOrSortCode               String?
+  remittanceCurrency              String?
+  rbiPurposeCode                  String?
   foreignRemittanceInstructions   String?
   remittanceReferenceInstructions String?
-
-  bankChargesArrangement String?
-
-  foreignRemittanceNotes String?
-
-  // ==========================================================
-  // Audit
-  // ==========================================================
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  bankChargesArrangement          String?
+  foreignRemittanceNotes          String?
+  createdAt                       DateTime @default(now())
+  updatedAt                       DateTime @updatedAt
+  tenant                          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([baseCurrency])
   @@index([defaultInvoiceCurrency])
@@ -1056,65 +929,43 @@ model BusinessFinancialSettings {
   @@index([rbiPurposeCode])
 }
 
-/**
- * ============================================================
- * ROOTYM Business Operating Preferences
- * ============================================================
- * Author: Prem Singh
- * Purpose: Stores tenant-scoped operational, document,
- * shipment, workflow and business working preferences.
- * ============================================================
- */
-
 model BusinessOperatingPreferences {
-  id       String @id @default(cuid())
-  tenantId String @unique
-
-  // Order & Export Operations
-  defaultOrderProcessingPriority String?
-  defaultShipmentMode            String?
-  defaultIncoterm                String?
-  defaultPortOfLoading           String?
-  defaultDestinationHandling     String?
-  allowPartialShipment           Boolean @default(false)
-  allowSplitShipment             Boolean @default(false)
-
-  // Document Preferences
-  defaultDocumentLanguage      String?
-  documentNumberingPreference  String?
-  invoiceNumberPrefix          String?
-  quoteNumberPrefix            String?
-  packingListNumberPrefix      String?
-  shippingDocumentNumberPrefix String?
-  documentNotes                String?
-
-  // Shipment Preferences
-  defaultTransportMode         String?
-  defaultShipmentType          String?
-  defaultPackageUnit           String?
-  defaultWeightUnit            String?
-  defaultDimensionUnit         String?
-  shipmentHandlingInstructions String?
-
-  // Communication & Workflow
+  id                                  String   @id @default(cuid())
+  tenantId                            String   @unique
+  defaultOrderProcessingPriority      String?
+  defaultShipmentMode                 String?
+  defaultIncoterm                     String?
+  defaultPortOfLoading                String?
+  defaultDestinationHandling          String?
+  allowPartialShipment                Boolean  @default(false)
+  allowSplitShipment                  Boolean  @default(false)
+  defaultDocumentLanguage             String?
+  documentNumberingPreference         String?
+  invoiceNumberPrefix                 String?
+  quoteNumberPrefix                   String?
+  packingListNumberPrefix             String?
+  shippingDocumentNumberPrefix        String?
+  documentNotes                       String?
+  defaultTransportMode                String?
+  defaultShipmentType                 String?
+  defaultPackageUnit                  String?
+  defaultWeightUnit                   String?
+  defaultDimensionUnit                String?
+  shipmentHandlingInstructions        String?
   defaultCustomerCommunicationChannel String?
-  internalApprovalRequired            Boolean @default(false)
-  orderApprovalRequired               Boolean @default(false)
-  shipmentApprovalRequired            Boolean @default(false)
-  documentApprovalRequired            Boolean @default(false)
+  internalApprovalRequired            Boolean  @default(false)
+  orderApprovalRequired               Boolean  @default(false)
+  shipmentApprovalRequired            Boolean  @default(false)
+  documentApprovalRequired            Boolean  @default(false)
   workflowNotes                       String?
-
-  // Business Working Preferences
-  businessWorkingDays String?
-  businessTimezone    String?
-  defaultDateFormat   String?
-  defaultNumberFormat String?
-  operationalNotes    String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  businessWorkingDays                 String?
+  businessTimezone                    String?
+  defaultDateFormat                   String?
+  defaultNumberFormat                 String?
+  operationalNotes                    String?
+  createdAt                           DateTime @default(now())
+  updatedAt                           DateTime @updatedAt
+  tenant                              Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([defaultShipmentMode])
   @@index([defaultIncoterm])
