@@ -30,7 +30,6 @@ import {
   MonitorCog,
   Network,
   PenLine,
-  Search,
   ServerCog,
   Settings,
   ShieldCheck,
@@ -102,14 +101,6 @@ const pageAreas = [
     description:
       "Organize page hierarchy and future website navigation relationships.",
     icon: Network,
-    status: "Preparing",
-    href: null,
-  },
-  {
-    title: "Page SEO",
-    description:
-      "Manage page-level metadata, indexing and search visibility settings.",
-    icon: Search,
     status: "Preparing",
     href: null,
   },
@@ -339,7 +330,7 @@ export default async function WebsitePagesPage() {
 
                 <div className="inline-flex items-center gap-2 rounded-xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500 ring-1 ring-slate-200">
                   <Activity className="h-4 w-4" />
-                  Live Monitoring â€” Coming Soon
+                  Live Monitoring — Coming Soon
                 </div>
               </div>
             </div>
@@ -586,8 +577,7 @@ export default async function WebsitePagesPage() {
             </h2>
 
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-              Live page counts will be connected to the Website-scoped
-              CMS service as the page management workflow is enabled.
+              Live page counts from the Website-scoped CMS service.
             </p>
           </div>
 
@@ -595,26 +585,26 @@ export default async function WebsitePagesPage() {
             {[
               {
                 title: "Total Pages",
-                value: "â€”",
-                description: "Awaiting CMS page-count integration",
+                value: overview.contentSummary.total.toString(),
+                description: "All pages in this Website",
                 icon: FileText,
               },
               {
                 title: "Published",
-                value: "â€”",
-                description: "Awaiting publication metrics",
+                value: overview.contentSummary.published.toString(),
+                description: "Pages currently published",
                 icon: CheckCircle2,
               },
               {
                 title: "Draft",
-                value: "â€”",
-                description: "Awaiting draft tracking",
+                value: overview.contentSummary.draft.toString(),
+                description: "Pages saved as draft",
                 icon: PenLine,
               },
               {
                 title: "Archived",
-                value: "â€”",
-                description: "Awaiting archive metrics",
+                value: overview.contentSummary.archived.toString(),
+                description: "Pages moved to archive",
                 icon: FileArchive,
               },
             ].map((item) => {
@@ -1165,7 +1155,7 @@ export default async function WebsitePagesPage() {
               </span>
 
               <span className="ml-2">
-                Â· {overview.workspace.name}
+                · {overview.workspace.name}
               </span>
             </div>
 

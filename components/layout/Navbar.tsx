@@ -47,7 +47,20 @@ function classNames(
   return classes.filter(Boolean).join(" ");
 }
 
-const Navbar = () => {
+export interface NavbarWebsiteBranding {
+  logoMediaUrl?: string | null;
+  companyName?: string | null;
+  primaryColor?: string | null;
+  secondaryColor?: string | null;
+  accentColor?: string | null;
+  fontFamily?: string | null;
+}
+
+interface NavbarProps {
+  websiteBranding?: NavbarWebsiteBranding | null;
+}
+
+const Navbar = ({ websiteBranding }: NavbarProps) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [elevated, setElevated] = useState(false);
 
@@ -60,27 +73,34 @@ const Navbar = () => {
    * CMS company-settings hook.
    */
   const {
-    companyName,
-    logo,
+    companyName: globalCompanyName,
+    logo: globalLogo,
   } = useCompanySettings();
 
   /*
-   * Resolve the public company name once so all visible
-   * navigation branding uses the CMS value.
+   * Customer Website branding overrides the global company branding
+   * only when the public Website explicitly provides branding values.
    */
   const resolvedCompanyName =
-    companyName?.trim() || "ROOTYM";
+    websiteBranding?.companyName?.trim() ||
+    globalCompanyName?.trim() ||
+    "ROOTYM";
 
-  /*
-   * The About navigation label historically contains
-   * "ROOTYM" in the translation value ("Why ROOTYM").
-   *
-   * Keep "Why" translated while replacing only the
-   * user-visible company identity with the CMS company name.
-   *
-   * This also supports translations where the company name
-   * is not included in the translation value.
-   */
+  const resolvedLogo =
+    websiteBranding?.logoMediaUrl || globalLogo || null;
+
+  const primaryColor =
+    websiteBranding?.primaryColor || "#2E7D32";
+
+  const secondaryColor =
+    websiteBranding?.secondaryColor || "#43A047";
+
+  const accentColor =
+    websiteBranding?.accentColor || "#F1F6F3";
+
+  const fontFamily =
+    websiteBranding?.fontFamily?.trim() || undefined;
+
   const getNavLabel = (key: string) => {
     const translatedLabel = t(`navbar.${key}`);
 
@@ -249,6 +269,16 @@ const Navbar = () => {
         duration: 0.45,
         ease: [0.22, 1, 0.36, 1],
       }}
+      style={
+        {
+          "--website-primary-color": primaryColor,
+          "--website-secondary-color": secondaryColor,
+          "--website-accent-color": accentColor,
+          ...(fontFamily
+            ? { fontFamily }
+            : {}),
+        } as React.CSSProperties
+      }
       className={classNames(
         "sticky top-0 z-40 w-full border-b border-gray-100 backdrop-blur-md transition-all duration-300",
         "h-20",
@@ -279,13 +309,13 @@ const Navbar = () => {
               className={classNames(
                 "flex h-8 w-8 items-center justify-center rounded-xl",
                 "font-bold text-white shadow-md",
-                !logo &&
-                  "bg-gradient-to-tr from-[#2E7D32] to-[#43A047]"
+                !resolvedLogo &&
+                  "bg-gradient-to-tr from-[var(--website-primary-color)] to-[var(--website-secondary-color)]"
               )}
             >
-              {logo ? (
+              {resolvedLogo ? (
                 <img
-                  src={logo}
+                  src={resolvedLogo}
                   alt={`${resolvedCompanyName} Logo`}
                   className="h-8 w-8 rounded-xl object-contain"
                 />
@@ -301,7 +331,7 @@ const Navbar = () => {
               transition={{
                 duration: 0.2,
               }}
-              className="text-2xl font-extrabold tracking-wider text-[#2E7D32]"
+              className="text-2xl font-extrabold tracking-wider text-[var(--website-primary-color)]"
             >
               {resolvedCompanyName}
             </motion.span>
@@ -336,7 +366,7 @@ const Navbar = () => {
               >
                 <Link
                   href={item.href}
-                  className="relative rounded-xl px-3 py-2 text-base font-medium text-gray-700 transition-colors duration-200 hover:text-[#2E7D32] focus:outline-none focus-visible:ring-2 focus-visible:ring-green-300"
+                  className="relative rounded-xl px-3 py-2 text-base font-medium text-gray-700 transition-colors duration-200 hover:text-[var(--website-primary-color)] focus:outline-none focus-visible:ring-2 focus-visible:ring-green-300"
                 >
                   <motion.span
                     whileHover={{ y: -1 }}
@@ -346,7 +376,7 @@ const Navbar = () => {
                   </motion.span>
 
                   <motion.span
-                    className="absolute inset-0 rounded-xl bg-[#F1F6F3]"
+                    className="absolute inset-0 rounded-xl bg-[var(--website-accent-color)]"
                     initial={{
                       scale: 0.85,
                       opacity: 0,
@@ -465,7 +495,7 @@ const Navbar = () => {
                     duration: 0.2,
                   }}
                 >
-                  <X className="h-7 w-7 text-[#2E7D32]" />
+                  <X className="h-7 w-7 text-[var(--website-primary-color)]" />
                 </motion.div>
               ) : (
                 <motion.div
@@ -486,7 +516,7 @@ const Navbar = () => {
                     duration: 0.2,
                   }}
                 >
-                  <Menu className="h-7 w-7 text-[#2E7D32]" />
+                  <Menu className="h-7 w-7 text-[var(--website-primary-color)]" />
                 </motion.div>
               )}
             </AnimatePresence>
@@ -541,7 +571,7 @@ const Navbar = () => {
                   setMobileOpen(false)
                 }
               >
-                <X className="h-6 w-6 text-[#2E7D32]" />
+                <X className="h-6 w-6 text-[var(--website-primary-color)]" />
               </button>
 
               <Link
@@ -555,13 +585,13 @@ const Navbar = () => {
                   className={classNames(
                     "flex h-8 w-8 items-center justify-center rounded-xl",
                     "font-extrabold text-white",
-                    !logo &&
+                    !resolvedLogo &&
                       "bg-gradient-to-tr from-[#2E7D32] to-[#43A047]"
                   )}
                 >
-                  {logo ? (
+                  {resolvedLogo ? (
                     <img
-                      src={logo}
+                      src={resolvedLogo}
                       alt={`${resolvedCompanyName} Logo`}
                       className="h-8 w-8 rounded-xl object-contain"
                     />
@@ -570,7 +600,7 @@ const Navbar = () => {
                   )}
                 </div>
 
-                <span className="text-xl font-extrabold text-[#2E7D32]">
+                <span className="text-xl font-extrabold text-[var(--website-primary-color)]">
                   {resolvedCompanyName}
                 </span>
               </Link>
@@ -599,7 +629,7 @@ const Navbar = () => {
                       onClick={() =>
                         setMobileOpen(false)
                       }
-                      className="block rounded-lg px-3 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-[#F1F6F3] hover:text-[#2E7D32]"
+                      className="block rounded-lg px-3 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-[var(--website-accent-color)] hover:text-[var(--website-primary-color)]"
                     >
                       {getNavLabel(item.key)}
                     </Link>

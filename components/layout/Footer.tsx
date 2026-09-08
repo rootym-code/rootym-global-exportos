@@ -6,7 +6,8 @@
  * Module      : Layout
  * Feature     : Public Footer
  * Purpose     : Displays CMS-managed company information,
- *               contact details and social media links.
+ *               contact details and social media links, with
+ *               optional customer Website branding overrides.
  * ============================================================
  */
 
@@ -17,6 +18,7 @@ import { Link } from "@/lib/i18n/Link";
 import { motion, type Variants } from "framer-motion";
 
 import { useCompanySettings } from "@/lib/cms/company-settings";
+import type { NavbarWebsiteBranding } from "@/components/layout/Navbar";
 
 import {
   Mail,
@@ -74,7 +76,37 @@ const itemVariants: Variants = {
    Footer
 ============================================================ */
 
-export default function Footer() {
+interface FooterProps {
+  websiteBranding?: NavbarWebsiteBranding | null;
+  businessIdentity?: {
+    businessName?: string | null;
+    legalName?: string | null;
+  } | null;
+  businessAddress?: {
+    addressLine1?: string | null;
+    addressLine2?: string | null;
+    city?: string | null;
+    state?: string | null;
+    postalCode?: string | null;
+    country?: string | null;
+  } | null;
+  businessContactCommunication?: {
+    primaryEmail?: string | null;
+    primaryPhone?: string | null;
+    whatsapp?: string | null;
+    linkedinUrl?: string | null;
+    facebookUrl?: string | null;
+    instagramUrl?: string | null;
+    youtubeUrl?: string | null;
+  } | null;
+}
+
+export default function Footer({
+  websiteBranding,
+  businessIdentity,
+  businessAddress,
+  businessContactCommunication,
+}: FooterProps) {
   const { t } = useTranslation();
 
   /*
@@ -82,10 +114,10 @@ export default function Footer() {
    * the centralized CMS company settings hook.
    */
   const {
-    companyName,
+    companyName: globalCompanyName,
     legalName,
     tagline,
-    logo,
+    logo: globalLogo,
     address,
     phone,
     whatsapp,
@@ -98,10 +130,15 @@ export default function Footer() {
   ============================================================ */
 
   const resolvedCompanyName =
-    companyName?.trim() || "Company";
+    businessIdentity?.businessName?.trim() ||
+    websiteBranding?.companyName?.trim() ||
+    globalCompanyName?.trim() ||
+    "Company";
 
   const resolvedLegalName =
-    legalName?.trim() || resolvedCompanyName;
+    businessIdentity?.legalName?.trim() ||
+    legalName?.trim() ||
+    resolvedCompanyName;
 
   const resolvedTagline =
     tagline?.trim() || "";
@@ -110,20 +147,54 @@ export default function Footer() {
     "footer.company.description"
   ).replace(/^ROOTYM\b/, resolvedCompanyName);
 
+  const websiteAddress = [
+    businessAddress?.addressLine1,
+    businessAddress?.addressLine2,
+    businessAddress?.city,
+    businessAddress?.state,
+    businessAddress?.postalCode,
+    businessAddress?.country,
+  ]
+    .map((value) => value?.trim())
+    .filter(Boolean)
+    .join(", ");
+
   const resolvedAddress =
-    address?.trim() || "";
+    websiteAddress ||
+    address?.trim() ||
+    "";
 
   const resolvedEmail =
-    email?.trim() || "";
+    businessContactCommunication?.primaryEmail?.trim() ||
+    email?.trim() ||
+    "";
 
   const resolvedPhone =
-    phone?.trim() || "";
+    businessContactCommunication?.primaryPhone?.trim() ||
+    phone?.trim() ||
+    "";
 
   const resolvedWhatsapp =
-    whatsapp?.trim() || "";
+    businessContactCommunication?.whatsapp?.trim() ||
+    whatsapp?.trim() ||
+    "";
 
   const resolvedLogo =
-    logo?.trim() || "";
+    websiteBranding?.logoMediaUrl?.trim() ||
+    globalLogo?.trim() ||
+    "";
+
+  const primaryColor =
+    websiteBranding?.primaryColor || "#143D1F";
+
+  const secondaryColor =
+    websiteBranding?.secondaryColor || "#86EFAC";
+
+  const accentColor =
+    websiteBranding?.accentColor || "#F1F6F3";
+
+  const fontFamily =
+    websiteBranding?.fontFamily?.trim() || undefined;
 
   /* ============================================================
      Social Links
@@ -133,22 +204,34 @@ export default function Footer() {
     {
       Icon: FaLinkedin,
       label: "LinkedIn",
-      url: social?.linkedin?.trim() || "",
+      url:
+        businessContactCommunication?.linkedinUrl?.trim() ||
+        social?.linkedin?.trim() ||
+        "",
     },
     {
       Icon: FaFacebook,
       label: "Facebook",
-      url: social?.facebook?.trim() || "",
+      url:
+        businessContactCommunication?.facebookUrl?.trim() ||
+        social?.facebook?.trim() ||
+        "",
     },
     {
       Icon: FaInstagram,
       label: "Instagram",
-      url: social?.instagram?.trim() || "",
+      url:
+        businessContactCommunication?.instagramUrl?.trim() ||
+        social?.instagram?.trim() ||
+        "",
     },
     {
       Icon: FaYoutube,
       label: "YouTube",
-      url: social?.youtube?.trim() || "",
+      url:
+        businessContactCommunication?.youtubeUrl?.trim() ||
+        social?.youtube?.trim() ||
+        "",
     },
   ].filter((item) => item.url);
 
@@ -174,6 +257,12 @@ export default function Footer() {
         amount: 0.15,
       }}
       className="relative overflow-hidden bg-[#143D1F] text-white"
+      style={{
+        backgroundColor: primaryColor,
+        fontFamily,
+        ["--website-secondary-color" as string]: secondaryColor,
+        ["--website-accent-color" as string]: accentColor,
+      }}
     >
       {/* ============================================================
           Ambient Background
@@ -191,7 +280,7 @@ export default function Footer() {
             repeat: Infinity,
             ease: "easeInOut",
           }}
-          className="absolute -top-48 left-1/2 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-green-400/10 blur-[140px]"
+          className="absolute -top-48 left-1/2 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-[color:var(--website-secondary-color)]/10 blur-[140px]"
         />
 
         <motion.div
@@ -204,7 +293,7 @@ export default function Footer() {
             repeat: Infinity,
             ease: "easeInOut",
           }}
-          className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-green-300/10 blur-[120px]"
+          className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-[color:var(--website-secondary-color)]/10 blur-[120px]"
         />
       </div>
 
@@ -243,12 +332,12 @@ export default function Footer() {
             )}
 
             {resolvedTagline && (
-              <p className="mt-3 font-medium text-green-300">
+              <p className="mt-3 font-medium text-[color:var(--website-secondary-color)]">
                 {resolvedTagline}
               </p>
             )}
 
-            <p className="mt-6 max-w-md leading-8 text-green-100">
+            <p className="mt-6 max-w-md leading-8 text-[color:var(--website-accent-color)]">
               {resolvedDescription}
             </p>
           </motion.div>
@@ -289,7 +378,7 @@ export default function Footer() {
                   >
                     <Link
                       href={item.href}
-                      className="transition-colors hover:text-green-300"
+                      className="transition-colors hover:text-[color:var(--website-secondary-color)]"
                     >
                       {item.label}
                     </Link>
@@ -335,7 +424,7 @@ export default function Footer() {
                   >
                     <Link
                       href={item.href}
-                      className="text-green-100 transition-colors hover:text-green-300"
+                      className="text-[color:var(--website-accent-color)] transition-colors hover:text-[color:var(--website-secondary-color)]"
                     >
                       {item.label}
                     </Link>
@@ -365,9 +454,9 @@ export default function Footer() {
                   }}
                   className="flex gap-3"
                 >
-                  <MapPin className="mt-1 h-5 w-5 flex-shrink-0 text-green-300" />
+                  <MapPin className="mt-1 h-5 w-5 flex-shrink-0 text-[color:var(--website-secondary-color)]" />
 
-                  <span className="text-green-100">
+                  <span className="text-[color:var(--website-accent-color)]">
                     {resolvedAddress}
                   </span>
                 </motion.div>
@@ -382,11 +471,11 @@ export default function Footer() {
                   }}
                   className="flex gap-3"
                 >
-                  <Mail className="mt-1 h-5 w-5 flex-shrink-0 text-green-300" />
+                  <Mail className="mt-1 h-5 w-5 flex-shrink-0 text-[color:var(--website-secondary-color)]" />
 
                   <a
                     href={`mailto:${resolvedEmail}`}
-                    className="text-green-100 transition-colors hover:text-green-300"
+                    className="text-[color:var(--website-accent-color)] transition-colors hover:text-[color:var(--website-secondary-color)]"
                   >
                     {resolvedEmail}
                   </a>
@@ -402,11 +491,11 @@ export default function Footer() {
                   }}
                   className="flex gap-3"
                 >
-                  <Phone className="mt-1 h-5 w-5 flex-shrink-0 text-green-300" />
+                  <Phone className="mt-1 h-5 w-5 flex-shrink-0 text-[color:var(--website-secondary-color)]" />
 
                   <a
                     href={phoneHref}
-                    className="text-green-100 transition-colors hover:text-green-300"
+                    className="text-[color:var(--website-accent-color)] transition-colors hover:text-[color:var(--website-secondary-color)]"
                   >
                     {resolvedPhone}
                   </a>
@@ -422,13 +511,13 @@ export default function Footer() {
                   }}
                   className="flex gap-3"
                 >
-                  <MessageCircle className="mt-1 h-5 w-5 flex-shrink-0 text-green-300" />
+                  <MessageCircle className="mt-1 h-5 w-5 flex-shrink-0 text-[color:var(--website-secondary-color)]" />
 
                   <a
                     href={whatsappHref}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-green-100 transition-colors hover:text-green-300"
+                    className="text-[color:var(--website-accent-color)] transition-colors hover:text-[color:var(--website-secondary-color)]"
                   >
                     WhatsApp
                   </a>
@@ -462,7 +551,7 @@ export default function Footer() {
                       whileTap={{
                         scale: 0.95,
                       }}
-                      className="flex h-11 w-11 items-center justify-center rounded-full border border-green-500/40 bg-white/5 text-green-200 backdrop-blur transition-colors hover:border-green-300 hover:bg-white/10 hover:text-white"
+                      className="flex h-11 w-11 items-center justify-center rounded-full border border-[color:var(--website-secondary-color)]/40 bg-white/5 text-[color:var(--website-accent-color)] backdrop-blur transition-colors hover:border-[color:var(--website-secondary-color)] hover:bg-white/10 hover:text-white"
                     >
                       <Icon className="h-5 w-5" />
                     </motion.a>
@@ -479,13 +568,13 @@ export default function Footer() {
 
         <motion.div
           variants={itemVariants}
-          className="mt-16 border-t border-green-700/70 pt-8 text-center"
+          className="mt-16 border-t border-[color:var(--website-secondary-color)]/70 pt-8 text-center"
         >
-          <p className="text-sm text-green-200">
-            © {new Date().getFullYear()} {resolvedLegalName}. All Rights Reserved.
+          <p className="text-sm text-[color:var(--website-accent-color)]">
+            Â© {new Date().getFullYear()} {resolvedLegalName}. All Rights Reserved.
           </p>
 
-          <p className="mt-2 text-xs text-green-300">
+          <p className="mt-2 text-xs text-[color:var(--website-secondary-color)]">
             {t("footer.tagline")}
           </p>
         </motion.div>

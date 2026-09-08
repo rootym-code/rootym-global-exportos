@@ -497,45 +497,52 @@ model CmsPageTranslation {
 }
 
 model Media {
-  id                  String               @id @default(cuid())
+  id              String    @id @default(cuid())
   /// Original filename
-  fileName            String
+  fileName        String
   /// Stored filename
-  storedFileName      String
+  storedFileName  String
   /// Public URL or relative path
-  fileUrl             String
+  fileUrl         String
   /// Storage provider (local, s3, cloudinary, etc.)
-  storageProvider     String?              @default("local")
+  storageProvider String?   @default("local")
   /// MIME type
-  mimeType            String?
+  mimeType        String?
   /// IMAGE / VIDEO / DOCUMENT / AUDIO / OTHER
-  mediaType           MediaType
+  mediaType       MediaType
   /// File size in bytes
-  fileSize            Int?
+  fileSize        Int?
   /// Image dimensions
-  width               Int?
-  height              Int?
+  width           Int?
+  height          Int?
   /// Optional alt text
-  altText             String?
+  altText         String?
   /// Optional title
-  title               String?
+  title           String?
   /// Optional description
-  description         String?
+  description     String?
   /// Folder/category
-  folder              String?
+  folder          String?
   /// Soft delete
-  isDeleted           Boolean              @default(false)
-  /// Audit
-  uploadedById        String?
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
-  featuredInProducts  Product[]            @relation("ProductFeaturedImage")
-  whatsAppAttachments WhatsAppAttachment[]
+  isDeleted       Boolean   @default(false)
+  /// Website ownership
+  websiteId       String?
+  website         Website?  @relation(fields: [websiteId], references: [id], onDelete: SetNull)
+  uploadedById    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  featuredInProducts      Product[]            @relation("ProductFeaturedImage")
+  whatsAppAttachments     WhatsAppAttachment[]
+  websiteBrandingLogos    WebsiteBranding[]    @relation("WebsiteBrandingLogo")
+  websiteBrandingFavicons WebsiteBranding[]    @relation("WebsiteBrandingFavicon")
+  websiteBrandingOgImages WebsiteBranding[]    @relation("WebsiteBrandingOgImage")
 
   @@index([mediaType])
   @@index([folder])
   @@index([isDeleted])
   @@index([createdAt])
+  @@index([websiteId])
 }
 
 model Menu {
@@ -708,16 +715,89 @@ model Tenant {
 ///  *          customer-facing Website & Marketing system and
 ///  *          owns the website's CMS pages.
 ///  * ============================================================
+
 model Website {
-  id        String    @id @default(cuid())
-  tenantId  String    @unique
+  id           String           @id @default(cuid())
+  tenantId     String           @unique
+  name         String
+  slug         String           @unique
+  isActive     Boolean          @default(true)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  cmsPages     CmsPage[]
+  branding     WebsiteBranding?
+  media        Media[]
+  mediaFolders MediaFolder[]
+  tenant       Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+/**
+ * ============================================================
+ * ROOTYM Customer Website Branding
+ * ============================================================
+ * Author: Prem Singh
+ * Purpose: Stores Website-scoped visual branding configuration
+ * independently from tenant business information.
+ * ============================================================
+ */
+model WebsiteBranding {
+  id        String @id @default(cuid())
+  websiteId String @unique
+
+  /// Primary website logo
+  logoMediaId String?
+
+  /// Browser/application favicon
+  faviconMediaId String?
+
+  /// Default social sharing / Open Graph image
+  ogImageMediaId String?
+
+  /// Optional brand colors
+  primaryColor   String?
+  secondaryColor String?
+  accentColor    String?
+
+  /// Optional typography preference
+  fontFamily String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  website Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+
+  logoMedia    Media? @relation("WebsiteBrandingLogo", fields: [logoMediaId], references: [id], onDelete: SetNull)
+  faviconMedia Media? @relation("WebsiteBrandingFavicon", fields: [faviconMediaId], references: [id], onDelete: SetNull)
+  ogImageMedia Media? @relation("WebsiteBrandingOgImage", fields: [ogImageMediaId], references: [id], onDelete: SetNull)
+
+  @@index([logoMediaId])
+  @@index([faviconMediaId])
+  @@index([ogImageMediaId])
+}
+
+/**
+ * ============================================================
+ * ROOTYM Media Folder
+ * ============================================================
+ * Author: Prem Singh
+ * Purpose: Stores Website-scoped Media Library folders so
+ * customers can organize media independently within
+ * their own Website.
+ * ============================================================
+ */
+model MediaFolder {
+  id        String @id @default(cuid())
+  websiteId String
   name      String
-  slug      String    @unique
-  isActive  Boolean   @default(true)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  cmsPages  CmsPage[]
-  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  path      String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  website Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+
+  @@unique([websiteId, path])
+  @@index([websiteId])
 }
 
 model WorkspaceInvitation {

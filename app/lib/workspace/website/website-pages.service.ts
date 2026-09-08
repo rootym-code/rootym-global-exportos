@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ============================================================
  * ROOTYM Customer Workspace
  * ============================================================
@@ -43,6 +43,13 @@ export interface WebsitePagesOverview {
     publishingStatus: WebsitePagesStatus;
     cmsStatus: WebsitePagesStatus;
   };
+
+  contentSummary: {
+    total: number;
+    published: number;
+    draft: number;
+    archived: number;
+  };
 }
 
 /**
@@ -58,6 +65,10 @@ export interface WebsitePagesOverview {
  *
  * Existing CMS records are queried only when a valid,
  * active Website is established for the tenant.
+ *
+ * Content Summary counts are calculated from CmsPage records
+ * belonging exclusively to the authenticated tenant's Website.
+ * Translation records are intentionally not counted as pages.
  * ============================================================
  */
 export async function getWebsitePagesOverview(): Promise<WebsitePagesOverview> {
@@ -76,6 +87,37 @@ export async function getWebsitePagesOverview(): Promise<WebsitePagesOverview> {
   });
 
   const websiteConnected = Boolean(website?.isActive);
+
+  const pageStatusCounts = website?.isActive
+    ? await prisma.cmsPage.groupBy({
+        by: ["status"],
+        where: {
+          websiteId: website.id,
+        },
+        _count: {
+          _all: true,
+        },
+      })
+    : [];
+
+  const contentSummary = {
+    total: pageStatusCounts.reduce(
+      (total, item) => total + item._count._all,
+      0,
+    ),
+    published:
+      pageStatusCounts.find(
+        (item) => item.status === "PUBLISHED",
+      )?._count._all ?? 0,
+    draft:
+      pageStatusCounts.find(
+        (item) => item.status === "DRAFT",
+      )?._count._all ?? 0,
+    archived:
+      pageStatusCounts.find(
+        (item) => item.status === "ARCHIVED",
+      )?._count._all ?? 0,
+  };
 
   return {
     workspace: {
@@ -102,6 +144,8 @@ export async function getWebsitePagesOverview(): Promise<WebsitePagesOverview> {
       publishingStatus: websiteConnected ? "READY" : "NOT_CONNECTED",
       cmsStatus: websiteConnected ? "READY" : "NOT_CONNECTED",
     },
+
+    contentSummary,
   };
 }
 

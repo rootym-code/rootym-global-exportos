@@ -80,14 +80,7 @@ function getStatusIcon(status: WebsiteOverviewStatus) {
 }
 
 const connectedCapabilities = [
-  {
-    title: "Pages & Content",
-    description:
-      "Manage the existing ROOTYM CMS pages, structured content and customer-facing website content.",
-    icon: FileText,
-    href: "/app/workspace/website/pages",
-    label: "Manage pages",
-  },
+
   {
     title: "Media Library",
     description:

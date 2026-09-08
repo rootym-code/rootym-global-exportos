@@ -5,6 +5,7 @@
  */
 
 import Link from "next/link";
+import type { CSSProperties } from "react";
 
 import cmsPageService from "@/lib/services/cms/page.service";
 import { CmsPageTemplate } from "@/lib/generated/prisma";
@@ -15,26 +16,55 @@ import type {
 } from "@/components/admin/cms/pages/types";
 
 
+export interface CmsPageWebsiteBranding {
+  companyName?: string | null;
+  logoMediaUrl?: string | null;
+  primaryColor?: string | null;
+  secondaryColor?: string | null;
+  accentColor?: string | null;
+  fontFamily?: string | null;
+}
+
+const DEFAULT_WEBSITE_BRANDING = {
+  primaryColor: "#2E7D32",
+  secondaryColor: "#43A047",
+  accentColor: "#F1F6F3",
+};
+
+function resolveWebsiteBranding(branding?: CmsPageWebsiteBranding | null) {
+  return {
+    companyName: branding?.companyName?.trim() || "ROOTYM",
+    primaryColor: branding?.primaryColor || DEFAULT_WEBSITE_BRANDING.primaryColor,
+    secondaryColor:
+      branding?.secondaryColor || DEFAULT_WEBSITE_BRANDING.secondaryColor,
+    accentColor: branding?.accentColor || DEFAULT_WEBSITE_BRANDING.accentColor,
+    fontFamily: branding?.fontFamily?.trim() || undefined,
+  };
+}
+
 function SectionHeader({
   eyebrow,
   heading,
   description,
   light = false,
+  branding,
 }: {
   eyebrow?: string;
   heading: string;
   description?: string;
   light?: boolean;
+  branding?: CmsPageWebsiteBranding | null;
 }) {
   return (
     <div className={light ? "max-w-3xl mx-auto text-center" : "max-w-3xl"}>
       {eyebrow && (
         <p
-          className={
-            light
-              ? "mb-4 text-sm font-bold uppercase tracking-[0.18em] text-green-100"
-              : "mb-4 text-sm font-bold uppercase tracking-[0.18em] text-green-700"
-          }
+          className="mb-4 text-sm font-bold uppercase tracking-[0.18em]"
+          style={{
+            color: light
+              ? resolveWebsiteBranding(branding).accentColor
+              : resolveWebsiteBranding(branding).primaryColor,
+          }}
         >
           {eyebrow}
         </p>
@@ -52,7 +82,7 @@ function SectionHeader({
         <p
           className={
             light
-              ? "mt-5 max-w-2xl text-lg leading-8 text-green-50 mx-auto"
+              ? "mt-5 max-w-2xl text-lg leading-8 text-white/90 mx-auto"
               : "mt-5 max-w-2xl text-lg leading-8 text-gray-600"
           }
         >
@@ -89,7 +119,14 @@ function getSpecificationHref(productName: string): string | null {
   return null;
 }
 
-function renderSection(section: LandingPageSection, index: number, locale: string) {
+function renderSection(
+  section: LandingPageSection,
+  index: number,
+  locale: string,
+  branding?: CmsPageWebsiteBranding | null,
+) {
+  const resolvedBranding = resolveWebsiteBranding(branding);
+
   switch (section.type) {
     case "hero":
       return (
@@ -97,13 +134,13 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
           key={`hero-${index}`}
           className="relative overflow-hidden bg-white px-6 py-16 md:py-24 lg:py-28"
         >
-          <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-green-100/60 blur-3xl" />
-          <div className="absolute -left-24 bottom-0 h-64 w-64 rounded-full bg-lime-100/50 blur-3xl" />
+          <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-[var(--website-accent-color)]/60 blur-3xl" />
+          <div className="absolute -left-24 bottom-0 h-64 w-64 rounded-full bg-[var(--website-accent-color)]/50 blur-3xl" />
 
           <div className="relative mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[1.15fr_0.85fr] lg:gap-16">
             <div>
-              <span className="inline-flex items-center rounded-full bg-green-100 px-4 py-2 text-sm font-bold text-green-800 ring-1 ring-green-200">
-                ROOTYM Global Market
+              <span className="inline-flex items-center rounded-full bg-[var(--website-accent-color)] px-4 py-2 text-sm font-bold text-[var(--website-primary-color)] ring-1 ring-[var(--website-primary-color)]/30">
+                {resolvedBranding.companyName} Global Market
               </span>
 
               <h1 className="mt-7 max-w-5xl text-4xl font-bold leading-[1.05] tracking-[-0.03em] text-gray-950 sm:text-5xl md:text-6xl lg:text-7xl">
@@ -121,7 +158,7 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
 {section.primaryCtaText && (
   <Link
     href={getCtaHref(section.primaryCtaText, locale)}
-    className="rounded-xl bg-green-700 px-6 py-3.5 font-semibold text-white shadow-lg shadow-green-900/10 transition hover:bg-green-800"
+    className="rounded-xl bg-[var(--website-primary-color)] px-6 py-3.5 font-semibold text-white shadow-lg shadow-black/10 transition hover:bg-[var(--website-primary-color)]"
   >
     {section.primaryCtaText}
   </Link>
@@ -142,18 +179,18 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
 
             <div className="relative mx-auto w-full max-w-xl">
               <div className="rounded-[2rem] bg-gray-950 p-3 shadow-2xl shadow-gray-900/15">
-                <div className="rounded-[1.5rem] bg-gradient-to-br from-green-700 via-green-800 to-gray-950 p-7 text-white md:p-9">
+                <div className="rounded-[1.5rem] bg-gradient-to-br from-[var(--website-primary-color)] via-[var(--website-secondary-color)] to-gray-950 p-7 text-white md:p-9">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-[0.2em] text-green-100">
-                      ROOTYM
+                    <span className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--website-accent-color)]">
+                      {resolvedBranding.companyName}
                     </span>
-                    <span className="rounded-full border border-white/20 px-3 py-1 text-xs text-green-50">
+                    <span className="rounded-full border border-white/20 px-3 py-1 text-xs text-white/90">
                       Global Market
                     </span>
                   </div>
 
                   <div className="mt-16">
-                    <p className="text-sm font-medium text-green-100">
+                    <p className="text-sm font-medium text-[var(--website-accent-color)]">
                       Rooted in India.
                     </p>
                     <p className="mt-1 text-3xl font-bold tracking-tight md:text-4xl">
@@ -163,13 +200,13 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
 
                   <div className="mt-12 grid grid-cols-2 gap-3">
                     <div className="rounded-2xl bg-white/10 p-4 ring-1 ring-white/10">
-                      <p className="text-xs uppercase tracking-wide text-green-100">
+                      <p className="text-xs uppercase tracking-wide text-[var(--website-accent-color)]">
                         Sourcing
                       </p>
                       <p className="mt-1 font-semibold">India</p>
                     </div>
                     <div className="rounded-2xl bg-white/10 p-4 ring-1 ring-white/10">
-                      <p className="text-xs uppercase tracking-wide text-green-100">
+                      <p className="text-xs uppercase tracking-wide text-[var(--website-accent-color)]">
                         Focus
                       </p>
                       <p className="mt-1 font-semibold">Global Trade</p>
@@ -200,13 +237,13 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
             {pointsCount === 1 ? (
               <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-center">
                 <SectionHeader
-                  eyebrow="Why ROOTYM"
+                  eyebrow={`Why ${resolvedBranding.companyName}`}
                   heading={section.heading}
                   description={section.description}
                 />
-                <div className="group rounded-3xl bg-white p-8 shadow-md ring-1 ring-green-100/50 transition hover:shadow-lg md:p-10">
+                <div className="group rounded-3xl bg-white p-8 shadow-md ring-1 ring-[var(--website-primary-color)]/20 transition hover:shadow-lg md:p-10">
                   <div className="flex gap-5">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-green-100 text-lg font-bold text-green-800">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--website-accent-color)] text-lg font-bold text-[var(--website-primary-color)]">
                       ✓
                     </div>
                     <div>
@@ -221,7 +258,7 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
             ) : (
               <>
                 <SectionHeader
-                  eyebrow="Why ROOTYM"
+                  eyebrow={`Why ${resolvedBranding.companyName}`}
                   heading={section.heading}
                   description={section.description}
                 />
@@ -242,7 +279,7 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
                         className="group rounded-3xl bg-white p-7 shadow-sm ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-lg md:p-8"
                       >
                         <div className="flex items-start gap-5">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100 text-sm font-bold text-green-800">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--website-accent-color)] text-sm font-bold text-[var(--website-primary-color)]">
                             {pointIndex + 1}
                           </div>
                           <p className="pt-1 text-base font-semibold leading-7 text-gray-900">
@@ -275,9 +312,9 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
 
             <div className="mt-12 overflow-hidden rounded-[2rem] bg-gray-950 shadow-xl">
               <div className="grid lg:grid-cols-[0.95fr_1.05fr]">
-                <div className="relative flex min-h-[14rem] flex-col justify-end overflow-hidden bg-gradient-to-br from-gray-950 via-green-950 to-green-800 p-8 text-white md:p-10 lg:min-h-[18rem]">
-                  <div className="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-green-500/20 blur-2xl" />
-                  <p className="relative text-sm font-bold uppercase tracking-[0.18em] text-green-200">
+                <div className="relative flex min-h-[14rem] flex-col justify-end overflow-hidden bg-gradient-to-br from-gray-950 via-[var(--website-primary-color)] to-[var(--website-secondary-color)] p-8 text-white md:p-10 lg:min-h-[18rem]">
+                  <div className="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-[var(--website-secondary-color)]/20 blur-2xl" />
+                  <p className="relative text-sm font-bold uppercase tracking-[0.18em] text-[var(--website-accent-color)]">
                     Product
                   </p>
                   <h3 className="relative mt-3 max-w-xl text-3xl font-bold tracking-tight md:text-4xl">
@@ -307,7 +344,7 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
 
               {section.applications.length > 0 && (
                 <div className="border-t border-gray-800 bg-gray-950 p-6 md:p-8 text-white">
-                  <h4 className="text-sm font-bold uppercase tracking-[0.16em] text-green-200">
+                  <h4 className="text-sm font-bold uppercase tracking-[0.16em] text-[var(--website-accent-color)]">
                     Applications
                   </h4>
                   <div className="mt-4 flex flex-wrap gap-2.5">
@@ -337,7 +374,7 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
                         Buyer Specification Sheet
                       </p>
                       <p className="mt-1 text-sm leading-6 text-gray-300">
-                        Download the ROOTYM Buyer Specification & Laboratory Analysis Sheet
+                        Download the {resolvedBranding.companyName} Buyer Specification & Laboratory Analysis Sheet
                         for detailed product information.
                       </p>
                     </div>
@@ -345,7 +382,7 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
                     <a
                       href={specificationHref}
                       download
-                      className="inline-flex shrink-0 items-center justify-center rounded-xl bg-white px-5 py-3 font-semibold text-green-800 shadow-lg transition hover:bg-green-50"
+                      className="inline-flex shrink-0 items-center justify-center rounded-xl bg-white px-5 py-3 font-semibold text-[var(--website-primary-color)] shadow-lg transition hover:bg-[var(--website-accent-color)]"
                     >
                       Download Specification
                     </a>
@@ -376,7 +413,7 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
                 />
                 <div className="rounded-3xl bg-white p-8 shadow-md ring-1 ring-gray-100 md:p-10">
                   <div className="flex items-start gap-5">
-                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-green-100 text-lg font-bold text-green-800">
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--website-accent-color)] text-lg font-bold text-[var(--website-primary-color)]">
                       01
                     </span>
                     <div>
@@ -413,10 +450,10 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
                     {section.items.map((item, itemIndex) => (
                       <div
                         key={`${item.title}-${itemIndex}`}
-                        className="rounded-3xl bg-white p-7 shadow-sm ring-1 ring-gray-100 md:p-8 transition hover:shadow-md hover:border-green-100"
+                        className="rounded-3xl bg-white p-7 shadow-sm ring-1 ring-gray-100 md:p-8 transition hover:shadow-md hover:border-[var(--website-primary-color)]/20"
                       >
                         <div className="flex items-start gap-4">
-                          <span className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-green-100 text-sm font-bold text-green-800">
+                          <span className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--website-accent-color)] text-sm font-bold text-[var(--website-primary-color)]">
                             {String(itemIndex + 1).padStart(2, "0")}
                           </span>
                           <div>
@@ -451,9 +488,9 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
           <div className="mx-auto max-w-7xl">
             {pointsCount === 1 ? (
               <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-center">
-                <SectionHeader eyebrow="The ROOTYM Difference" heading={section.heading} />
-                <div className="rounded-3xl border border-green-200 bg-green-50/10 p-8 shadow-md md:p-10 transition hover:shadow-lg">
-                  <span className="text-base font-bold text-green-700">01</span>
+                <SectionHeader eyebrow={`The ${resolvedBranding.companyName} Difference`} heading={section.heading} />
+                <div className="rounded-3xl border border-[var(--website-primary-color)]/30 bg-[var(--website-accent-color)]/10 p-8 shadow-md md:p-10 transition hover:shadow-lg">
+                  <span className="text-base font-bold text-[var(--website-primary-color)]">01</span>
                   <h3 className="mt-4 text-2xl font-bold text-gray-950">
                     {section.points[0].title}
                   </h3>
@@ -466,7 +503,7 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
               </div>
             ) : (
               <>
-                <SectionHeader eyebrow="The ROOTYM Difference" heading={section.heading} />
+                <SectionHeader eyebrow={`The ${resolvedBranding.companyName} Difference`} heading={section.heading} />
 
                 {pointsCount > 0 && (
                   <div
@@ -481,9 +518,9 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
                     {section.points.map((point, pointIndex) => (
                       <div
                         key={`${point.title}-${pointIndex}`}
-                        className="rounded-3xl border border-gray-100 bg-white p-7 shadow-sm transition hover:shadow-md hover:border-green-100 md:p-8"
+                        className="rounded-3xl border border-gray-100 bg-white p-7 shadow-sm transition hover:shadow-md hover:border-[var(--website-primary-color)]/20 md:p-8"
                       >
-                        <span className="text-sm font-bold text-green-700">
+                        <span className="text-sm font-bold text-[var(--website-primary-color)]">
                           0{pointIndex + 1}
                         </span>
                         <h3 className="mt-4 text-xl font-bold text-gray-950">
@@ -520,14 +557,14 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
                   heading={section.heading}
                   description={section.description}
                 />
-                <div className="rounded-3xl bg-white p-8 shadow-md ring-1 ring-green-100/50 md:p-10 flex items-center gap-6">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-green-100 text-green-700">
+                <div className="rounded-3xl bg-white p-8 shadow-md ring-1 ring-[var(--website-primary-color)]/20 md:p-10 flex items-center gap-6">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[var(--website-accent-color)] text-[var(--website-primary-color)]">
                     <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-green-700">Target Segment</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[var(--website-primary-color)]">Target Segment</p>
                     <p className="mt-1 text-2xl font-extrabold text-gray-950">{section.buyerTypes[0]}</p>
                   </div>
                 </div>
@@ -553,7 +590,7 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
                     {section.buyerTypes.map((buyerType, buyerIndex) => (
                       <div
                         key={`${buyerType}-${buyerIndex}`}
-                        className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100 transition hover:shadow-md hover:ring-green-100"
+                        className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100 transition hover:shadow-md hover:ring-[var(--website-primary-color)]/20"
                       >
                         <p className="font-bold text-gray-950">{buyerType}</p>
                       </div>
@@ -582,8 +619,8 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
                   heading={section.heading}
                   description={section.description}
                 />
-                <div className="rounded-[2rem] border-2 border-dashed border-green-200 bg-green-50/10 p-8 md:p-10 shadow-sm transition hover:bg-green-50/20">
-                  <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-800 uppercase tracking-wider">
+                <div className="rounded-[2rem] border-2 border-dashed border-[var(--website-primary-color)]/30 bg-[var(--website-accent-color)]/10 p-8 md:p-10 shadow-sm transition hover:bg-[var(--website-accent-color)]/20">
+                  <span className="inline-flex items-center rounded-full bg-[var(--website-accent-color)] px-3 py-1 text-xs font-bold text-[var(--website-primary-color)] uppercase tracking-wider">
                     Standard Packaging Option
                   </span>
                   <p className="mt-6 text-2xl font-extrabold leading-snug text-gray-950">
@@ -612,9 +649,9 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
                     {section.options.map((option, optionIndex) => (
                       <div
                         key={`${option}-${optionIndex}`}
-                        className="rounded-3xl border border-gray-200 bg-gray-50 p-7 transition hover:border-green-200 hover:bg-green-50/40"
+                        className="rounded-3xl border border-gray-200 bg-gray-50 p-7 transition hover:border-[var(--website-primary-color)]/30 hover:bg-[var(--website-accent-color)]/40"
                       >
-                        <span className="text-sm font-bold text-green-700">
+                        <span className="text-sm font-bold text-[var(--website-primary-color)]">
                           Option {optionIndex + 1}
                         </span>
                         <p className="mt-3 text-lg font-bold text-gray-950">
@@ -646,12 +683,12 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
                   heading={section.heading}
                   description={section.description}
                 />
-                <div className="flex items-center gap-5 rounded-3xl bg-white p-8 shadow-sm ring-1 ring-green-100/50 md:p-10">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-green-100 font-bold text-green-700 text-xl">
+                <div className="flex items-center gap-5 rounded-3xl bg-white p-8 shadow-sm ring-1 ring-[var(--website-primary-color)]/20 md:p-10">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[var(--website-accent-color)] font-bold text-[var(--website-primary-color)] text-xl">
                     ✓
                   </div>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-green-700">Verified Export Document</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[var(--website-primary-color)]">Verified Export Document</p>
                     <p className="mt-1 text-2xl font-bold text-gray-900">{section.documents[0]}</p>
                   </div>
                 </div>
@@ -677,9 +714,9 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
                     {section.documents.map((document, documentIndex) => (
                       <div
                         key={`${document}-${documentIndex}`}
-                        className="flex items-center gap-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100 transition hover:shadow-md hover:ring-green-100"
+                        className="flex items-center gap-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100 transition hover:shadow-md hover:ring-[var(--website-primary-color)]/20"
                       >
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100 font-bold text-green-700">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--website-accent-color)] font-bold text-[var(--website-primary-color)]">
                           ✓
                         </div>
                         <p className="font-semibold text-gray-900">{document}</p>
@@ -698,10 +735,10 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
       return (
         <section
           key={`cta-${index}`}
-          className="relative overflow-hidden bg-green-800 px-6 py-16 md:py-20 text-white"
+          className="relative overflow-hidden bg-[var(--website-primary-color)] px-6 py-16 md:py-20 text-white"
         >
-          <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-green-500/20 blur-3xl" />
-          <div className="absolute -bottom-32 -right-24 h-96 w-96 rounded-full bg-green-950/30 blur-3xl" />
+          <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-[var(--website-secondary-color)]/20 blur-3xl" />
+          <div className="absolute -bottom-32 -right-24 h-96 w-96 rounded-full bg-[var(--website-primary-color)]/30 blur-3xl" />
 
           <div className="relative mx-auto max-w-5xl text-center flex flex-col items-center">
             <SectionHeader
@@ -715,7 +752,7 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
 {section.primaryCtaText && (
   <Link
     href={getCtaHref(section.primaryCtaText, locale)}
-    className="rounded-xl bg-white px-6 py-3.5 font-semibold text-green-800 shadow-lg transition hover:bg-green-50"
+    className="rounded-xl bg-white px-6 py-3.5 font-semibold text-[var(--website-primary-color)] shadow-lg transition hover:bg-[var(--website-accent-color)]"
   >
     {section.primaryCtaText}
   </Link>
@@ -724,7 +761,7 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
 {section.secondaryCtaText && (
   <Link
     href={getCtaHref(section.secondaryCtaText, locale)}
-    className="rounded-xl border border-green-200/70 bg-transparent px-6 py-3.5 font-semibold text-white transition hover:bg-white/10"
+    className="rounded-xl border border-[var(--website-accent-color)]/70 bg-transparent px-6 py-3.5 font-semibold text-white transition hover:bg-white/10"
   >
     {section.secondaryCtaText}
   </Link>
@@ -754,7 +791,7 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
                     <summary className="cursor-pointer list-none pr-8 font-bold text-gray-950 marker:hidden">
                       <div className="flex items-start justify-between gap-6">
                         <span>{item.question}</span>
-                        <span className="shrink-0 text-xl font-normal text-green-700 transition group-open:rotate-45">
+                        <span className="shrink-0 text-xl font-normal text-[var(--website-primary-color)] transition group-open:rotate-45">
                           +
                         </span>
                       </div>
@@ -782,6 +819,7 @@ export function renderCmsPageContent({
   translation,
   pageTemplate,
   locale,
+  branding,
 }: {
   translation: {
     title: string;
@@ -791,25 +829,47 @@ export function renderCmsPageContent({
   };
   pageTemplate: CmsPageTemplate;
   locale: string;
+  branding?: CmsPageWebsiteBranding | null;
 }) {
   const isCountryLanding = pageTemplate === CmsPageTemplate.COUNTRY_LANDING;
+  const resolvedBranding = resolveWebsiteBranding(branding);
 
   const structuredContent =
     translation.structuredContent as CmsLandingPageContent | null;
 
   const pageContent = isCountryLanding ? (
     structuredContent?.sections?.length ? (
-      <main className="overflow-x-hidden bg-white">
+      <main
+        className="overflow-x-hidden bg-white"
+        style={{
+          "--website-primary-color": resolvedBranding.primaryColor,
+          "--website-secondary-color": resolvedBranding.secondaryColor,
+          "--website-accent-color": resolvedBranding.accentColor,
+          ...(resolvedBranding.fontFamily
+            ? { fontFamily: resolvedBranding.fontFamily }
+            : {}),
+        } as CSSProperties}
+      >
         {structuredContent.sections.map((section, index) =>
-          renderSection(section, index, locale)
+          renderSection(section, index, locale, branding)
         )}
       </main>
     ) : (
-      <main className="overflow-x-hidden bg-white">
+      <main
+        className="overflow-x-hidden bg-white"
+        style={{
+          "--website-primary-color": resolvedBranding.primaryColor,
+          "--website-secondary-color": resolvedBranding.secondaryColor,
+          "--website-accent-color": resolvedBranding.accentColor,
+          ...(resolvedBranding.fontFamily
+            ? { fontFamily: resolvedBranding.fontFamily }
+            : {}),
+        } as CSSProperties}
+      >
         <section className="bg-white px-6 py-20 md:py-28">
           <div className="mx-auto max-w-6xl">
-            <span className="inline-flex rounded-full bg-green-100 px-4 py-2 text-sm font-semibold text-green-800">
-              ROOTYM Global Market
+            <span className="inline-flex rounded-full bg-[var(--website-accent-color)] px-4 py-2 text-sm font-semibold text-[var(--website-primary-color)]">
+              {resolvedBranding.companyName} Global Market
             </span>
 
             <h1 className="mt-6 text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
@@ -838,7 +898,17 @@ export function renderCmsPageContent({
       </main>
     )
   ) : (
-    <main className="overflow-x-hidden bg-white">
+    <main
+        className="overflow-x-hidden bg-white"
+        style={{
+          "--website-primary-color": resolvedBranding.primaryColor,
+          "--website-secondary-color": resolvedBranding.secondaryColor,
+          "--website-accent-color": resolvedBranding.accentColor,
+          ...(resolvedBranding.fontFamily
+            ? { fontFamily: resolvedBranding.fontFamily }
+            : {}),
+        } as CSSProperties}
+      >
       <section className="mx-auto max-w-6xl px-6 py-16 md:py-20">
         <h1 className="text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
           {translation.title}
