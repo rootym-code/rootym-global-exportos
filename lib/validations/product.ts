@@ -1,3 +1,13 @@
+/**
+ * ============================================================
+ * ROOTYM Global ExportOS
+ * ============================================================
+ * Author: Prem Singh
+ * Purpose: Validates Website-scoped Product create and update
+ *          data, including optional specification documents.
+ * ============================================================
+ */
+
 import { z } from "zod";
 
 export const productStatusSchema = z.enum([
@@ -85,19 +95,23 @@ export const createProductSchema = z.object({
   ),
 
   featuredImageId: z
-  .string()
-  .cuid()
-  .nullable()
-  .optional(),
-  });
+    .string()
+    .cuid()
+    .nullable()
+    .optional(),
 
-  export const updateProductSchema =
-    createProductSchema.partial();
-  
-  export type CreateProductInput =
-    z.infer<typeof createProductSchema>;
-  
-  export type UpdateProductInput =
-    z.infer<typeof updateProductSchema>;
-  
-   
+  specificationDocumentId: z
+    .string()
+    .cuid()
+    .nullable()
+    .optional(),
+});
+
+export const updateProductSchema =
+  createProductSchema.partial();
+
+export type CreateProductInput =
+  z.infer<typeof createProductSchema>;
+
+export type UpdateProductInput =
+  z.infer<typeof updateProductSchema>;

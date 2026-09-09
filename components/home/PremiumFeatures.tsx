@@ -1,3 +1,16 @@
+/**
+ * ============================================================
+ * ROOTYM Global Export Platform
+ * ============================================================
+ * Author: Prem Singh
+ * Module      : Home
+ * Feature     : Premium Features
+ * Purpose     : Displays the feature section using translated
+ *               content while allowing the tenant business name
+ *               to replace ROOTYM in customer Websites.
+ * ============================================================
+ */
+
 "use client";
 
 import { useTranslation } from "@/lib/i18n/context";
@@ -23,39 +36,80 @@ type Feature = {
   icon: React.ElementType;
 };
 
+export type PremiumFeaturesProps = {
+  /**
+   * Tenant business name used on customer Websites.
+   *
+   * Falls back to ROOTYM when not provided so the existing
+   * global ROOTYM Website remains unchanged.
+   */
+  websiteCompanyName?: string | null;
+};
 
-export default function PremiumFeatures() {
+export default function PremiumFeatures({
+  websiteCompanyName,
+}: PremiumFeaturesProps) {
   const { t } = useTranslation();
+
+  const resolvedCompanyName =
+    websiteCompanyName?.trim() || "ROOTYM";
+
+  const replaceCompanyName = (value: string) =>
+    value.replace(/ROOTYM/g, resolvedCompanyName);
 
   const FEATURES: Feature[] = [
     {
-      title: t("features.cards.quality.title"),
-      description: t("features.cards.quality.description"),
+      title: replaceCompanyName(
+        t("features.cards.quality.title"),
+      ),
+      description: replaceCompanyName(
+        t("features.cards.quality.description"),
+      ),
       icon: BadgeCheck,
     },
     {
-      title: t("features.cards.export.title"),
-      description: t("features.cards.export.description"),
+      title: replaceCompanyName(
+        t("features.cards.export.title"),
+      ),
+      description: replaceCompanyName(
+        t("features.cards.export.description"),
+      ),
       icon: Globe2,
     },
     {
-      title: t("features.cards.farming.title"),
-      description: t("features.cards.farming.description"),
+      title: replaceCompanyName(
+        t("features.cards.farming.title"),
+      ),
+      description: replaceCompanyName(
+        t("features.cards.farming.description"),
+      ),
       icon: Leaf,
     },
     {
-      title: t("features.cards.certified.title"),
-      description: t("features.cards.certified.description"),
+      title: replaceCompanyName(
+        t("features.cards.certified.title"),
+      ),
+      description: replaceCompanyName(
+        t("features.cards.certified.description"),
+      ),
       icon: ShieldCheck,
     },
     {
-      title: t("features.cards.logistics.title"),
-      description: t("features.cards.logistics.description"),
+      title: replaceCompanyName(
+        t("features.cards.logistics.title"),
+      ),
+      description: replaceCompanyName(
+        t("features.cards.logistics.description"),
+      ),
       icon: Truck,
     },
     {
-      title: t("features.cards.support.title"),
-      description: t("features.cards.support.description"),
+      title: replaceCompanyName(
+        t("features.cards.support.title"),
+      ),
+      description: replaceCompanyName(
+        t("features.cards.support.description"),
+      ),
       icon: Users,
     },
   ];
@@ -63,12 +117,18 @@ export default function PremiumFeatures() {
   return (
     <Section spacing="xl">
       <Container size="2xl">
-      <SectionHeader
-  eyebrow={t("features.badge")}
-  title={t("features.title")}
-  description={t("features.description")}
-  align="center"
-/>
+        <SectionHeader
+          eyebrow={replaceCompanyName(
+            t("features.badge"),
+          )}
+          title={replaceCompanyName(
+            t("features.title"),
+          )}
+          description={replaceCompanyName(
+            t("features.description"),
+          )}
+          align="center"
+        />
 
         <div className="mt-16 grid gap-8 md:grid-cols-2 xl:grid-cols-3">
           {FEATURES.map((feature, index) => {

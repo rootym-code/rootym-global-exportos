@@ -1,3 +1,16 @@
+/**
+ * ============================================================
+ * ROOTYM Global ExportOS
+ * ============================================================
+ * Author      : Prem Singh
+ * Module      : Admin Media
+ * Feature     : Reusable Media Picker
+ * File        : components/admin/media/MediaPicker.tsx
+ * Purpose     : Provides Website-scoped media selection for
+ *               images and product specification documents.
+ * ============================================================
+ */
+
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -5,6 +18,7 @@ import Image from "next/image";
 import {
   Search,
   Image as ImageIcon,
+  FileText,
   Loader2,
   Check,
   X,
@@ -18,16 +32,45 @@ import type {
   MediaListResponse,
 } from "@/lib/types/media";
 
+type MediaPickerType =
+  | "IMAGE"
+  | "DOCUMENT"
+  | "DOCUMENT_OR_IMAGE";
+
 interface MediaPickerProps {
   open: boolean;
   selectedId?: string | null;
+  mediaType?: MediaPickerType;
   onClose: () => void;
   onSelect: (media: MediaDto) => void;
+}
+
+function mediaMatchesType(
+  media: MediaDto,
+  mediaType?: MediaPickerType
+): boolean {
+  if (!mediaType) {
+    return true;
+  }
+
+  if (mediaType === "IMAGE") {
+    return media.mediaType === "IMAGE";
+  }
+
+  if (mediaType === "DOCUMENT") {
+    return media.mediaType === "DOCUMENT";
+  }
+
+  return (
+    media.mediaType === "IMAGE" ||
+    media.mediaType === "DOCUMENT"
+  );
 }
 
 export default function MediaPicker({
   open,
   selectedId,
+  mediaType,
   onClose,
   onSelect,
 }: MediaPickerProps) {
@@ -46,11 +89,18 @@ export default function MediaPicker({
       params.set("search", search.trim());
     }
 
+    if (
+      mediaType === "IMAGE" ||
+      mediaType === "DOCUMENT"
+    ) {
+      params.set("mediaType", mediaType);
+    }
+
     params.set("page", "1");
     params.set("limit", "50");
 
     return params.toString();
-  }, [search]);
+  }, [search, mediaType]);
 
   const fetchMedia = useCallback(async () => {
     try {
@@ -75,7 +125,11 @@ export default function MediaPicker({
         );
       }
 
-      setMedia(result.data);
+      setMedia(
+        result.data.filter((item) =>
+          mediaMatchesType(item, mediaType)
+        )
+      );
     } catch (err) {
       setError(
         err instanceof Error
@@ -85,20 +139,38 @@ export default function MediaPicker({
     } finally {
       setLoading(false);
     }
-  }, [queryString]);
+  }, [queryString, mediaType]);
 
   useEffect(() => {
     if (!open) {
       return;
     }
 
-    fetchMedia();
+    void fetchMedia();
     setSelected(selectedId ?? null);
   }, [open, selectedId, fetchMedia]);
 
   if (!open) {
     return null;
   }
+
+  const isDocumentMode =
+    mediaType === "DOCUMENT" ||
+    mediaType === "DOCUMENT_OR_IMAGE";
+
+  const selectionLabel =
+    mediaType === "DOCUMENT"
+      ? "document"
+      : mediaType === "DOCUMENT_OR_IMAGE"
+        ? "file"
+        : "image";
+
+  const selectLabel =
+    mediaType === "DOCUMENT"
+      ? "Select Document"
+      : mediaType === "DOCUMENT_OR_IMAGE"
+        ? "Select File"
+        : "Select Image";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-6">
@@ -110,7 +182,7 @@ export default function MediaPicker({
             </h2>
 
             <p className="mt-1 text-sm text-slate-500">
-              Select an image for this content.
+              Select a {selectionLabel} from this Website&apos;s Media Library.
             </p>
           </div>
 
@@ -156,7 +228,11 @@ export default function MediaPicker({
           ) : media.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center text-center">
               <div className="rounded-full bg-green-100 p-5">
-                <ImageIcon className="h-10 w-10 text-green-700" />
+                {isDocumentMode ? (
+                  <FileText className="h-10 w-10 text-green-700" />
+                ) : (
+                  <ImageIcon className="h-10 w-10 text-green-700" />
+                )}
               </div>
 
               <h3 className="mt-6 text-2xl font-semibold text-slate-900">
@@ -164,7 +240,7 @@ export default function MediaPicker({
               </h3>
 
               <p className="mt-3 max-w-md text-slate-500">
-                Upload images to your media library before selecting one.
+                No compatible {selectionLabel}s are available in this Website&apos;s Media Library.
               </p>
             </div>
           ) : (
@@ -172,6 +248,9 @@ export default function MediaPicker({
               {media.map((item) => {
                 const isSelected =
                   selected === item.id;
+
+                const isImage =
+                  item.mediaType === "IMAGE";
 
                 return (
                   <button
@@ -186,17 +265,27 @@ export default function MediaPicker({
                         : "border-slate-200 hover:border-green-400"
                     }`}
                   >
-                    <div className="relative aspect-square overflow-hidden bg-slate-100">
-                      <Image
-                        src={item.fileUrl}
-                        alt={
-                          item.altText ??
-                          item.title ??
-                          item.fileName
-                        }
-                        fill
-                        className="object-cover transition duration-300 group-hover:scale-105"
-                      />
+                    <div className="relative flex aspect-square items-center justify-center overflow-hidden bg-slate-100">
+                      {isImage ? (
+                        <Image
+                          src={item.fileUrl}
+                          alt={
+                            item.altText ??
+                            item.title ??
+                            item.fileName
+                          }
+                          fill
+                          sizes="(max-width: 768px) 50vw, (max-width: 1280px) 25vw, 20vw"
+                          className="object-cover transition duration-300 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center px-4 text-center">
+                          <FileText className="h-14 w-14 text-red-500" />
+                          <span className="mt-3 max-w-full truncate text-xs font-semibold text-slate-600">
+                            {item.fileName}
+                          </span>
+                        </div>
+                      )}
 
                       {isSelected && (
                         <div className="absolute right-3 top-3 rounded-full bg-green-600 p-1 text-white shadow-lg">
@@ -211,7 +300,8 @@ export default function MediaPicker({
                       </p>
 
                       <p className="mt-1 truncate text-xs text-slate-500">
-                        {item.mimeType ?? "-"}
+                        {item.mimeType ??
+                          (isImage ? "Image" : "Document")}
                       </p>
                     </div>
                   </button>
@@ -224,8 +314,8 @@ export default function MediaPicker({
         <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-6 py-4">
           <div className="text-sm text-slate-500">
             {selected
-              ? "1 image selected"
-              : "No image selected"}
+              ? `1 ${selectionLabel} selected`
+              : `No ${selectionLabel} selected`}
           </div>
 
           <div className="flex items-center gap-3">
@@ -254,7 +344,7 @@ export default function MediaPicker({
                 onClose();
               }}
             >
-              Select Image
+              {selectLabel}
             </Button>
           </div>
         </div>
@@ -262,5 +352,3 @@ export default function MediaPicker({
     </div>
   );
 }
-
- 

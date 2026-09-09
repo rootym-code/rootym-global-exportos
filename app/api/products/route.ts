@@ -1,74 +1,78 @@
-import { NextResponse } from "next/server";
-import { ProductStatus } from "@/lib/generated/prisma";
+/**
+ * ============================================================
+ * ROOTYM Global ExportOS
+ * ============================================================
+ * Author: Prem Singh
+ * Purpose: Provides the public ROOTYM Product catalogue API
+ *          using Website-scoped Product data.
+ * ============================================================
+ */
 
+import { NextRequest, NextResponse } from "next/server";
+
+import { ProductStatus } from "@/lib/generated/prisma";
+import { prisma } from "@/lib/prisma";
 import { listProducts } from "@/lib/services/product.service";
 
-export async function GET() {
+const ROOTYM_WEBSITE_SLUG = "rootym-agro";
+
+export async function GET(request: NextRequest) {
   try {
-    const result = await listProducts({
-      status: ProductStatus.PUBLISHED,
-      page: 1,
-      pageSize: 100,
+    const website = await prisma.website.findUnique({
+      where: {
+        slug: ROOTYM_WEBSITE_SLUG,
+      },
+      select: {
+        id: true,
+        isActive: true,
+      },
     });
 
-    const products = result.items.map((product) => ({
-      id: product.id,
-      sku: product.sku,
-      name: product.name,
-      slug: product.slug,
-
-      shortDescription: product.shortDescription,
-      description: product.description,
-
-      category: product.category,
-      origin: product.origin,
-      hsCode: product.hsCode,
-
-      defaultUnit: product.defaultUnit,
-      minOrderQty: product.minOrderQty,
-      maxOrderQty: product.maxOrderQty,
-
-      featuredImage: product.featuredImage
-        ? {
-            id: product.featuredImage.id,
-            fileName: product.featuredImage.fileName,
-            fileUrl: product.featuredImage.fileUrl,
-            altText: product.featuredImage.altText,
-            title: product.featuredImage.title,
-          }
-        : null,
-
-      pricing: product.pricing,
-
-      createdAt: product.createdAt,
-      updatedAt: product.updatedAt,
-    }));
-
-    return NextResponse.json({
-      success: true,
-      data: products,
-    });
-    return NextResponse.json({
-        success: true,
-        data: products,
-      });
-    } catch (error) {
-      console.error(
-        "GET /api/products",
-        error
-      );
-  
+    if (!website || !website.isActive) {
       return NextResponse.json(
         {
           success: false,
-          message:
-            "Unable to fetch products.",
+          message: "Website is not available.",
         },
         {
-          status: 500,
+          status: 404,
         }
       );
     }
+
+    const { searchParams } = new URL(request.url);
+
+    const search = searchParams.get("search") ?? undefined;
+    const category = searchParams.get("category") ?? undefined;
+    const status =
+      (searchParams.get("status") as ProductStatus | null) ?? undefined;
+
+    const page = Number(searchParams.get("page") ?? "1");
+    const pageSize = Number(searchParams.get("pageSize") ?? "100");
+
+    const result = await listProducts(website.id, {
+      search,
+      category,
+      status: status ?? ProductStatus.PUBLISHED,
+      page,
+      pageSize,
+    });
+
+    return NextResponse.json({
+      success: true,
+      ...result,
+    });
+  } catch (error) {
+    console.error("GET /api/products", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Unable to fetch products.",
+      },
+      {
+        status: 500,
+      }
+    );
   }
-  
-   
+}

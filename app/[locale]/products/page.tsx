@@ -1,3 +1,16 @@
+/**
+ * ============================================================
+ * ROOTYM Global Products Page
+ * ============================================================
+ * Author: Prem Singh
+ * Module      : Public Website
+ * Feature     : ROOTYM Website Products
+ * Purpose     : Displays Products owned by the ROOTYM Website
+ *               while preserving the existing premium Products
+ *               experience.
+ * ============================================================
+ */
+
 import Image from "next/image";
 import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
@@ -22,14 +35,13 @@ import {
 import { Button } from "@/components/ui/Button";
 import { ProductStatus } from "@/lib/generated/prisma";
 import { listProducts } from "@/lib/services/product.service";
+import prisma from "@/lib/prisma";
 
 export const metadata = {
   title: "Products | ROOTYM Global Export Platform",
   description:
     "Discover premium Indian agricultural products sourced responsibly and prepared for international markets with ROOTYM.",
 };
-
-
 
 function getProductImageUrl(fileUrl?: string | null) {
   if (!fileUrl) {
@@ -39,36 +51,62 @@ function getProductImageUrl(fileUrl?: string | null) {
   return fileUrl;
 }
 
+/**
+ * ============================================================
+ * ROOTYM WEBSITE
+ * ============================================================
+ *
+ * ROOTYM's public Website is represented by the Website record
+ * just like every other tenant Website.
+ *
+ * Products are therefore always resolved through that Website.
+ * ============================================================
+ */
 
-
+const ROOTYM_WEBSITE_SLUG = "rootym-agro";
 
 export default async function ProductsPage() {
-  const { items: products } = await listProducts({
+  const website = await prisma.website.findUnique({
+    where: {
+      slug: ROOTYM_WEBSITE_SLUG,
+    },
+    select: {
+      id: true,
+      isActive: true,
+    },
+  });
+
+  if (!website || !website.isActive) {
+    return null;
+  }
+
+  const { items: products } = await listProducts(website.id, {
     status: ProductStatus.PUBLISHED,
     page: 1,
     pageSize: 100,
   });
-    return (
-        <>
-          <Navbar />
-      
-          <main className="overflow-x-hidden bg-white">
-          <ProductsHero />
 
-          <ProductPortfolio products={products} />
+  return (
+    <>
+      <Navbar />
 
-          <BuyerConfidence />
+      <main className="overflow-x-hidden bg-white">
+        <ProductsHero />
 
-          <ExportJourney />
-          <AIFuture />
+        <ProductPortfolio products={products} />
 
-          <ProductsCTA />
+        <BuyerConfidence />
 
+        <ExportJourney />
+
+        <AIFuture />
+
+        <ProductsCTA />
       </main>
 
-<Footer />
-</>
-);
+      <Footer />
+    </>
+  );
 }
 
 /* -------------------------------------------------------------------------- */
@@ -172,6 +210,3 @@ function AIBox({
     </div>
   );
 }
-
-
- 

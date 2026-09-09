@@ -7,8 +7,8 @@
  * Feature     : Global Export Panel
  * File        : components/animations/GlobalExportPanel.tsx
  * Purpose     : Displays the animated global export panel with
- *               CMS-managed company branding and translated
- *               export statistics.
+ *               Website-aware branding and translated export
+ *               content while preserving global fallbacks.
  * ============================================================
  */
 
@@ -19,6 +19,7 @@ import { memo } from "react";
 import { motion } from "framer-motion";
 
 import { useTranslation } from "@/lib/i18n/context";
+
 import { useCompanySettings } from "@/lib/cms/company-settings";
 
 import AnimatedGlobe from "./AnimatedGlobe";
@@ -34,27 +35,83 @@ import {
   fadeUp,
 } from "@/lib/motion";
 
-function GlobalExportPanel() {
+export type GlobalExportPanelProps = {
+  /**
+   * Website-specific business identity.
+   *
+   * This should come from the Website's tenant Business Profile.
+   */
+  websiteCompanyName?: string | null;
+
+  /**
+   * Website-specific tagline.
+   *
+   * This should come from Website Configuration.
+   */
+  websiteTagline?: string | null;
+
+  /**
+   * Website-specific description.
+   *
+   * This should come from Website Configuration.
+   */
+  websiteDescription?: string | null;
+};
+
+function GlobalExportPanel({
+  websiteCompanyName,
+  websiteTagline,
+  websiteDescription,
+}: GlobalExportPanelProps) {
   const { t } = useTranslation();
 
   const {
-    companyName,
-    tagline,
+    companyName: globalCompanyName,
+    tagline: globalTagline,
   } = useCompanySettings();
 
-  /* ============================================================
-     Company Branding
-     ============================================================ */
+  /**
+   * ============================================================
+   * Company Branding
+   * ============================================================
+   *
+   * Website values take priority.
+   *
+   * Global Company Settings remain the fallback so the existing
+   * ROOTYM global homepage continues to work unchanged.
+   * ============================================================
+   */
 
   const resolvedCompanyName =
-    companyName || "ROOTYM";
+    websiteCompanyName?.trim() ||
+    globalCompanyName?.trim() ||
+    "ROOTYM";
 
   const resolvedTagline =
-    tagline || t("hero.badge");
+    websiteTagline?.trim() ||
+    globalTagline?.trim() ||
+    t("hero.badge");
 
-  /* ============================================================
-     Statistics
-     ============================================================ */
+  /**
+   * ============================================================
+   * Export Panel Description
+   * ============================================================
+   *
+   * Website Configuration description takes priority for a
+   * customer Website. The existing translated description
+   * remains the fallback.
+   * ============================================================
+   */
+
+  const resolvedDescription =
+    websiteDescription?.trim() ||
+    t("globalPanel.description");
+
+  /**
+   * ============================================================
+   * Statistics
+   * ============================================================
+   */
 
   const STATS = [
     {
@@ -86,6 +143,7 @@ function GlobalExportPanel() {
       {/* ========================================================
           Floating Particles
           ======================================================== */}
+
       <FloatingParticles />
 
       <div className="relative grid items-center gap-10 lg:grid-cols-2">
@@ -93,10 +151,13 @@ function GlobalExportPanel() {
         {/* ======================================================
             Content
             ====================================================== */}
+
         <div className="space-y-6">
 
           {/* Company Branding */}
+
           <div className="space-y-2">
+
             <span className="inline-flex rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-emerald-300">
               {resolvedCompanyName}
             </span>
@@ -104,20 +165,25 @@ function GlobalExportPanel() {
             <p className="text-sm font-medium text-emerald-200">
               {resolvedTagline}
             </p>
+
           </div>
 
           {/* Title */}
+
           <h2 className="text-4xl font-extrabold tracking-tight text-white">
             {t("globalPanel.title")}
           </h2>
 
           {/* Description */}
+
           <p className="max-w-xl text-slate-300">
-            {t("globalPanel.description")}
+            {resolvedDescription}
           </p>
 
           {/* Statistics */}
+
           <div className="grid grid-cols-2 gap-4">
+
             {STATS.map((item) => (
               <div
                 key={item.label}
@@ -132,13 +198,17 @@ function GlobalExportPanel() {
                 </div>
               </div>
             ))}
+
           </div>
+
         </div>
 
         {/* ======================================================
             Globe
             ====================================================== */}
+
         <div className="relative mx-auto w-full max-w-[560px]">
+
           <AnimatedGlobe />
 
           <svg
@@ -161,7 +231,9 @@ function GlobalExportPanel() {
               heading={-18}
             />
           </svg>
+
         </div>
+
       </div>
     </motion.section>
   );

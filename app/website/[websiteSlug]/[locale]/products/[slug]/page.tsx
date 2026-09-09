@@ -2,11 +2,13 @@
  * ============================================================
  * ROOTYM Customer Website Product Detail
  * ============================================================
- * Author      : Prem Singh
+ * Author: Prem Singh
  * Module      : Public Website
  * Feature     : Customer Website Product Detail
- * Purpose     : Displays a Website-scoped Product Detail page
- *               with Website-scoped active Product Pricing.
+ * Purpose     : Reuses the existing premium Product Detail
+ *               experience inside a tenant Website while
+ *               displaying Website-scoped active Product Pricing
+ *               and an available Buyer Specification Sheet.
  * ============================================================
  */
 
@@ -24,11 +26,8 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
-
 import { getProductBySlug } from "@/lib/services/product.service";
-
 import { getActiveProductPrice } from "@/lib/services/product-pricing.service";
-
 import prisma from "@/lib/prisma";
 
 type PageProps = {
@@ -48,15 +47,13 @@ type PageProps = {
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
-  const {
-    websiteSlug,
-    slug,
-  } = await params;
+  const { websiteSlug, slug } = await params;
 
   const website = await prisma.website.findUnique({
     where: {
       slug: websiteSlug,
     },
+
     select: {
       id: true,
       name: true,
@@ -86,16 +83,7 @@ export async function generateMetadata({
     return {};
   }
 
-  /**
-   * ------------------------------------------------------------
-   * Resolve Product within the Website boundary
-   * ------------------------------------------------------------
-   */
-
-  const product = await getProductBySlug(
-    website.id,
-    slug
-  );
+  const product = await getProductBySlug(website.id, slug);
 
   if (!product) {
     return {};
@@ -126,9 +114,7 @@ export async function generateMetadata({
  * ============================================================
  */
 
-function getProductImageUrl(
-  fileUrl?: string | null
-) {
+function getProductImageUrl(fileUrl?: string | null) {
   if (!fileUrl) {
     return "/images/products/placeholder.png";
   }
@@ -142,34 +128,40 @@ function getProductImageUrl(
 
 /**
  * ============================================================
+ * PRODUCT SPECIFICATION DOCUMENT
+ * ============================================================
+ *
+ * The specification is owned by the Website-scoped Product and
+ * resolved from its linked Media record. No product-name mapping
+ * or hard-coded public download path is used.
+ * ============================================================
+ */
+
+/**
+ * ============================================================
  * PRODUCT PRICE FORMATTER
  * ============================================================
  *
- * FIXED:
- *   Displays currency + configured price.
+ * FIXED pricing:
+ *   Displays the configured currency and price.
  *
- * MARKET:
- *   Displays currency + price when available.
+ * MARKET pricing:
+ *   Displays the configured price when one exists.
  *   Otherwise displays Price on Request.
  *
  * No active pricing:
- *   Price on Request.
+ *   Displays Price on Request.
  * ============================================================
  */
 
 function formatPrice(
-  pricing: Awaited<
-    ReturnType<typeof getActiveProductPrice>
-  >
+  pricing: Awaited<ReturnType<typeof getActiveProductPrice>>
 ) {
   if (!pricing) {
     return "Price on Request";
   }
 
-  if (
-    pricing.price !== null &&
-    pricing.price !== undefined
-  ) {
+  if (pricing.price !== null && pricing.price !== undefined) {
     const price = Number(pricing.price);
 
     if (!Number.isNaN(price)) {
@@ -189,11 +181,7 @@ function formatPrice(
 export default async function CustomerWebsiteProductPage({
   params,
 }: PageProps) {
-  const {
-    websiteSlug,
-    locale,
-    slug,
-  } = await params;
+  const { websiteSlug, locale, slug } = await params;
 
   /**
    * ------------------------------------------------------------
@@ -205,6 +193,7 @@ export default async function CustomerWebsiteProductPage({
     where: {
       slug: websiteSlug,
     },
+
     select: {
       id: true,
       name: true,
@@ -221,17 +210,15 @@ export default async function CustomerWebsiteProductPage({
    * Resolve Product within the Website boundary
    * ------------------------------------------------------------
    *
-   * Product is Website-owned.
+   * Products are Website-owned.
    *
-   * Therefore the Website ID MUST be passed to the
-   * Product service.
+   * The current Website is therefore always part of the
+   * Product lookup to prevent products from another Website
+   * from being exposed.
    * ------------------------------------------------------------
    */
 
-  const product = await getProductBySlug(
-    website.id,
-    slug
-  );
+  const product = await getProductBySlug(website.id, slug);
 
   if (!product) {
     notFound();
@@ -242,21 +229,18 @@ export default async function CustomerWebsiteProductPage({
    * Resolve active Website-scoped Product Pricing
    * ------------------------------------------------------------
    *
-   * Only pricing belonging to this Website and Product
-   * is eligible for display.
+   * Only an active pricing record belonging to this Website
+   * and Product is eligible for display.
    *
-   * The pricing service also checks:
-   * - isActive
-   * - validFrom
-   * - validTo
+   * The pricing service also evaluates the pricing validity
+   * period using validFrom and validTo.
    * ------------------------------------------------------------
    */
 
-  const activePricing =
-    await getActiveProductPrice(
-      website.id,
-      product.id
-    );
+  const activePricing = await getActiveProductPrice(
+    website.id,
+    product.id
+  );
 
   /**
    * ------------------------------------------------------------
@@ -272,15 +256,31 @@ export default async function CustomerWebsiteProductPage({
     product.description ??
     "Premium export-quality agricultural product sourced directly from trusted farms across India and prepared for international markets with strict quality control.";
 
-  const packaging =
-    product.defaultUnit
-      ? `Available in ${product.defaultUnit} units`
-      : "Export packaging available";
+  const packaging = product.defaultUnit
+    ? `Available in ${product.defaultUnit} units`
+    : "Export packaging available";
 
   const availability = "Available for Export";
 
-  const priceDisplay =
-    formatPrice(activePricing);
+  const priceDisplay = formatPrice(activePricing);
+
+  /**
+   * ------------------------------------------------------------
+   * Buyer Specification Sheet
+   * ------------------------------------------------------------
+   *
+   * The specification document is loaded from the current
+   * Website-scoped Product. Only a non-deleted Media record
+   * with a usable file URL is exposed to the customer.
+   * ------------------------------------------------------------
+   */
+
+  const specificationDocument =
+    product.specificationDocument &&
+    !product.specificationDocument.isDeleted &&
+    Boolean(product.specificationDocument.fileUrl)
+      ? product.specificationDocument
+      : null;
 
   /**
    * ------------------------------------------------------------
@@ -291,8 +291,17 @@ export default async function CustomerWebsiteProductPage({
   const productsHref =
     `/website/${websiteSlug}/${locale}/products`;
 
+  /**
+   * Request Quote uses the existing locale-scoped
+   * Request Quote page.
+   *
+   * Example:
+   * /en/request-quote
+   * ------------------------------------------------------------
+   */
+
   const requestQuoteHref =
-    `/website/${websiteSlug}/${locale}/request-quote`;
+    `/${locale}/request-quote`;
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -307,7 +316,7 @@ export default async function CustomerWebsiteProductPage({
 
         <div className="grid gap-14 lg:grid-cols-2">
           {/* ==================================================
-              LEFT - PRODUCT IMAGE
+              LEFT
               ================================================== */}
 
           <div className="rounded-3xl bg-white p-8 shadow-xl">
@@ -325,13 +334,12 @@ export default async function CustomerWebsiteProductPage({
           </div>
 
           {/* ==================================================
-              RIGHT - PRODUCT INFORMATION
+              RIGHT
               ================================================== */}
 
           <div>
             <span className="rounded-full bg-green-100 px-4 py-2 text-sm font-semibold text-[#2E7D32]">
-              {product.category ??
-                "Agricultural Product"}
+              {product.category ?? "Agricultural Product"}
             </span>
 
             <h1 className="mt-6 text-5xl font-bold text-gray-900">
@@ -355,24 +363,19 @@ export default async function CustomerWebsiteProductPage({
                 {priceDisplay}
               </p>
 
-              {/* MARKET pricing */}
-              {activePricing?.pricingType ===
-                "MARKET" && (
+              {activePricing?.pricingType === "MARKET" && (
                 <p className="mt-2 text-sm text-gray-500">
                   Latest market pricing may vary.
                 </p>
               )}
 
-              {/* FIXED pricing */}
-              {activePricing?.pricingType ===
-                "FIXED" &&
+              {activePricing?.pricingType === "FIXED" &&
                 product.defaultUnit && (
                   <p className="mt-2 text-sm text-gray-500">
                     Per {product.defaultUnit}
                   </p>
                 )}
 
-              {/* No active pricing */}
               {!activePricing && (
                 <p className="mt-2 text-sm text-gray-500">
                   Contact us for the latest quotation.
@@ -386,27 +389,19 @@ export default async function CustomerWebsiteProductPage({
 
             <div className="mt-10 space-y-5">
               <InfoRow
-                icon={
-                  <MapPin className="h-5 w-5" />
-                }
+                icon={<MapPin className="h-5 w-5" />}
                 title="Origin"
-                value={
-                  product.origin ?? "India"
-                }
+                value={product.origin ?? "India"}
               />
 
               <InfoRow
-                icon={
-                  <Package className="h-5 w-5" />
-                }
+                icon={<Package className="h-5 w-5" />}
                 title="Packaging"
                 value={packaging}
               />
 
               <InfoRow
-                icon={
-                  <Ship className="h-5 w-5" />
-                }
+                icon={<Ship className="h-5 w-5" />}
                 title="Availability"
                 value={availability}
               />
@@ -442,10 +437,17 @@ export default async function CustomerWebsiteProductPage({
                   Request Quotation
                 </Button>
               </Link>
-
-              <Button variant="secondary">
-                Download Specification
-              </Button>
+              {specificationDocument && (
+                <a
+                  href={specificationDocument.fileUrl}
+                  download
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-900 shadow-sm transition hover:bg-gray-50"
+                >
+                  Download Specification
+                </a>
+              )}
             </div>
 
             {/* ==================================================
@@ -463,18 +465,15 @@ export default async function CustomerWebsiteProductPage({
 
               <ul className="mt-5 space-y-3 text-gray-600">
                 <li>
-                  ✓ Direct sourcing from trusted
-                  farmers
+                  ✓ Direct sourcing from trusted farmers
                 </li>
 
                 <li>
-                  ✓ Export documentation
-                  assistance
+                  ✓ Export documentation assistance
                 </li>
 
                 <li>
-                  ✓ Quality inspection before
-                  shipment
+                  ✓ Quality inspection before shipment
                 </li>
 
                 <li>

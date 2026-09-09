@@ -4,8 +4,9 @@
  * ============================================================
  * Author: Prem Singh
  * Purpose: Provides the tenant-scoped Website Settings page
- *          with live Business Profile, Business Address and
- *          Contact & Communication configuration.
+ *          with live Business Profile, Business Address,
+ *          Contact & Communication, Branding and Website
+ *          Configuration management.
  * ============================================================
  */
 
@@ -46,6 +47,7 @@ import {
 } from "@/app/lib/workspace/website/website-settings.service";
 
 import WebsiteBrandingForm from "@/app/app/workspace/website/settings/WebsiteBrandingForm";
+import WebsiteConfigurationForm from "@/app/app/workspace/website/settings/WebsiteConfigurationForm";
 
 function getStatusLabel(status: WebsiteSettingsStatus) {
   switch (status) {
@@ -94,32 +96,37 @@ function displayValue(value: string | null | undefined) {
 }
 
 export default async function WebsiteSettingsPage() {
-  const [{ membership }, overview, businessProfile, businessAddress, contact] =
-    await Promise.all([
-      requireWorkspaceAccess(),
-      getWebsiteSettingsOverview(),
-      getBusinessProfile(),
-      getBusinessAddress(),
-      getBusinessContactCommunication(),
-    ]);
+  const [
+    { membership },
+    overview,
+    businessProfile,
+    businessAddress,
+    contact,
+  ] = await Promise.all([
+    requireWorkspaceAccess(),
+    getWebsiteSettingsOverview(),
+    getBusinessProfile(),
+    getBusinessAddress(),
+    getBusinessContactCommunication(),
+  ]);
 
   const canEdit =
     membership.role === "OWNER" || membership.role === "ADMIN";
 
   const settingsStatusIcon = getStatusIcon(
-    overview.settings.status
+    overview.settings.status,
   );
 
   const brandingStatusIcon = getStatusIcon(
-    overview.settings.brandingStatus
+    overview.settings.brandingStatus,
   );
 
   const contactStatusIcon = getStatusIcon(
-    overview.settings.contactStatus
+    overview.settings.contactStatus,
   );
 
   const websiteBindingStatusIcon = getStatusIcon(
-    overview.settings.websiteBindingStatus
+    overview.settings.websiteBindingStatus,
   );
 
   const SettingsStatusIcon = settingsStatusIcon;
@@ -275,9 +282,10 @@ export default async function WebsiteSettingsPage() {
                 <p className="mt-2 text-sm text-slate-500">
                   Workspace: {overview.workspace.slug}
                 </p>
+
                 <p className="mt-1 text-sm text-slate-500">
-  Website settings are connected to this workspace.
-</p>
+                  Website settings are connected to this workspace.
+                </p>
               </div>
 
               <div className="flex items-center gap-3 rounded-2xl bg-slate-50 px-5 py-4 ring-1 ring-slate-200">
@@ -341,7 +349,7 @@ export default async function WebsiteSettingsPage() {
 
               <span
                 className={`mt-3 inline-flex rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ${getStatusClassName(
-                  overview.settings.status
+                  overview.settings.status,
                 )}`}
               >
                 {getStatusLabel(overview.settings.status)}
@@ -363,17 +371,17 @@ export default async function WebsiteSettingsPage() {
 
               <p className="mt-2 text-xl font-bold">
                 {getStatusLabel(
-                  overview.settings.brandingStatus
+                  overview.settings.brandingStatus,
                 )}
               </p>
 
               <span
                 className={`mt-3 inline-flex rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ${getStatusClassName(
-                  overview.settings.brandingStatus
+                  overview.settings.brandingStatus,
                 )}`}
               >
                 {getStatusLabel(
-                  overview.settings.brandingStatus
+                  overview.settings.brandingStatus,
                 )}
               </span>
             </div>
@@ -393,17 +401,17 @@ export default async function WebsiteSettingsPage() {
 
               <p className="mt-2 text-xl font-bold">
                 {getStatusLabel(
-                  overview.settings.contactStatus
+                  overview.settings.contactStatus,
                 )}
               </p>
 
               <span
                 className={`mt-3 inline-flex rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ${getStatusClassName(
-                  overview.settings.contactStatus
+                  overview.settings.contactStatus,
                 )}`}
               >
                 {getStatusLabel(
-                  overview.settings.contactStatus
+                  overview.settings.contactStatus,
                 )}
               </span>
             </div>
@@ -423,17 +431,17 @@ export default async function WebsiteSettingsPage() {
 
               <p className="mt-2 text-xl font-bold">
                 {getStatusLabel(
-                  overview.settings.websiteBindingStatus
+                  overview.settings.websiteBindingStatus,
                 )}
               </p>
 
               <span
                 className={`mt-3 inline-flex rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ${getStatusClassName(
-                  overview.settings.websiteBindingStatus
+                  overview.settings.websiteBindingStatus,
                 )}`}
               >
                 {getStatusLabel(
-                  overview.settings.websiteBindingStatus
+                  overview.settings.websiteBindingStatus,
                 )}
               </span>
             </div>
@@ -467,8 +475,11 @@ export default async function WebsiteSettingsPage() {
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                   Business Name
                 </p>
+
                 <p className="mt-2 text-sm font-semibold text-slate-900">
-                  {displayValue(businessProfile?.businessName)}
+                  {displayValue(
+                    businessProfile?.businessName,
+                  )}
                 </p>
               </div>
 
@@ -476,8 +487,11 @@ export default async function WebsiteSettingsPage() {
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                   Legal Name
                 </p>
+
                 <p className="mt-2 text-sm font-semibold text-slate-900">
-                  {displayValue(businessProfile?.legalName)}
+                  {displayValue(
+                    businessProfile?.legalName,
+                  )}
                 </p>
               </div>
 
@@ -485,8 +499,11 @@ export default async function WebsiteSettingsPage() {
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                   Business Type
                 </p>
+
                 <p className="mt-2 text-sm font-semibold text-slate-900">
-                  {displayValue(businessProfile?.businessType)}
+                  {displayValue(
+                    businessProfile?.businessType,
+                  )}
                 </p>
               </div>
 
@@ -494,8 +511,11 @@ export default async function WebsiteSettingsPage() {
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                   Country
                 </p>
+
                 <p className="mt-2 text-sm font-semibold text-slate-900">
-                  {displayValue(businessProfile?.country)}
+                  {displayValue(
+                    businessProfile?.country,
+                  )}
                 </p>
               </div>
             </div>
@@ -539,7 +559,9 @@ export default async function WebsiteSettingsPage() {
               </p>
 
               <p className="mt-2 text-sm font-semibold text-slate-900">
-                {displayValue(businessAddress?.addressLine1)}
+                {displayValue(
+                  businessAddress?.addressLine1,
+                )}
               </p>
             </div>
 
@@ -572,7 +594,9 @@ export default async function WebsiteSettingsPage() {
               </p>
 
               <p className="mt-2 text-sm font-semibold text-slate-900">
-                {displayValue(businessAddress?.country)}
+                {displayValue(
+                  businessAddress?.country,
+                )}
               </p>
             </div>
           </div>
@@ -655,7 +679,7 @@ export default async function WebsiteSettingsPage() {
         </section>
 
         {/* =====================================================
-            FUTURE SETTINGS
+            ADDITIONAL SETTINGS
             ===================================================== */}
 
         <section className="mt-8">
@@ -669,36 +693,31 @@ export default async function WebsiteSettingsPage() {
             </h2>
 
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-              These areas will be enabled as their tenant-scoped
-              configuration models are implemented.
+              Configure customer-facing Website identity and
+              additional Website capabilities from this workspace.
             </p>
           </div>
 
           <div className="grid gap-5 md:grid-cols-2">
+            {/* =================================================
+                WEBSITE BRANDING
+                ================================================= */}
+
             <div className="md:col-span-2">
               <WebsiteBrandingForm canEdit={canEdit} />
             </div>
 
-            <div className="rounded-3xl bg-white p-7 shadow-sm ring-1 ring-slate-200">
-              <div className="flex items-start justify-between gap-5">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 ring-1 ring-emerald-100">
-                  <Globe2 className="h-6 w-6 text-emerald-600" />
-                </div>
+            {/* =================================================
+                WEBSITE CONFIGURATION
+                ================================================= */}
 
-                <span className="rounded-full bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 ring-1 ring-amber-100">
-                  Preparing
-                </span>
-              </div>
-
-              <h3 className="mt-6 text-xl font-bold">
-                Website Configuration
-              </h3>
-
-              <p className="mt-3 text-sm leading-6 text-slate-500">
-                Website-level behavior, domains and customer-facing
-                configuration will be managed here.
-              </p>
+            <div className="md:col-span-2">
+              <WebsiteConfigurationForm canEdit={canEdit} />
             </div>
+
+            {/* =================================================
+                GENERAL PREFERENCES
+                ================================================= */}
 
             <div className="rounded-3xl bg-white p-7 shadow-sm ring-1 ring-slate-200">
               <div className="flex items-start justify-between gap-5">
@@ -721,6 +740,10 @@ export default async function WebsiteSettingsPage() {
               </p>
             </div>
 
+            {/* =================================================
+                WEBSITE INTEGRATIONS
+                ================================================= */}
+
             <div className="rounded-3xl bg-white p-7 shadow-sm ring-1 ring-slate-200">
               <div className="flex items-start justify-between gap-5">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 ring-1 ring-emerald-100">
@@ -741,6 +764,10 @@ export default async function WebsiteSettingsPage() {
                 integrations will be connected here.
               </p>
             </div>
+
+            {/* =================================================
+                AI WEBSITE ASSISTANCE
+                ================================================= */}
 
             <div className="rounded-3xl bg-white p-7 shadow-sm ring-1 ring-slate-200 md:col-span-2">
               <div className="flex items-start justify-between gap-5">

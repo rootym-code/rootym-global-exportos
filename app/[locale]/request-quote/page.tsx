@@ -1,11 +1,22 @@
+/**
+ * ============================================================
+ * ROOTYM Global ExportOS
+ * ============================================================
+ * Author: Prem Singh
+ * Purpose: Renders the ROOTYM Request Quote page using the
+ *          Website-scoped product catalogue.
+ * ============================================================
+ */
+
 import type { Metadata } from "next";
 
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-
 import ExportInquiryForm from "@/components/forms/ExportInquiryForm";
+
 import { ProductStatus } from "@/lib/generated/prisma";
 import { listProducts } from "@/lib/services/product.service";
+import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = {
   title: "Request a Quote | ROOTYM",
@@ -28,6 +39,8 @@ export const metadata: Metadata = {
     "Import enquiry",
   ],
 };
+
+const ROOTYM_WEBSITE_SLUG = "rootym-agro";
 
 const benefits = [
   {
@@ -53,25 +66,36 @@ const benefits = [
 ];
 
 export default async function RequestQuotePage() {
-  const { items: products } = await listProducts({
+  const website = await prisma.website.findUnique({
+    where: {
+      slug: ROOTYM_WEBSITE_SLUG,
+    },
+    select: {
+      id: true,
+      isActive: true,
+    },
+  });
+
+  if (!website || !website.isActive) {
+    return null;
+  }
+
+  const { items: products } = await listProducts(website.id, {
     status: ProductStatus.PUBLISHED,
     page: 1,
     pageSize: 100,
   });
-  
+
   return (
     <>
       <Navbar />
 
       <main className="bg-gray-50">
         {/* Hero */}
-
         <section className="relative overflow-hidden bg-gradient-to-br from-green-950 via-green-900 to-emerald-950">
           <div className="absolute inset-0">
             <div className="absolute left-1/2 top-0 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-green-500/20 blur-3xl" />
-
             <div className="absolute bottom-0 left-0 h-80 w-80 rounded-full bg-green-600/10 blur-3xl" />
-
             <div className="absolute right-0 top-0 h-80 w-80 rounded-full bg-emerald-400/10 blur-3xl" />
           </div>
 
@@ -90,10 +114,10 @@ export default async function RequestQuotePage() {
             </h1>
 
             <p className="mx-auto mt-8 max-w-4xl text-lg leading-8 text-green-100/90 md:text-xl">
-              Tell us your sourcing requirements and our export specialists will
-              prepare a personalized quotation including pricing, packaging,
-              documentation, logistics, and shipment options for your target
-              market.
+              Tell us your sourcing requirements and our export specialists
+              will prepare a personalized quotation including pricing,
+              packaging, documentation, logistics, and shipment options for
+              your target market.
             </p>
 
             <div className="mt-10 flex flex-wrap items-center justify-center gap-3 text-sm font-semibold text-green-100">
@@ -117,7 +141,6 @@ export default async function RequestQuotePage() {
         </section>
 
         {/* Benefits */}
-
         <section className="bg-white py-20">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
             <div className="mx-auto max-w-3xl text-center">
@@ -130,9 +153,9 @@ export default async function RequestQuotePage() {
               </h2>
 
               <p className="mt-6 text-lg leading-8 text-gray-600">
-                Every enquiry is reviewed by our export team to understand your
-                sourcing requirements and provide the most suitable commercial
-                proposal for your business.
+                Every enquiry is reviewed by our export team to understand
+                your sourcing requirements and provide the most suitable
+                commercial proposal for your business.
               </p>
             </div>
 
@@ -156,7 +179,6 @@ export default async function RequestQuotePage() {
         </section>
 
         {/* Quote Form */}
-
         <section className="py-20">
           <div className="mx-auto max-w-6xl px-6">
             <div className="mb-12 text-center">
@@ -175,13 +197,12 @@ export default async function RequestQuotePage() {
             </div>
 
             <div className="mx-auto max-w-5xl">
-            <ExportInquiryForm products={products} />
+              <ExportInquiryForm products={products} />
             </div>
           </div>
         </section>
 
         {/* Trust Banner */}
-
         <section className="pb-24">
           <div className="mx-auto max-w-6xl px-6">
             <div className="rounded-3xl bg-gradient-to-r from-green-900 via-green-800 to-emerald-800 p-10 text-center text-white shadow-2xl">
@@ -222,5 +243,3 @@ export default async function RequestQuotePage() {
     </>
   );
 }
-
- 

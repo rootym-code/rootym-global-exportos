@@ -1,11 +1,15 @@
 /**
+ * ============================================================
+ * ROOTYM Global ExportOS
+ * ============================================================
  * Author: Prem Singh
- * Purpose: Loads all published products for the Home page product carousel.
+ * Purpose: Renders the ROOTYM public homepage using the
+ *          Website-scoped product catalogue.
+ * ============================================================
  */
 
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-
 import PremiumHero from "@/components/home/PremiumHero";
 import ProductShowcase from "@/components/sections/ProductShowcase";
 import PremiumFeatures from "@/components/home/PremiumFeatures";
@@ -18,9 +22,26 @@ import PremiumCTA from "@/components/home/PremiumCTA";
 
 import { ProductStatus } from "@/lib/generated/prisma";
 import { listProducts } from "@/lib/services/product.service";
+import { prisma } from "@/lib/prisma";
+
+const ROOTYM_WEBSITE_SLUG = "rootym-agro";
 
 export default async function Home() {
-  const { items: products } = await listProducts({
+  const website = await prisma.website.findUnique({
+    where: {
+      slug: ROOTYM_WEBSITE_SLUG,
+    },
+    select: {
+      id: true,
+      isActive: true,
+    },
+  });
+
+  if (!website || !website.isActive) {
+    return null;
+  }
+
+  const { items: products } = await listProducts(website.id, {
     status: ProductStatus.PUBLISHED,
     page: 1,
     pageSize: 100,
@@ -31,31 +52,22 @@ export default async function Home() {
       <Navbar />
 
       <main className="overflow-x-hidden bg-white">
-        {/* Hero */}
         <PremiumHero />
 
-        {/* Featured Products */}
         <ProductShowcase products={products} />
 
-        {/* Why ROOTYM */}
         <PremiumFeatures />
 
-        {/* Export Process */}
         <PremiumExportProcess />
 
-        {/* Certifications */}
         <PremiumCertifications />
 
-        {/* Global Presence */}
         <PremiumGlobalMarkets />
 
-        {/* Testimonials */}
         <PremiumTestimonials />
 
-        {/* FAQ */}
         <PremiumFAQ />
 
-        {/* Call To Action */}
         <PremiumCTA />
       </main>
 

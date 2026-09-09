@@ -539,6 +539,38 @@ class CmsPageService extends BaseCmsService {
 
   /**
    * ------------------------------------------------------------
+   * Get the Homepage for a Website
+   * ------------------------------------------------------------
+   * Resolves the CMS page explicitly marked as the homepage
+   * within the supplied Website. Publication status is returned
+   * with the page so the caller can enforce its own public/draft
+   * boundary.
+   * ------------------------------------------------------------
+   */
+  async getHomePage(websiteId: string) {
+    if (!websiteId?.trim()) {
+      throw new Error(
+        "Website context is required to retrieve the homepage."
+      );
+    }
+
+    return prisma.cmsPage.findFirst({
+      where: {
+        websiteId,
+        isHomePage: true,
+      },
+      include: {
+        translations: {
+          include: {
+            language: true,
+          },
+        },
+      },
+    });
+  }
+
+  /**
+   * ------------------------------------------------------------
    * Publish CMS page for a Website
    * ------------------------------------------------------------
    */

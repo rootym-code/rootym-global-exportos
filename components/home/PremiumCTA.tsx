@@ -6,8 +6,8 @@
  * Module      : Home
  * Feature     : Premium CTA
  * Purpose     : Displays the homepage call-to-action section
- *               using translated content and CMS-managed
- *               company information and contact details.
+ *               using Website-specific company information and
+ *               contact details with global fallbacks.
  * ============================================================
  */
 
@@ -28,33 +28,72 @@ import Container from "@/components/ui/container";
 import Section from "@/components/ui/section";
 import PremiumButton from "@/components/ui/premium-button";
 
-export default function PremiumCTA() {
+export type PremiumCTAProps = {
+  /**
+   * Website tenant's Business Profile name.
+   */
+  websiteCompanyName?: string | null;
+
+  /**
+   * Website-specific description.
+   */
+  websiteDescription?: string | null;
+
+  /**
+   * Website tenant's configured email.
+   */
+  websiteEmail?: string | null;
+
+  /**
+   * Website tenant's configured phone.
+   */
+  websitePhone?: string | null;
+};
+
+export default function PremiumCTA({
+  websiteCompanyName,
+  websiteDescription,
+  websiteEmail,
+  websitePhone,
+}: PremiumCTAProps) {
   const { t } = useTranslation();
 
   const {
-    companyName,
-    description,
-    email,
-    phone,
+    companyName: globalCompanyName,
+    description: globalDescription,
+    email: globalEmail,
+    phone: globalPhone,
   } = useCompanySettings();
 
-  /*
-   * Resolve the company name from CMS.
+  /**
+   * Resolve Website-specific values first.
    *
-   * The translated CTA description currently contains
-   * "ROOTYM" as the company-name placeholder. Replace
-   * that leading company name with the CMS-managed value
-   * while preserving the translated description.
+   * Customer Website configuration always wins.
+   * Global ROOTYM/company settings remain fallback values
+   * for the existing global homepage.
    */
   const resolvedCompanyName =
-  companyName?.trim() || "ROOTYM";
+    websiteCompanyName?.trim() ||
+    globalCompanyName?.trim() ||
+    "ROOTYM";
 
-const resolvedDescription =
-  description?.trim() ||
-  t("cta.description").replace(
-    /^ROOTYM\b/,
-    resolvedCompanyName
-  );
+  const resolvedDescription =
+    websiteDescription?.trim() ||
+    globalDescription?.trim() ||
+    t("cta.description").replace(
+      /^ROOTYM\b/,
+      resolvedCompanyName
+    );
+
+  const resolvedEmail =
+    websiteEmail?.trim() ||
+    globalEmail?.trim() ||
+    "";
+
+  const resolvedPhone =
+    websitePhone?.trim() ||
+    globalPhone?.trim() ||
+    "";
 
   return (
     <Section
@@ -124,24 +163,26 @@ const resolvedDescription =
               </PremiumButton>
             </div>
 
-            {/* CMS-managed Company Contact Information */}
-            <div className="mt-12 flex flex-wrap justify-center gap-10 text-white">
-              {email && (
-                <div className="flex items-center gap-3">
-                  <Mail className="h-5 w-5" />
+            {/* Website Tenant Contact Information */}
+            {(resolvedEmail || resolvedPhone) && (
+              <div className="mt-12 flex flex-wrap justify-center gap-10 text-white">
+                {resolvedEmail && (
+                  <div className="flex items-center gap-3">
+                    <Mail className="h-5 w-5" />
 
-                  <span>{email}</span>
-                </div>
-              )}
+                    <span>{resolvedEmail}</span>
+                  </div>
+                )}
 
-              {phone && (
-                <div className="flex items-center gap-3">
-                  <Phone className="h-5 w-5" />
+                {resolvedPhone && (
+                  <div className="flex items-center gap-3">
+                    <Phone className="h-5 w-5" />
 
-                  <span>{phone}</span>
-                </div>
-              )}
-            </div>
+                    <span>{resolvedPhone}</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </motion.div>
       </Container>

@@ -1,6 +1,18 @@
+/**
+ * ============================================================
+ * ROOTYM Global ExportOS
+ * ============================================================
+ * Author: Prem Singh
+ * Purpose: Provides authenticated Admin Product retrieval,
+ *          update, and deletion using the current ROOTYM
+ *          Website context.
+ * ============================================================
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 
 import { authenticateAdmin } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import {
   deleteProduct,
   getProductById,
@@ -8,10 +20,28 @@ import {
 } from "@/lib/services/product.service";
 import { updateProductSchema } from "@/lib/validations/product";
 
+const ROOTYM_WEBSITE_SLUG = "rootym-agro";
+
 interface RouteContext {
-  params: Promise<{
-    id: string;
-  }>;
+  params: Promise<{ id: string }>;
+}
+
+async function getAdminWebsite() {
+  const website = await prisma.website.findUnique({
+    where: {
+      slug: ROOTYM_WEBSITE_SLUG,
+    },
+    select: {
+      id: true,
+      isActive: true,
+    },
+  });
+
+  if (!website || !website.isActive) {
+    return null;
+  }
+
+  return website;
 }
 
 export async function GET(
@@ -33,9 +63,26 @@ export async function GET(
       );
     }
 
+    const website = await getAdminWebsite();
+
+    if (!website) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Website is not available.",
+        },
+        {
+          status: 404,
+        }
+      );
+    }
+
     const { id } = await params;
 
-    const product = await getProductById(id);
+    const product = await getProductById(
+      website.id,
+      id
+    );
 
     if (!product) {
       return NextResponse.json(
@@ -43,7 +90,9 @@ export async function GET(
           success: false,
           message: "Product not found.",
         },
-        { status: 404 }
+        {
+          status: 404,
+        }
       );
     }
 
@@ -52,14 +101,19 @@ export async function GET(
       data: product,
     });
   } catch (error) {
-    console.error("GET /api/admin/products/[id]", error);
+    console.error(
+      "GET /api/admin/products/[id]",
+      error
+    );
 
     return NextResponse.json(
       {
         success: false,
         message: "Unable to fetch product.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }
@@ -83,8 +137,21 @@ export async function PUT(
       );
     }
 
-    const { id } = await params;
+    const website = await getAdminWebsite();
 
+    if (!website) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Website is not available.",
+        },
+        {
+          status: 404,
+        }
+      );
+    }
+
+    const { id } = await params;
     const body = await request.json();
 
     const parsed = updateProductSchema.safeParse(body);
@@ -96,11 +163,17 @@ export async function PUT(
           message: "Validation failed.",
           errors: parsed.error.flatten(),
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
-    const product = await updateProduct(id, parsed.data);
+    const product = await updateProduct(
+      website.id,
+      id,
+      parsed.data
+    );
 
     return NextResponse.json({
       success: true,
@@ -108,7 +181,10 @@ export async function PUT(
       data: product,
     });
   } catch (error) {
-    console.error("PUT /api/admin/products/[id]", error);
+    console.error(
+      "PUT /api/admin/products/[id]",
+      error
+    );
 
     const message =
       error instanceof Error
@@ -120,7 +196,9 @@ export async function PUT(
         success: false,
         message,
       },
-      { status: 400 }
+      {
+        status: 400,
+      }
     );
   }
 }
@@ -144,16 +222,36 @@ export async function DELETE(
       );
     }
 
+    const website = await getAdminWebsite();
+
+    if (!website) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Website is not available.",
+        },
+        {
+          status: 404,
+        }
+      );
+    }
+
     const { id } = await params;
 
-    await deleteProduct(id);
+    await deleteProduct(
+      website.id,
+      id
+    );
 
     return NextResponse.json({
       success: true,
       message: "Product deleted successfully.",
     });
   } catch (error) {
-    console.error("DELETE /api/admin/products/[id]", error);
+    console.error(
+      "DELETE /api/admin/products/[id]",
+      error
+    );
 
     const message =
       error instanceof Error
@@ -165,7 +263,9 @@ export async function DELETE(
         success: false,
         message,
       },
-      { status: 400 }
+      {
+        status: 400,
+      }
     );
   }
 }

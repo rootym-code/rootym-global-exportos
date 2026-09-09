@@ -1,6 +1,20 @@
+/**
+ * ============================================================
+ * ROOTYM Global Export Platform
+ * ============================================================
+ * Author: Prem Singh
+ * Module      : Home
+ * Feature     : Premium Certifications
+ * Purpose     : Displays the certification and compliance
+ *               section with tenant-aware company references
+ *               while preserving translated content.
+ * ============================================================
+ */
+
 "use client";
 
 import { useTranslation } from "@/lib/i18n/context";
+
 import {
   Award,
   BadgeCheck,
@@ -9,6 +23,7 @@ import {
   Star,
   Globe2,
 } from "lucide-react";
+
 import { motion } from "framer-motion";
 
 import Container from "@/components/ui/container";
@@ -22,7 +37,6 @@ type Certification = {
   icon: React.ElementType;
 };
 
-
 const CERTIFICATION_ICONS = [
   Globe2,
   ShieldCheck,
@@ -32,48 +46,97 @@ const CERTIFICATION_ICONS = [
   Star,
 ];
 
-export default function PremiumCertifications() {
+export type PremiumCertificationsProps = {
+  /**
+   * Tenant Website company name.
+   *
+   * When provided, ROOTYM references in the translated
+   * certification content are replaced with this value.
+   */
+  websiteCompanyName?: string | null;
+};
+
+export default function PremiumCertifications({
+  websiteCompanyName,
+}: PremiumCertificationsProps) {
   const { t } = useTranslation();
 
-const CERTIFICATIONS: Certification[] = [
-  {
-    title: t("certifications.cards.apeda.title"),
-    description: t("certifications.cards.apeda.description"),
-    icon: CERTIFICATION_ICONS[0],
-  },
-  {
-    title: t("certifications.cards.fssai.title"),
-    description: t("certifications.cards.fssai.description"),
-    icon: CERTIFICATION_ICONS[1],
-  },
-  {
-    title: t("certifications.cards.iec.title"),
-    description: t("certifications.cards.iec.description"),
-    icon: CERTIFICATION_ICONS[2],
-  },
-  {
-    title: t("certifications.cards.msme.title"),
-    description: t("certifications.cards.msme.description"),
-    icon: CERTIFICATION_ICONS[3],
-  },
-  {
-    title: t("certifications.cards.quality.title"),
-    description: t("certifications.cards.quality.description"),
-    icon: CERTIFICATION_ICONS[4],
-  },
-  {
-    title: t("certifications.cards.trusted.title"),
-    description: t("certifications.cards.trusted.description"),
-    icon: CERTIFICATION_ICONS[5],
-  },
-];
+  const resolvedCompanyName =
+    websiteCompanyName?.trim() || "ROOTYM";
+
+  const replaceCompanyName = (value: string) =>
+    value.replace(/\bROOTYM\b/g, resolvedCompanyName);
+
+  const CERTIFICATIONS: Certification[] = [
+    {
+      title: replaceCompanyName(
+        t("certifications.cards.apeda.title"),
+      ),
+      description: replaceCompanyName(
+        t("certifications.cards.apeda.description"),
+      ),
+      icon: CERTIFICATION_ICONS[0],
+    },
+    {
+      title: replaceCompanyName(
+        t("certifications.cards.fssai.title"),
+      ),
+      description: replaceCompanyName(
+        t("certifications.cards.fssai.description"),
+      ),
+      icon: CERTIFICATION_ICONS[1],
+    },
+    {
+      title: replaceCompanyName(
+        t("certifications.cards.iec.title"),
+      ),
+      description: replaceCompanyName(
+        t("certifications.cards.iec.description"),
+      ),
+      icon: CERTIFICATION_ICONS[2],
+    },
+    {
+      title: replaceCompanyName(
+        t("certifications.cards.msme.title"),
+      ),
+      description: replaceCompanyName(
+        t("certifications.cards.msme.description"),
+      ),
+      icon: CERTIFICATION_ICONS[3],
+    },
+    {
+      title: replaceCompanyName(
+        t("certifications.cards.quality.title"),
+      ),
+      description: replaceCompanyName(
+        t("certifications.cards.quality.description"),
+      ),
+      icon: CERTIFICATION_ICONS[4],
+    },
+    {
+      title: replaceCompanyName(
+        t("certifications.cards.trusted.title"),
+      ),
+      description: replaceCompanyName(
+        t("certifications.cards.trusted.description"),
+      ),
+      icon: CERTIFICATION_ICONS[5],
+    },
+  ];
+
   return (
     <Section spacing="xl">
       <Container size="2xl">
         <SectionHeader
-         eyebrow={t("certifications.badge")}
-         title={t("certifications.title")}
-         description={t("certifications.description")}
+          eyebrow={replaceCompanyName(
+            t("certifications.badge"),
+          )}
+          title={replaceCompanyName(
+            t("certifications.title"),
+          )}
+          description={replaceCompanyName(
+            t("certifications.description"),
+          )}
           align="center"
         />
 
@@ -118,6 +181,7 @@ const CERTIFICATIONS: Certification[] = [
                   "
                 >
                   {/* Decorative Glow */}
+
                   <div className="absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100">
                     <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
                   </div>

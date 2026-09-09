@@ -1,3 +1,17 @@
+/**
+ * ============================================================
+ * ROOTYM Global Export Platform
+ * ============================================================
+ * Author: Prem Singh
+ * Module      : Products
+ * Feature     : Products Hero
+ * Purpose     : Displays the premium Products hero section
+ *               with Website-aware company identity,
+ *               description and quote navigation while
+ *               preserving global fallbacks.
+ * ============================================================
+ */
+
 "use client";
 
 import Link from "next/link";
@@ -60,8 +74,52 @@ const trustCards = [
   },
 ];
 
-export default function ProductsHero() {
+export type ProductsHeroProps = {
+  /**
+   * Website tenant's Business Profile name.
+   */
+  websiteCompanyName?: string | null;
+
+  /**
+   * Website-specific description.
+   */
+  websiteDescription?: string | null;
+
+  /**
+   * Website-specific Request Quote destination.
+   *
+   * Falls back to the existing global route so the
+   * ROOTYM Products page continues working.
+   */
+  requestQuoteHref?: string;
+};
+
+export default function ProductsHero({
+  websiteCompanyName,
+  websiteDescription,
+  requestQuoteHref = "/request-quote",
+}: ProductsHeroProps) {
   const { t } = useTranslation();
+
+  /**
+   * Resolve Website-specific company name first.
+   */
+  const resolvedCompanyName =
+    websiteCompanyName?.trim() || "ROOTYM";
+
+  /**
+   * Resolve Website-specific description first.
+   *
+   * If the Website has no custom description, preserve
+   * the existing translated Products description while
+   * replacing its ROOTYM company-name reference.
+   */
+  const resolvedDescription =
+    websiteDescription?.trim() ||
+    t("products.hero.description").replace(
+      /ROOTYM\b/g,
+      resolvedCompanyName
+    );
 
   return (
     <section className="relative overflow-hidden border-b border-green-100">
@@ -89,12 +147,12 @@ export default function ProductsHero() {
               </span>
             </h1>
 
-            <p className="mt-8 mx-auto max-w-3xl text-xl leading-9 text-gray-600">
-              {t("products.hero.description")}
+            <p className="mx-auto mt-8 max-w-3xl text-xl leading-9 text-gray-600">
+              {resolvedDescription}
             </p>
 
             <div className="mt-12 flex flex-wrap justify-center gap-4">
-              <Link href="/request-quote">
+              <Link href={requestQuoteHref}>
                 <Button className="px-8 py-3">
                   {t("products.hero.buttons.quote")}
                 </Button>
@@ -111,7 +169,7 @@ export default function ProductsHero() {
             </div>
 
             <div className="mt-16 grid w-full max-w-5xl gap-5 md:grid-cols-4">
-            {trustCards.map((card) => {
+              {trustCards.map((card) => {
                 const Icon = card.icon;
 
                 return (

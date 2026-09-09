@@ -1,7 +1,24 @@
+/**
+ * ============================================================
+ * ROOTYM Global Export Platform
+ * ============================================================
+ * Author: Prem Singh
+ * Module      : Home
+ * Feature     : Premium FAQ
+ * Purpose     : Displays the FAQ section with tenant-aware
+ *               company references while preserving the
+ *               existing translated FAQ content.
+ * ============================================================
+ */
+
 "use client";
+
 import { useTranslation } from "@/lib/i18n/context";
+
 import { ChevronDown } from "lucide-react";
+
 import { motion } from "framer-motion";
+
 import { useState } from "react";
 
 import Container from "@/components/ui/container";
@@ -22,22 +39,47 @@ const FAQ_KEYS = [
   "faq6",
 ] as const;
 
-export default function PremiumFAQ() {
+export type PremiumFAQProps = {
+  /**
+   * Tenant Website company name.
+   *
+   * When provided, ROOTYM references in translated FAQ
+   * content are replaced with this value.
+   */
+  websiteCompanyName?: string | null;
+};
+
+export default function PremiumFAQ({
+  websiteCompanyName,
+}: PremiumFAQProps) {
   const { t } = useTranslation();
 
-const FAQS: FAQ[] = FAQ_KEYS.map((key) => ({
-  question: t(`faq.questions.${key}.question`),
-  answer: t(`faq.questions.${key}.answer`),
-}));
+  const resolvedCompanyName =
+    websiteCompanyName?.trim() || "ROOTYM";
+
+  const replaceCompanyName = (value: string) =>
+    value.replace(/\bROOTYM\b/g, resolvedCompanyName);
+
+  const FAQS: FAQ[] = FAQ_KEYS.map((key) => ({
+    question: replaceCompanyName(
+      t(`faq.questions.${key}.question`),
+    ),
+    answer: replaceCompanyName(
+      t(`faq.questions.${key}.answer`),
+    ),
+  }));
+
   const [openIndex, setOpenIndex] = useState<number>(0);
 
   return (
     <Section spacing="xl">
       <Container size="xl">
         <SectionHeader
-        eyebrow={t("faq.badge")}
-        title={t("faq.title")}
-        description={t("faq.description")}
+          eyebrow={replaceCompanyName(t("faq.badge"))}
+          title={replaceCompanyName(t("faq.title"))}
+          description={replaceCompanyName(
+            t("faq.description"),
+          )}
           align="center"
         />
 

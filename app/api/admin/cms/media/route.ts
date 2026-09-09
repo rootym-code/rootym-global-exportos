@@ -1,13 +1,13 @@
 /**
  * ============================================================
- * ROOTYM Global Export Platform
+ * ROOTYM Global ExportOS
  * ============================================================
  * Author      : Prem Singh
  * Module      : CMS
- * Feature     : Media Library Upload API
+ * Feature     : Website-scoped Media Library Upload API
  * File        : app/api/admin/cms/media/route.ts
  * Purpose     : Authenticated CMS media upload and listing
- *               using provider-independent persistent storage.
+ *               using the current ROOTYM Website context.
  * ============================================================
  */
 
@@ -16,17 +16,23 @@ import path from "path";
 
 import { NextRequest } from "next/server";
 
-import { MediaType } from "@/lib/generated/prisma";
+import {
+  MediaType,
+  Prisma,
+} from "@/lib/generated/prisma";
 
 import { authenticateAdmin } from "@/lib/auth";
-
+import { prisma } from "@/lib/prisma";
 import ApiResponse from "@/lib/api/api-response";
 import handleApiError from "@/lib/api/handle-api-error";
-
-import mediaService from "@/lib/services/cms/media.service";
+import {
+  createMediaSchema,
+} from "@/lib/validations/cms";
 import getStorageProvider from "@/lib/services/storage/storage.service";
 
 export const runtime = "nodejs";
+
+const ROOTYM_WEBSITE_SLUG = "rootym-agro";
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024;
 
@@ -91,7 +97,9 @@ function sanitizeFolder(
   return sanitized || "general";
 }
 
-function getExtension(filename: string) {
+function getExtension(
+  filename: string
+) {
   return path.extname(filename).toLowerCase();
 }
 
@@ -103,13 +111,31 @@ function generateStoredFilename(
   )}`;
 }
 
+async function getAdminWebsite() {
+  const website =
+    await prisma.website.findUnique({
+      where: {
+        slug: ROOTYM_WEBSITE_SLUG,
+      },
+      select: {
+        id: true,
+        isActive: true,
+      },
+    });
+
+  if (!website || !website.isActive) {
+    return null;
+  }
+
+  return website;
+}
+
 export async function GET(
   request: NextRequest
 ) {
   try {
-    const auth = await authenticateAdmin(
-      request
-    );
+    const auth =
+      await authenticateAdmin(request);
 
     if (!auth.authenticated) {
       return ApiResponse.error({
@@ -120,15 +146,36 @@ export async function GET(
       });
     }
 
+    const website =
+      await getAdminWebsite();
+
+    if (!website) {
+      return ApiResponse.error({
+        message:
+          "Website is not available.",
+        code: "WEBSITE_NOT_FOUND",
+        status: 404,
+      });
+    }
+
     const { searchParams } =
       new URL(request.url);
 
-    const page = Number(
-      searchParams.get("page") ?? 1
+    const page = Math.max(
+      1,
+      Number(
+        searchParams.get("page") ?? 1
+      )
     );
 
-    const limit = Number(
-      searchParams.get("limit") ?? 20
+    const limit = Math.min(
+      100,
+      Math.max(
+        1,
+        Number(
+          searchParams.get("limit") ?? 20
+        )
+      )
     );
 
     const search =
@@ -150,28 +197,78 @@ export async function GET(
         "includeDeleted"
       ) === "true";
 
-    const result =
-      await mediaService.list(
+    const normalizedSearch =
+      search?.trim() || undefined;
+
+    const where: Prisma.MediaWhereInput = {
+      websiteId: website.id,
+    };
+
+    if (mediaType) {
+      where.mediaType = mediaType;
+    }
+
+    if (folder) {
+      where.folder = folder;
+    }
+
+    if (!includeDeleted) {
+      where.isDeleted = false;
+    }
+
+    if (normalizedSearch) {
+      where.OR = [
         {
-          mediaType,
-          folder,
-          includeDeleted,
-          search,
+          fileName: {
+            contains:
+              normalizedSearch,
+            mode: "insensitive",
+          },
         },
         {
-          page,
-          limit,
-        }
-      );
+          title: {
+            contains:
+              normalizedSearch,
+            mode: "insensitive",
+          },
+        },
+        {
+          altText: {
+            contains:
+              normalizedSearch,
+            mode: "insensitive",
+          },
+        },
+      ];
+    }
+
+    const skip =
+      (page - 1) * limit;
+
+    const [data, total] =
+      await Promise.all([
+        prisma.media.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: {
+            createdAt: "desc",
+          },
+        }),
+
+        prisma.media.count({
+          where,
+        }),
+      ]);
 
     return ApiResponse.paginated({
-      data: result.data,
+      data,
       pagination: {
-        page: result.page,
-        limit: result.limit,
-        total: result.total,
+        page,
+        limit,
+        total,
         totalPages:
-          result.totalPages,
+          Math.ceil(total / limit),
       },
     });
   } catch (error) {
@@ -200,10 +297,23 @@ export async function POST(
       });
     }
 
+    const website =
+      await getAdminWebsite();
+
+    if (!website) {
+      return ApiResponse.error({
+        message:
+          "Website is not available.",
+        code: "WEBSITE_NOT_FOUND",
+        status: 404,
+      });
+    }
+
     const formData =
       await request.formData();
 
-    const file = formData.get("file");
+    const file =
+      formData.get("file");
 
     if (!(file instanceof File)) {
       return ApiResponse.error({
@@ -259,15 +369,15 @@ export async function POST(
         file.name
       );
 
-    /*
-     * The storage key is intentionally independent
-     * of the physical storage provider.
+    /**
+     * The storage key remains provider-independent.
      *
      * Example:
+     *
      * products/1750000000000-uuid.webp
      *
-     * This same key works with both local storage
-     * and Cloudflare R2.
+     * The Website ownership is stored separately
+     * in Media.websiteId.
      */
     storageKey =
       `${folder}/${storedFileName}`;
@@ -281,7 +391,7 @@ export async function POST(
     const storage =
       getStorageProvider();
 
-    /*
+    /**
      * Upload the physical file first.
      *
      * The selected provider is determined by:
@@ -322,17 +432,12 @@ export async function POST(
         .trim() ||
       undefined;
 
-    /*
-     * Store the logical storage key in storedFileName.
-     *
-     * Example:
-     * products/1750000000000-uuid.webp
-     *
-     * fileUrl contains the actual public URL returned
-     * by the storage provider.
+    /**
+     * Validate the logical Media payload
+     * before persisting the database record.
      */
-    const media =
-      await mediaService.create({
+    const parsed =
+      createMediaSchema.safeParse({
         fileName: file.name,
         storedFileName:
           uploaded.key,
@@ -346,10 +451,34 @@ export async function POST(
             file.type
           ),
         fileSize: file.size,
-        folder,
         title,
         altText,
         description,
+        folder,
+      });
+
+    if (!parsed.success) {
+      throw new Error(
+        "Media metadata validation failed."
+      );
+    }
+
+    /**
+     * Store the Media record with the
+     * authenticated Admin's current Website.
+     *
+     * Product Create/Edit can therefore only
+     * select media belonging to this Website.
+     */
+    const media =
+      await prisma.media.create({
+        data: {
+          ...parsed.data,
+          websiteId:
+            website.id,
+          uploadedById:
+            auth.admin.adminId,
+        },
       });
 
     return ApiResponse.created({
@@ -358,10 +487,11 @@ export async function POST(
       data: media,
     });
   } catch (error) {
-    /*
-     * If storage upload succeeded but the Media database
-     * record failed, remove the physical object so we
-     * don't leave orphaned files in local storage or R2.
+    /**
+     * If storage upload succeeded but the
+     * Media database record failed, remove
+     * the physical object so we don't leave
+     * orphaned files in local storage or R2.
      */
     if (storageKey) {
       try {

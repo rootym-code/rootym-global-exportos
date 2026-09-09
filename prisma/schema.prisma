@@ -64,6 +64,12 @@ model Inquiry {
   quotes           Quote[]
   whatsappMessages WhatsAppMessage[]
 
+  /// Website ownership for customer-originated inquiries.
+  /// Nullable for legacy inquiries during the initial backfill.
+  websiteId        String?
+  website          Website? @relation(fields: [websiteId], references: [id], onDelete: SetNull)
+
+  @@index([websiteId])
   @@index([inquiryNumber])
   @@index([email])
   @@index([status])
@@ -198,11 +204,30 @@ model FollowUp {
   @@index([parentFollowUpId])
 }
 
+/**
+ * ============================================================
+ * ROOTYM Website Product
+ * ============================================================
+ * Author: Prem Singh
+ * Purpose: Stores products as Website-owned catalogue records.
+ *          Product identity, presentation, pricing and publication
+ *          are independently configurable by each tenant.
+ * ============================================================
+ */
 model Product {
   id                   String                @id @default(cuid())
-  sku                  String                @unique
+
+  /// Website ownership. Every Product belongs to exactly one Website.
+  websiteId            String
+  website              Website               @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+
+  /// SKU is unique within a Website, not globally.
+  sku                  String
   name                 String
-  slug                 String                @unique
+
+  /// Public URL slug is unique within a Website.
+  slug                 String
+
   shortDescription     String?
   description          String?
   category             String?
@@ -214,24 +239,40 @@ model Product {
   status               ProductStatus         @default(DRAFT)
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
-  featuredImageId      String?
-  featuredImage        Media?                @relation("ProductFeaturedImage", fields: [featuredImageId], references: [id])
-  pricing              ProductPricing[]
+  featuredImageId          String?
+  featuredImage            Media?                @relation("ProductFeaturedImage", fields: [featuredImageId], references: [id])
+  /// Optional Website-scoped buyer specification document.
+  specificationDocumentId  String?
+  specificationDocument    Media?                @relation("ProductSpecificationDocument", fields: [specificationDocumentId], references: [id], onDelete: SetNull)
+  pricing                  ProductPricing[]
   proformaInvoiceItems ProformaInvoiceItem[]
   quoteItems           QuoteItem[]
 
-  @@index([status])
+  @@unique([websiteId, sku])
+  @@unique([websiteId, slug])
+  @@index([websiteId])
+  @@index([websiteId, status])
   @@index([category])
   @@index([name])
   @@index([featuredImageId])
+  @@index([specificationDocumentId])
 }
 
+/**
+ * ============================================================
+ * ROOTYM Global ExportOS
+ * ============================================================
+ * Author: Prem Singh
+ * Purpose: Stores Website Product pricing, including fixed
+ *          prices and market/price-on-request pricing.
+ * ============================================================
+ */
 model ProductPricing {
   id          String      @id @default(cuid())
   productId   String
   pricingType PricingType @default(FIXED)
   currency    String
-  price       Decimal     @db.Decimal(18, 2)
+  price       Decimal?    @db.Decimal(18, 2)
   validFrom   DateTime?
   validTo     DateTime?
   isActive    Boolean     @default(true)
@@ -243,9 +284,13 @@ model ProductPricing {
   @@index([productId])
   @@index([isActive])
 }
-
 model Quote {
   id              String           @id @default(cuid())
+
+  /// Website ownership. Nullable during the initial backfill.
+  websiteId       String?
+  website         Website?         @relation(fields: [websiteId], references: [id], onDelete: SetNull)
+
   quoteNumber     String           @unique
   inquiryId       String?
   companyName     String
@@ -278,6 +323,7 @@ model Quote {
   updatedBy       Admin?           @relation("QuoteUpdatedBy", fields: [updatedById], references: [id])
   items           QuoteItem[]
 
+  @@index([websiteId])
   @@index([quoteNumber])
   @@index([status])
   @@index([companyName])
@@ -307,6 +353,11 @@ model QuoteItem {
 
 model ProformaInvoice {
   id             String                @id @default(cuid())
+
+  /// Website ownership. Nullable during the initial backfill.
+  websiteId      String?
+  website        Website?              @relation(fields: [websiteId], references: [id], onDelete: SetNull)
+
   piNumber       String                @unique
   quoteId        String                @unique
   issueDate      DateTime              @default(now())
@@ -332,6 +383,7 @@ model ProformaInvoice {
   quote          Quote                 @relation(fields: [quoteId], references: [id])
   items          ProformaInvoiceItem[]
 
+  @@index([websiteId])
   @@index([quoteId])
   @@index([status])
   @@index([companyName])
@@ -532,8 +584,9 @@ model Media {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  featuredInProducts      Product[]            @relation("ProductFeaturedImage")
-  whatsAppAttachments     WhatsAppAttachment[]
+  featuredInProducts       Product[]            @relation("ProductFeaturedImage")
+  specificationForProducts Product[]            @relation("ProductSpecificationDocument")
+  whatsAppAttachments      WhatsAppAttachment[]
   websiteBrandingLogos    WebsiteBranding[]    @relation("WebsiteBrandingLogo")
   websiteBrandingFavicons WebsiteBranding[]    @relation("WebsiteBrandingFavicon")
   websiteBrandingOgImages WebsiteBranding[]    @relation("WebsiteBrandingOgImage")
@@ -717,18 +770,23 @@ model Tenant {
 ///  * ============================================================
 
 model Website {
-  id           String           @id @default(cuid())
-  tenantId     String           @unique
-  name         String
-  slug         String           @unique
-  isActive     Boolean          @default(true)
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
-  cmsPages     CmsPage[]
-  branding     WebsiteBranding?
-  media        Media[]
-  mediaFolders MediaFolder[]
-  tenant       Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id            String                @id @default(cuid())
+  tenantId      String                @unique
+  name          String
+  slug          String                @unique
+  isActive      Boolean               @default(true)
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  cmsPages      CmsPage[]
+  branding      WebsiteBranding?
+  media         Media[]
+  mediaFolders  MediaFolder[]
+  configuration WebsiteConfiguration?
+  products       Product[]
+  inquiries      Inquiry[]
+  quotes         Quote[]
+  proformaInvoices ProformaInvoice[]
+  tenant        Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
 
 /**
@@ -773,6 +831,34 @@ model WebsiteBranding {
   @@index([logoMediaId])
   @@index([faviconMediaId])
   @@index([ogImageMediaId])
+}
+
+/**
+ * ============================================================
+ * ROOTYM Customer Website Configuration
+ * ============================================================
+ * Author: Prem Singh
+ * Purpose: Stores Website-scoped customer-facing configuration
+ * independently from ROOTYM global SiteSetting records.
+ * ============================================================
+ */
+model WebsiteConfiguration {
+  id        String @id @default(cuid())
+  websiteId String @unique
+
+  /// Website title used for customer-facing browser/page identity.
+  websiteTitle String?
+
+  /// Short customer-facing tagline.
+  tagline String?
+
+  /// Customer-facing website description.
+  websiteDescription String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  website Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
 }
 
 /**

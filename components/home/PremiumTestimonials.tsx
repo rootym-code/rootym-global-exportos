@@ -1,6 +1,22 @@
+/**
+ * ============================================================
+ * ROOTYM Global Export Platform
+ * ============================================================
+ * Author: Prem Singh
+ * Module      : Home
+ * Feature     : Premium Testimonials
+ * Purpose     : Displays the customer testimonial section with
+ *               tenant-aware company references while preserving
+ *               the existing translated testimonial content.
+ * ============================================================
+ */
+
 "use client";
+
 import { useTranslation } from "@/lib/i18n/context";
+
 import { Quote, Star } from "lucide-react";
+
 import { motion } from "framer-motion";
 
 import AnimatedCard from "@/components/ui/animated-card";
@@ -30,22 +46,54 @@ const TESTIMONIALS_DATA = [
   },
 ];
 
-export default function PremiumTestimonials() {
+export type PremiumTestimonialsProps = {
+  /**
+   * Tenant Website company name.
+   *
+   * When provided, ROOTYM references in translated testimonial
+   * content are replaced with this value.
+   */
+  websiteCompanyName?: string | null;
+};
+
+export default function PremiumTestimonials({
+  websiteCompanyName,
+}: PremiumTestimonialsProps) {
   const { t } = useTranslation();
 
-const TESTIMONIALS: Testimonial[] = TESTIMONIALS_DATA.map((item) => ({
-  name: item.name,
-  company: t(`testimonials.items.${item.key}.company`),
-  country: t(`testimonials.items.${item.key}.country`),
-  review: t(`testimonials.items.${item.key}.review`),
-}));
+  const resolvedCompanyName =
+    websiteCompanyName?.trim() || "ROOTYM";
+
+  const replaceCompanyName = (value: string) =>
+    value.replace(/\bROOTYM\b/g, resolvedCompanyName);
+
+  const TESTIMONIALS: Testimonial[] =
+    TESTIMONIALS_DATA.map((item) => ({
+      name: item.name,
+      company: replaceCompanyName(
+        t(`testimonials.items.${item.key}.company`),
+      ),
+      country: replaceCompanyName(
+        t(`testimonials.items.${item.key}.country`),
+      ),
+      review: replaceCompanyName(
+        t(`testimonials.items.${item.key}.review`),
+      ),
+    }));
+
   return (
     <Section spacing="xl" background="muted">
       <Container size="2xl">
         <SectionHeader
-     eyebrow={t("testimonials.badge")}
-     title={t("testimonials.title")}
-     description={t("testimonials.description")}
+          eyebrow={replaceCompanyName(
+            t("testimonials.badge"),
+          )}
+          title={replaceCompanyName(
+            t("testimonials.title"),
+          )}
+          description={replaceCompanyName(
+            t("testimonials.description"),
+          )}
           align="center"
         />
 
@@ -83,12 +131,14 @@ const TESTIMONIALS: Testimonial[] = TESTIMONIALS_DATA.map((item) => ({
                   <Quote className="mb-6 h-10 w-10 text-primary/30" />
 
                   <div className="mb-6 flex gap-1">
-                    {Array.from({ length: 5 }).map((_, starIndex) => (
-                      <Star
-                        key={starIndex}
-                        className="h-5 w-5 fill-yellow-400 text-yellow-400"
-                      />
-                    ))}
+                    {Array.from({ length: 5 }).map(
+                      (_, starIndex) => (
+                        <Star
+                          key={starIndex}
+                          className="h-5 w-5 fill-yellow-400 text-yellow-400"
+                        />
+                      ),
+                    )}
                   </div>
 
                   <p className="leading-8 text-muted-foreground">

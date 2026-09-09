@@ -1,10 +1,26 @@
+/**
+ * ============================================================
+ * ROOTYM Global Export Platform
+ * ============================================================
+ * Author: Prem Singh
+ * Module      : Home
+ * Feature     : Premium Global Markets
+ * Purpose     : Displays the global market coverage section
+ *               with tenant-aware company references while
+ *               preserving the existing translated content.
+ * ============================================================
+ */
+
 "use client";
+
 import { useTranslation } from "@/lib/i18n/context";
+
 import {
   ArrowUpRight,
   Globe2,
   MapPin,
 } from "lucide-react";
+
 import { motion } from "framer-motion";
 
 import AnimatedCard from "@/components/ui/animated-card";
@@ -25,57 +41,115 @@ const MARKET_COLORS = [
   "from-violet-500/10 to-primary/10",
 ];
 
-export default function PremiumGlobalMarkets() {
+export type PremiumGlobalMarketsProps = {
+  /**
+   * Tenant Website company name.
+   *
+   * When provided, ROOTYM references in the translated
+   * market description are replaced with this value.
+   */
+  websiteCompanyName?: string | null;
+};
+
+export default function PremiumGlobalMarkets({
+  websiteCompanyName,
+}: PremiumGlobalMarketsProps) {
   const { t } = useTranslation();
 
-const MARKETS: Market[] = [
-  {
-    region: t("globalMarkets.markets.middleEast.region"),
-    countries: [
-      t("globalMarkets.markets.middleEast.countries.uae"),
-      t("globalMarkets.markets.middleEast.countries.saudi"),
-      t("globalMarkets.markets.middleEast.countries.qatar"),
-      t("globalMarkets.markets.middleEast.countries.oman"),
-      t("globalMarkets.markets.middleEast.countries.kuwait"),
-    ],
-    color: MARKET_COLORS[0],
-  },
-  {
-    region: t("globalMarkets.markets.europe.region"),
-    countries: [
-      t("globalMarkets.markets.europe.countries.uk"),
-      t("globalMarkets.markets.europe.countries.germany"),
-      t("globalMarkets.markets.europe.countries.france"),
-      t("globalMarkets.markets.europe.countries.netherlands"),
-    ],
-    color: MARKET_COLORS[1],
-  },
-  {
-    region: t("globalMarkets.markets.asia.region"),
-    countries: [
-      t("globalMarkets.markets.asia.countries.srilanka"),
-      t("globalMarkets.markets.asia.countries.singapore"),
-      t("globalMarkets.markets.asia.countries.malaysia"),
-      t("globalMarkets.markets.asia.countries.vietnam"),
-    ],
-    color: MARKET_COLORS[2],
-  },
-  {
-    region: t("globalMarkets.markets.northAmerica.region"),
-    countries: [
-      t("globalMarkets.markets.northAmerica.countries.usa"),
-      t("globalMarkets.markets.northAmerica.countries.canada"),
-    ],
-    color: MARKET_COLORS[3],
-  },
-];
+  const resolvedCompanyName =
+    websiteCompanyName?.trim() || "ROOTYM";
+
+  const marketsDescription = t(
+    "globalMarkets.description",
+  ).replace(/\bROOTYM\b/g, resolvedCompanyName);
+
+  const MARKETS: Market[] = [
+    {
+      region: t(
+        "globalMarkets.markets.middleEast.region",
+      ),
+      countries: [
+        t(
+          "globalMarkets.markets.middleEast.countries.uae",
+        ),
+        t(
+          "globalMarkets.markets.middleEast.countries.saudi",
+        ),
+        t(
+          "globalMarkets.markets.middleEast.countries.qatar",
+        ),
+        t(
+          "globalMarkets.markets.middleEast.countries.oman",
+        ),
+        t(
+          "globalMarkets.markets.middleEast.countries.kuwait",
+        ),
+      ],
+      color: MARKET_COLORS[0],
+    },
+    {
+      region: t(
+        "globalMarkets.markets.europe.region",
+      ),
+      countries: [
+        t(
+          "globalMarkets.markets.europe.countries.uk",
+        ),
+        t(
+          "globalMarkets.markets.europe.countries.germany",
+        ),
+        t(
+          "globalMarkets.markets.europe.countries.france",
+        ),
+        t(
+          "globalMarkets.markets.europe.countries.netherlands",
+        ),
+      ],
+      color: MARKET_COLORS[1],
+    },
+    {
+      region: t(
+        "globalMarkets.markets.asia.region",
+      ),
+      countries: [
+        t(
+          "globalMarkets.markets.asia.countries.srilanka",
+        ),
+        t(
+          "globalMarkets.markets.asia.countries.singapore",
+        ),
+        t(
+          "globalMarkets.markets.asia.countries.malaysia",
+        ),
+        t(
+          "globalMarkets.markets.asia.countries.vietnam",
+        ),
+      ],
+      color: MARKET_COLORS[2],
+    },
+    {
+      region: t(
+        "globalMarkets.markets.northAmerica.region",
+      ),
+      countries: [
+        t(
+          "globalMarkets.markets.northAmerica.countries.usa",
+        ),
+        t(
+          "globalMarkets.markets.northAmerica.countries.canada",
+        ),
+      ],
+      color: MARKET_COLORS[3],
+    },
+  ];
+
   return (
     <Section spacing="xl">
       <Container size="2xl">
         <SectionHeader
-      eyebrow={t("globalMarkets.badge")}
-      title={t("globalMarkets.title")}
-      description={t("globalMarkets.description")}
+          eyebrow={t("globalMarkets.badge")}
+          title={t("globalMarkets.title")}
+          description={marketsDescription}
           align="center"
         />
 

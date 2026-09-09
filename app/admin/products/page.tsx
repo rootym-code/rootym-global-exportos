@@ -1,3 +1,13 @@
+/**
+ * ============================================================
+ * ROOTYM Global ExportOS
+ * ============================================================
+ * Author: Prem Singh
+ * Purpose: Provides Website-scoped Product Management UI for
+ *          the current Admin Website context.
+ * ============================================================
+ */
+
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -13,6 +23,7 @@ import {
   Pencil,
   Trash2,
   ImageIcon,
+  Globe2,
 } from "lucide-react";
 
 import Card from "@/components/ui/Card";
@@ -70,6 +81,9 @@ const statusOptions = [
     value: "ARCHIVED",
   },
 ];
+
+const CURRENT_WEBSITE_NAME = "ROOTYM";
+const CURRENT_WEBSITE_SLUG = "rootym-agro";
 
 export default function AdminProductsPage() {
   const [products, setProducts] =
@@ -240,18 +254,22 @@ export default function AdminProductsPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-            {/* Header */}
-
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">
-            Product Management
-          </h1>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-3xl font-bold text-slate-900">
+              Product Management
+            </h1>
+
+            <span className="inline-flex items-center gap-2 rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
+              <Globe2 className="h-3.5 w-3.5" />
+              Website: {CURRENT_WEBSITE_NAME}
+            </span>
+          </div>
 
           <p className="mt-2 text-slate-600">
-            Manage your export product catalogue,
-            visibility, and product information for
-            global buyers.
+            Manage products, visibility, and product
+            information for the selected Website.
           </p>
         </div>
 
@@ -270,9 +288,42 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
+      {/* Website Context */}
+      <Card
+        hover={false}
+        className="border border-green-200 bg-gradient-to-r from-green-50 via-white to-emerald-50 p-5"
+      >
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-4">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-green-100">
+              <Globe2 className="h-5 w-5 text-green-700" />
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-green-700">
+                Current Website
+              </p>
+
+              <h2 className="mt-1 text-lg font-bold text-slate-900">
+                {CURRENT_WEBSITE_NAME}
+              </h2>
+
+              <p className="mt-1 text-sm text-slate-500">
+                Product catalogue for{" "}
+                <span className="font-medium text-slate-700">
+                  {CURRENT_WEBSITE_SLUG}
+                </span>
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-green-200 bg-white px-4 py-2 text-sm text-slate-600 shadow-sm">
+            Products are Website-specific
+          </div>
+        </div>
+      </Card>
 
       {/* Filters */}
-
       <Card
         hover={false}
         className="p-6"
@@ -317,7 +368,6 @@ export default function AdminProductsPage() {
         </div>
       </Card>
 
-
       {message && (
         <Card
           hover={false}
@@ -327,20 +377,19 @@ export default function AdminProductsPage() {
         </Card>
       )}
 
-
       {/* Product Table */}
-
       <Card
         hover={false}
         className="overflow-hidden"
       >
         <div className="border-b border-slate-200 px-6 py-5">
           <h2 className="text-xl font-semibold text-slate-900">
-            Products
+            Website Products
           </h2>
 
           <p className="mt-1 text-sm text-slate-500">
-            {pagination.total} product(s) found
+            {pagination.total} product(s) found for{" "}
+            {CURRENT_WEBSITE_NAME}
           </p>
         </div>
 
@@ -405,10 +454,13 @@ export default function AdminProductsPage() {
                       </h3>
 
                       <p className="mt-3 max-w-xl text-slate-500">
-                        Your export product catalogue is
-                        currently empty. Add your first
-                        product to begin building a
-                        professional digital export catalog.
+                        The product catalogue for{" "}
+                        <span className="font-semibold text-slate-700">
+                          {CURRENT_WEBSITE_NAME}
+                        </span>{" "}
+                        is currently empty. Add your first
+                        product to begin building the Website
+                        product catalogue.
                       </p>
 
                       <div className="mt-8">
@@ -482,6 +534,7 @@ export default function AdminProductsPage() {
                         {product.status}
                       </span>
                     </td>
+
                     <td className="px-6 py-4 text-slate-600">
                       {new Date(
                         product.updatedAt
@@ -532,9 +585,7 @@ export default function AdminProductsPage() {
         </div>
       </Card>
 
-
-      {/* Future Features */}
-
+      {/* Product Management Capabilities */}
       <div className="grid gap-6 lg:grid-cols-3">
         <Card
           hover={false}
@@ -545,7 +596,7 @@ export default function AdminProductsPage() {
           </h3>
 
           <p className="mt-2 text-sm leading-6 text-slate-500">
-            Organize export products into reusable
+            Organize this Website's products into reusable
             categories for easier management and buyer
             discovery.
           </p>
@@ -561,7 +612,7 @@ export default function AdminProductsPage() {
 
           <p className="mt-2 text-sm leading-6 text-slate-500">
             Manage metadata, featured products, search
-            optimization, and international visibility.
+            optimization, and Website-specific visibility.
           </p>
         </Card>
 
@@ -574,14 +625,12 @@ export default function AdminProductsPage() {
           </h3>
 
           <p className="mt-2 text-sm leading-6 text-slate-500">
-            Future releases will support imports,
-            exports, bulk publishing, duplication,
-            and advanced product management.
+            Future releases will support imports, exports,
+            bulk publishing, duplication, and advanced
+            Website product management.
           </p>
         </Card>
       </div>
     </div>
   );
 }
-
- 

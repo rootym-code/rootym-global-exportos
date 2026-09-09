@@ -7,7 +7,8 @@
  * Feature     : Public Footer
  * Purpose     : Displays CMS-managed company information,
  *               contact details and social media links, with
- *               optional customer Website branding overrides.
+ *               optional customer Website branding and
+ *               Website Configuration overrides.
  * ============================================================
  */
 
@@ -35,7 +36,7 @@ import {
 } from "react-icons/fa";
 
 /* ============================================================
-   Animation Variants
+  Animation Variants
 ============================================================ */
 
 const sectionVariants: Variants = {
@@ -73,15 +74,29 @@ const itemVariants: Variants = {
 };
 
 /* ============================================================
-   Footer
+  Website Configuration
+============================================================ */
+
+export interface FooterWebsiteConfiguration {
+  websiteTitle?: string | null;
+  tagline?: string | null;
+  websiteDescription?: string | null;
+}
+
+/* ============================================================
+  Footer
 ============================================================ */
 
 interface FooterProps {
   websiteBranding?: NavbarWebsiteBranding | null;
+
+  websiteConfiguration?: FooterWebsiteConfiguration | null;
+
   businessIdentity?: {
     businessName?: string | null;
     legalName?: string | null;
   } | null;
+
   businessAddress?: {
     addressLine1?: string | null;
     addressLine2?: string | null;
@@ -90,6 +105,7 @@ interface FooterProps {
     postalCode?: string | null;
     country?: string | null;
   } | null;
+
   businessContactCommunication?: {
     primaryEmail?: string | null;
     primaryPhone?: string | null;
@@ -103,6 +119,7 @@ interface FooterProps {
 
 export default function Footer({
   websiteBranding,
+  websiteConfiguration,
   businessIdentity,
   businessAddress,
   businessContactCommunication,
@@ -110,13 +127,19 @@ export default function Footer({
   const { t } = useTranslation();
 
   /*
-   * All client-specific company information is loaded from
-   * the centralized CMS company settings hook.
+   * ============================================================
+   * Global Fallback Company Settings
+   * ============================================================
+   *
+   * These remain available as fallback values.
+   *
+   * Customer Website Configuration and business information
+   * take priority wherever explicitly configured.
    */
   const {
     companyName: globalCompanyName,
     legalName,
-    tagline,
+    tagline: globalTagline,
     logo: globalLogo,
     address,
     phone,
@@ -126,7 +149,7 @@ export default function Footer({
   } = useCompanySettings();
 
   /* ============================================================
-     Resolved CMS Values
+    Resolved CMS Values
   ============================================================ */
 
   const resolvedCompanyName =
@@ -140,11 +163,17 @@ export default function Footer({
     legalName?.trim() ||
     resolvedCompanyName;
 
+  /*
+   * Customer Website Configuration tagline takes priority
+   * over the ROOTYM global Company Settings tagline.
+   */
   const resolvedTagline =
-    tagline?.trim() || "";
+    websiteConfiguration?.tagline?.trim() ||
+    globalTagline?.trim() ||
+    "";
 
   const resolvedDescription = t(
-    "footer.company.description"
+    "footer.company.description",
   ).replace(/^ROOTYM\b/, resolvedCompanyName);
 
   const websiteAddress = [
@@ -197,7 +226,7 @@ export default function Footer({
     websiteBranding?.fontFamily?.trim() || undefined;
 
   /* ============================================================
-     Social Links
+    Social Links
   ============================================================ */
 
   const socialLinks = [
@@ -209,6 +238,7 @@ export default function Footer({
         social?.linkedin?.trim() ||
         "",
     },
+
     {
       Icon: FaFacebook,
       label: "Facebook",
@@ -217,6 +247,7 @@ export default function Footer({
         social?.facebook?.trim() ||
         "",
     },
+
     {
       Icon: FaInstagram,
       label: "Instagram",
@@ -225,6 +256,7 @@ export default function Footer({
         social?.instagram?.trim() ||
         "",
     },
+
     {
       Icon: FaYoutube,
       label: "YouTube",
@@ -236,7 +268,7 @@ export default function Footer({
   ].filter((item) => item.url);
 
   /* ============================================================
-     Contact URLs
+    Contact URLs
   ============================================================ */
 
   const phoneHref = resolvedPhone
@@ -260,8 +292,10 @@ export default function Footer({
       style={{
         backgroundColor: primaryColor,
         fontFamily,
-        ["--website-secondary-color" as string]: secondaryColor,
-        ["--website-accent-color" as string]: accentColor,
+        ["--website-secondary-color" as string]:
+          secondaryColor,
+        ["--website-accent-color" as string]:
+          accentColor,
       }}
     >
       {/* ============================================================
@@ -555,7 +589,7 @@ export default function Footer({
                     >
                       <Icon className="h-5 w-5" />
                     </motion.a>
-                  )
+                  ),
                 )}
               </div>
             )}
@@ -571,7 +605,7 @@ export default function Footer({
           className="mt-16 border-t border-[color:var(--website-secondary-color)]/70 pt-8 text-center"
         >
           <p className="text-sm text-[color:var(--website-accent-color)]">
-            Â© {new Date().getFullYear()} {resolvedLegalName}. All Rights Reserved.
+            © {new Date().getFullYear()} {resolvedLegalName}. All Rights Reserved.
           </p>
 
           <p className="mt-2 text-xs text-[color:var(--website-secondary-color)]">

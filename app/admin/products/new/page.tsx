@@ -1,3 +1,16 @@
+/**
+ * ============================================================
+ * ROOTYM Global Export Platform
+ * ============================================================
+ * Author      : Prem Singh
+ * Module      : Product Management
+ * Feature     : Website Product Creation
+ * File        : app/admin/products/new/page.tsx
+ * Purpose     : Creates a Website-owned product and allows
+ *               selection of a Website-scoped featured image.
+ * ============================================================
+ */
+
 "use client";
 
 import { useState } from "react";
@@ -78,6 +91,7 @@ export default function NewProductPage() {
       [field]: value,
     }));
   };
+
   const handleSubmit = async (
     event: React.FormEvent<HTMLFormElement>
   ) => {
@@ -87,43 +101,41 @@ export default function NewProductPage() {
       setLoading(true);
       setError("");
 
+      /*
+       * Website ownership is intentionally NOT sent
+       * by the browser.
+       *
+       * The authenticated Admin API determines the
+       * current Website context and assigns websiteId
+       * on the server side.
+       */
+      const payload = {
+        ...form,
 
+        featuredImageId:
+          featuredImage?.id ?? null,
 
-const payload = {
-  ...form,
+        minOrderQty: form.minOrderQty
+          ? Number(form.minOrderQty)
+          : null,
 
-  featuredImageId:
-    featuredImage?.id ?? null,
+        maxOrderQty: form.maxOrderQty
+          ? Number(form.maxOrderQty)
+          : null,
+      };
 
-  minOrderQty: form.minOrderQty
-    ? Number(form.minOrderQty)
-    : null,
-
-  maxOrderQty: form.maxOrderQty
-    ? Number(form.maxOrderQty)
-    : null,
-};
-
-console.log("========== PRODUCT PAYLOAD ==========");
-console.log(payload);
-
-console.log("========== FEATURED IMAGE ==========");
-console.log(featuredImage);
-
-const response = await fetch(
-  "/api/admin/products",
-  {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      "Content-Type":
-        "application/json",
-    },
-    body: JSON.stringify(payload),
-  }
-);
-
-
+      const response = await fetch(
+        "/api/admin/products",
+        {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
 
       const result =
         await response.json();
@@ -174,7 +186,7 @@ const response = await fetch(
 
             <p className="mt-2 text-slate-600">
               Add a new export product to your
-              global catalogue.
+              Website catalogue.
             </p>
           </div>
         </div>
@@ -206,9 +218,10 @@ const response = await fetch(
           {error}
         </Card>
       )}
-            {/* Product Information */}
 
-            <Card
+      {/* Product Information */}
+
+      <Card
         hover={false}
         className="p-6"
       >
@@ -332,7 +345,8 @@ const response = await fetch(
             </h2>
 
             <p className="mt-1 text-sm text-slate-500">
-              Upload or select the main product image.
+              Upload or select the main product image
+              from this Website&apos;s Media Library.
             </p>
           </div>
 
@@ -369,9 +383,10 @@ const response = await fetch(
           }}
         />
       </Card>
-            {/* Export Information */}
 
-            <Card
+      {/* Export Information */}
+
+      <Card
         hover={false}
         className="p-6"
       >
@@ -563,5 +578,3 @@ const response = await fetch(
     </form>
   );
 }
-
- 

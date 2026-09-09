@@ -1,11 +1,27 @@
+/**
+ * ============================================================
+ * ROOTYM Global Export Platform
+ * ============================================================
+ * Author: Prem Singh
+ * Module      : Home
+ * Feature     : Premium Export Process
+ * Purpose     : Displays the export process section with
+ *               tenant-aware company references while
+ *               preserving the existing translated content.
+ * ============================================================
+ */
+
 "use client";
+
 import { useTranslation } from "@/lib/i18n/context";
+
 import {
   ClipboardCheck,
   FileCheck2,
   PackageCheck,
   Ship,
 } from "lucide-react";
+
 import { motion } from "framer-motion";
 
 import Container from "@/components/ui/container";
@@ -27,10 +43,27 @@ const PROCESS_ICONS = [
   Ship,
 ];
 
+export type PremiumExportProcessProps = {
+  /**
+   * Tenant Website company name.
+   *
+   * When provided, ROOTYM references in the translated
+   * section description are replaced with this value.
+   */
+  websiteCompanyName?: string | null;
+};
 
-
-export default function PremiumExportProcess() {
+export default function PremiumExportProcess({
+  websiteCompanyName,
+}: PremiumExportProcessProps) {
   const { t } = useTranslation();
+
+  const resolvedCompanyName =
+    websiteCompanyName?.trim() || "ROOTYM";
+
+  const exportProcessDescription = t(
+    "exportProcess.description"
+  ).replace(/\bROOTYM\b/g, resolvedCompanyName);
 
   const STEPS: ProcessStep[] = [
     {
@@ -58,14 +91,14 @@ export default function PremiumExportProcess() {
       icon: PROCESS_ICONS[3],
     },
   ];
-  
-return (
+
+  return (
     <Section spacing="xl" background="muted">
       <Container size="2xl">
         <SectionHeader
-        eyebrow={t("exportProcess.badge")}
-        title={t("exportProcess.title")}
-        description={t("exportProcess.description")}
+          eyebrow={t("exportProcess.badge")}
+          title={t("exportProcess.title")}
+          description={exportProcessDescription}
           align="center"
         />
 
