@@ -1,7 +1,18 @@
+/**
+ * ============================================================
+ * ROOTYM Global ExportOS
+ * ============================================================
+ * Author: Prem Singh
+ * Purpose: Validates customer Inquiry submissions, including
+ *          optional Website and Product context.
+ * ============================================================
+ */
+
 import { z } from "zod";
 
 /**
  * Basic international phone number validation.
+ *
  * Allows:
  * +91XXXXXXXXXX
  * 9876543210
@@ -11,6 +22,18 @@ import { z } from "zod";
 const phoneRegex = /^[+]?[0-9()\-\s]{7,20}$/;
 
 export const inquirySchema = z.object({
+  /**
+   * Website context.
+   *
+   * Optional for backward compatibility with legacy/global
+   * inquiry submissions. The server must validate ownership
+   * before persisting this value.
+   */
+  websiteId: z
+    .string()
+    .cuid()
+    .optional(),
+
   companyName: z
     .string()
     .trim()
@@ -42,11 +65,27 @@ export const inquirySchema = z.object({
     .min(2, "Country is required.")
     .max(100),
 
+  /**
+   * Existing product name snapshot.
+   *
+   * Kept for backward compatibility and historical display.
+   */
   product: z
     .string()
     .trim()
     .min(2, "Product is required.")
     .max(150),
+
+  /**
+   * Optional Product master reference.
+   *
+   * The server will validate that the Product belongs to the
+   * resolved Website before creating the Inquiry.
+   */
+  productId: z
+    .string()
+    .cuid()
+    .optional(),
 
   quantity: z
     .string()

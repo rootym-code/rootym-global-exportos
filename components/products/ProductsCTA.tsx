@@ -31,8 +31,24 @@ const fadeUpVariants: Variants = {
   },
 };
 
-export default function ProductsCTA() {
+export type ProductsCTAProps = {
+  websiteCompanyName?: string | null;
+  requestQuoteHref?: string;
+  contactHref?: string;
+};
+
+export default function ProductsCTA({
+  websiteCompanyName,
+  requestQuoteHref = "/request-quote",
+  contactHref = "/contact",
+}: ProductsCTAProps) {
   const { t } = useTranslation();
+
+  const resolvedCompanyName =
+    websiteCompanyName?.trim() || "Company";
+
+  const resolveTenantText = (value: string) =>
+    value.replace(/ROOTYM\b/gi, resolvedCompanyName);
 
   return (
     <section className="mx-auto max-w-7xl px-6 py-24">
@@ -47,26 +63,26 @@ export default function ProductsCTA() {
           className="rounded-3xl bg-gradient-to-r from-[#2E7D32] to-[#43A047] px-8 py-14 text-center shadow-2xl md:px-16"
         >
           <h2 className="text-4xl font-bold text-white md:text-5xl">
-            {t("products.cta.title")}
+            {resolveTenantText(t("products.cta.title"))}
           </h2>
 
           <p className="mx-auto mt-6 max-w-3xl text-lg leading-8 text-green-50">
-            {t("products.cta.description")}
+            {resolveTenantText(t("products.cta.description"))}
           </p>
 
           <div className="mt-10 flex flex-col justify-center gap-4 sm:flex-row">
-            <Link href="/request-quote">
+            <Link href={requestQuoteHref}>
               <Button className="bg-white px-8 py-3 text-[#2E7D32] hover:bg-green-50">
-                {t("products.cta.buttons.quote")}
+                {resolveTenantText(t("products.cta.buttons.quote"))}
               </Button>
             </Link>
 
-            <Link href="/contact">
+            <Link href={contactHref}>
               <Button
                 variant="secondary"
                 className="border-white bg-transparent px-8 py-3 text-white hover:bg-white/10"
               >
-                {t("products.cta.buttons.contact")}
+                {resolveTenantText(t("products.cta.buttons.contact"))}
                 </Button>
             </Link>
           </div>

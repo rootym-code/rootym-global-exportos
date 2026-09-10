@@ -345,16 +345,25 @@ export default async function CustomerWebsiteProductsPage({
           websiteSlug={websiteSlug}
         />
 
-        <BuyerConfidence />
+        <BuyerConfidence websiteCompanyName={businessProfile?.businessName} />
 
-        <ExportJourney />
+        <ExportJourney websiteCompanyName={businessProfile?.businessName} />
 
         <AIFuture />
 
-        <ProductsCTA />
+        <ProductsCTA
+          websiteCompanyName={businessProfile?.businessName}
+        />
       </main>
 
       <Footer
+        websiteSlug={websiteSlug}
+        locale={locale}
+        websiteProducts={products.map((product) => ({
+          id: product.id,
+          name: product.name,
+          slug: product.slug,
+        }))}
         websiteBranding={websiteBranding}
 
         websiteConfiguration={

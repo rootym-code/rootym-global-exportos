@@ -14,8 +14,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useCompanySettings } from "@/lib/cms/company-settings";
-import { Link } from "@/lib/i18n/Link";
 import { useTranslation } from "@/lib/i18n/context";
+import NextLink from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { locales } from "@/lib/i18n/config";
 
@@ -67,6 +67,63 @@ const Navbar = ({ websiteBranding }: NavbarProps) => {
   const { t, locale } = useTranslation();
   const pathname = usePathname();
   const router = useRouter();
+
+  /**
+   * ============================================================
+   * Tenant Website Route Detection
+   * ============================================================
+   *
+   * Tenant customer pages use:
+   * /website/{websiteSlug}/{locale}/...
+   *
+   * Home, Products, Contact and Request Quote stay inside the tenant Website.
+   * Other navigation items continue using their existing
+   * global localized routes until tenant-specific routes exist.
+   * ============================================================
+   */
+  const pathnameSegments = pathname
+    ?.split("/")
+    .filter(Boolean);
+
+  const isTenantWebsite =
+    pathnameSegments?.[0] === "website";
+
+  const tenantWebsiteSlug =
+    isTenantWebsite
+      ? pathnameSegments?.[1] ?? null
+      : null;
+
+  const tenantLocale =
+    isTenantWebsite
+      ? pathnameSegments?.[2] ?? locale
+      : locale;
+
+  const getNavigationHref = (href: string) => {
+    if (tenantWebsiteSlug) {
+      if (href === "/") {
+        return `/website/${tenantWebsiteSlug}/${tenantLocale}`;
+      }
+
+      if (href === "/products") {
+        return `/website/${tenantWebsiteSlug}/${tenantLocale}/products`;
+      }
+
+      if (href === "/contact") {
+        return `/website/${tenantWebsiteSlug}/${tenantLocale}/contact`;
+      }
+
+      if (href === "/request-quote") {
+        return `/website/${tenantWebsiteSlug}/${tenantLocale}/request-quote`;
+      }
+    }
+
+    const localizedPath =
+      href === "/"
+        ? `/${locale}`
+        : `/${locale}${href}`;
+
+    return localizedPath;
+  };
 
   /*
    * Company branding is loaded centrally through the shared
@@ -127,13 +184,21 @@ const Navbar = ({ websiteBranding }: NavbarProps) => {
 
     const segments = pathname.split("/");
 
-    if (locales.includes(segments[1] as any)) {
+    if (
+      segments[1] === "website" &&
+      segments.length >= 4
+    ) {
+      // /website/{websiteSlug}/{locale}/...
+      segments[3] = newLocale;
+    } else if (locales.includes(segments[1] as any)) {
+      // /{locale}/...
       segments[1] = newLocale;
     } else {
       segments.splice(1, 0, newLocale);
     }
 
-    const newPath = segments.join("/") || "/";
+    const newPath =
+      segments.join("/") || "/";
 
     router.push(newPath);
     router.refresh();
@@ -290,8 +355,8 @@ const Navbar = ({ websiteBranding }: NavbarProps) => {
       <div className="mx-auto flex h-full max-w-7xl items-stretch justify-between px-6 xl:max-w-[1280px]">
         {/* Brand */}
 
-        <Link
-          href="/"
+        <NextLink
+          href={getNavigationHref("/")}
           aria-label={`${resolvedCompanyName} Home`}
           className="group flex select-none flex-col justify-center gap-0 focus:outline-none"
         >
@@ -340,7 +405,7 @@ const Navbar = ({ websiteBranding }: NavbarProps) => {
           <span className="ml-10 mt-1 text-xs font-medium leading-tight text-gray-500">
             {t("navbar.platform_title")}
           </span>
-        </Link>
+        </NextLink>
 
         {/* Right Section */}
 
@@ -364,8 +429,8 @@ const Navbar = ({ websiteBranding }: NavbarProps) => {
                   duration: 0.35,
                 }}
               >
-                <Link
-                  href={item.href}
+                <NextLink
+                  href={getNavigationHref(item.href)}
                   className="relative rounded-xl px-3 py-2 text-base font-medium text-gray-700 transition-colors duration-200 hover:text-[var(--website-primary-color)] focus:outline-none focus-visible:ring-2 focus-visible:ring-green-300"
                 >
                   <motion.span
@@ -389,7 +454,7 @@ const Navbar = ({ websiteBranding }: NavbarProps) => {
                       duration: 0.18,
                     }}
                   />
-                </Link>
+                </NextLink>
               </motion.div>
             ))}
 
@@ -447,14 +512,14 @@ const Navbar = ({ websiteBranding }: NavbarProps) => {
                 scale: 0.97,
               }}
             >
-              <Link href="/request-quote">
+              <NextLink href={getNavigationHref("/request-quote")}>
                 <Button
                   variant="primary"
                   className="ml-3 px-6 py-2 text-base shadow-sm"
                 >
                   {t("navbar.request_quote")}
                 </Button>
-              </Link>
+              </NextLink>
             </motion.div>
           </div>
 
@@ -574,8 +639,8 @@ const Navbar = ({ websiteBranding }: NavbarProps) => {
                 <X className="h-6 w-6 text-[var(--website-primary-color)]" />
               </button>
 
-              <Link
-                href="/"
+              <NextLink
+                href={getNavigationHref("/")}
                 className="mb-8 mt-2 flex items-center gap-2"
                 onClick={() =>
                   setMobileOpen(false)
@@ -603,7 +668,7 @@ const Navbar = ({ websiteBranding }: NavbarProps) => {
                 <span className="text-xl font-extrabold text-[var(--website-primary-color)]">
                   {resolvedCompanyName}
                 </span>
-              </Link>
+              </NextLink>
 
               <nav
                 className="mt-2 flex flex-col gap-2"
@@ -624,15 +689,15 @@ const Navbar = ({ websiteBranding }: NavbarProps) => {
                       delay: index * 0.05,
                     }}
                   >
-                    <Link
-                      href={item.href}
+                    <NextLink
+                      href={getNavigationHref(item.href)}
                       onClick={() =>
                         setMobileOpen(false)
                       }
                       className="block rounded-lg px-3 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-[var(--website-accent-color)] hover:text-[var(--website-primary-color)]"
                     >
                       {getNavLabel(item.key)}
-                    </Link>
+                    </NextLink>
                   </motion.div>
                 ))}
 
@@ -702,8 +767,8 @@ const Navbar = ({ websiteBranding }: NavbarProps) => {
                     scale: 0.98,
                   }}
                 >
-                  <Link
-                    href="/request-quote"
+                  <NextLink
+                    href={getNavigationHref("/request-quote")}
                     onClick={() =>
                       setMobileOpen(false)
                     }
@@ -714,7 +779,7 @@ const Navbar = ({ websiteBranding }: NavbarProps) => {
                     >
                       {t("navbar.request_quote")}
                     </Button>
-                  </Link>
+                  </NextLink>
                 </motion.div>
               </nav>
             </motion.div>

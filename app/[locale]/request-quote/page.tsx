@@ -86,6 +86,12 @@ export default async function RequestQuotePage() {
     pageSize: 100,
   });
 
+  const productOptions = products.map((product) => ({
+    id: product.id,
+    name: product.name,
+    slug: product.slug,
+  }));
+
   return (
     <>
       <Navbar />
@@ -197,7 +203,7 @@ export default async function RequestQuotePage() {
             </div>
 
             <div className="mx-auto max-w-5xl">
-              <ExportInquiryForm products={products} />
+            <ExportInquiryForm products={productOptions} />
             </div>
           </div>
         </section>

@@ -15,6 +15,7 @@
 "use client";
 
 import { useTranslation } from "@/lib/i18n/context";
+import NextLink from "next/link";
 import { Link } from "@/lib/i18n/Link";
 import { motion, type Variants } from "framer-motion";
 
@@ -90,6 +91,15 @@ export interface FooterWebsiteConfiguration {
 interface FooterProps {
   websiteBranding?: NavbarWebsiteBranding | null;
 
+  websiteSlug?: string | null;
+  locale?: string | null;
+
+  websiteProducts?: {
+    id: string;
+    name: string;
+    slug: string;
+  }[];
+
   websiteConfiguration?: FooterWebsiteConfiguration | null;
 
   businessIdentity?: {
@@ -123,8 +133,13 @@ export default function Footer({
   businessIdentity,
   businessAddress,
   businessContactCommunication,
+  websiteSlug,
+  locale,
+  websiteProducts,
 }: FooterProps) {
   const { t } = useTranslation();
+
+  const isTenantWebsite = Boolean(websiteSlug && locale);
 
   /*
    * ============================================================
@@ -155,12 +170,12 @@ export default function Footer({
   const resolvedCompanyName =
     businessIdentity?.businessName?.trim() ||
     websiteBranding?.companyName?.trim() ||
-    globalCompanyName?.trim() ||
+    (isTenantWebsite ? "Company" : globalCompanyName?.trim()) ||
     "Company";
 
   const resolvedLegalName =
     businessIdentity?.legalName?.trim() ||
-    legalName?.trim() ||
+    (isTenantWebsite ? undefined : legalName?.trim()) ||
     resolvedCompanyName;
 
   /*
@@ -169,12 +184,15 @@ export default function Footer({
    */
   const resolvedTagline =
     websiteConfiguration?.tagline?.trim() ||
-    globalTagline?.trim() ||
+    (isTenantWebsite ? "" : globalTagline?.trim()) ||
     "";
 
-  const resolvedDescription = t(
-    "footer.company.description",
-  ).replace(/^ROOTYM\b/, resolvedCompanyName);
+  const resolvedDescription = isTenantWebsite
+    ? websiteConfiguration?.websiteDescription?.trim() || ""
+    : t("footer.company.description").replace(
+        /ROOTYM\b/gi,
+        resolvedCompanyName,
+      );
 
   const websiteAddress = [
     businessAddress?.addressLine1,
@@ -190,27 +208,27 @@ export default function Footer({
 
   const resolvedAddress =
     websiteAddress ||
-    address?.trim() ||
+    (isTenantWebsite ? "" : address?.trim()) ||
     "";
 
   const resolvedEmail =
     businessContactCommunication?.primaryEmail?.trim() ||
-    email?.trim() ||
+    (isTenantWebsite ? "" : email?.trim()) ||
     "";
 
   const resolvedPhone =
     businessContactCommunication?.primaryPhone?.trim() ||
-    phone?.trim() ||
+    (isTenantWebsite ? "" : phone?.trim()) ||
     "";
 
   const resolvedWhatsapp =
     businessContactCommunication?.whatsapp?.trim() ||
-    whatsapp?.trim() ||
+    (isTenantWebsite ? "" : whatsapp?.trim()) ||
     "";
 
   const resolvedLogo =
     websiteBranding?.logoMediaUrl?.trim() ||
-    globalLogo?.trim() ||
+    (isTenantWebsite ? "" : globalLogo?.trim()) ||
     "";
 
   const primaryColor =
@@ -235,7 +253,7 @@ export default function Footer({
       label: "LinkedIn",
       url:
         businessContactCommunication?.linkedinUrl?.trim() ||
-        social?.linkedin?.trim() ||
+        (isTenantWebsite ? "" : social?.linkedin?.trim()) ||
         "",
     },
 
@@ -244,7 +262,7 @@ export default function Footer({
       label: "Facebook",
       url:
         businessContactCommunication?.facebookUrl?.trim() ||
-        social?.facebook?.trim() ||
+        (isTenantWebsite ? "" : social?.facebook?.trim()) ||
         "",
     },
 
@@ -253,7 +271,7 @@ export default function Footer({
       label: "Instagram",
       url:
         businessContactCommunication?.instagramUrl?.trim() ||
-        social?.instagram?.trim() ||
+        (isTenantWebsite ? "" : social?.instagram?.trim()) ||
         "",
     },
 
@@ -262,7 +280,7 @@ export default function Footer({
       label: "YouTube",
       url:
         businessContactCommunication?.youtubeUrl?.trim() ||
-        social?.youtube?.trim() ||
+        (isTenantWebsite ? "" : social?.youtube?.trim()) ||
         "",
     },
   ].filter((item) => item.url);
@@ -386,36 +404,57 @@ export default function Footer({
             </h3>
 
             <ul className="mt-6 space-y-3">
-              {[
-                {
-                  label: t("footer.links.home"),
-                  href: "/",
-                },
-                {
-                  label: t("footer.links.products"),
-                  href: "/products",
-                },
-                {
-                  label: t("footer.links.about"),
-                  href: "/about",
-                },
-                {
-                  label: t("footer.links.contact"),
-                  href: "/contact",
-                },
-              ].map((item) => (
+              {(isTenantWebsite
+                ? [
+                    {
+                      label: t("footer.links.home"),
+                      href: `/website/${websiteSlug}/${locale}`,
+                    },
+                    {
+                      label: t("footer.links.products"),
+                      href: `/website/${websiteSlug}/${locale}/products`,
+                    },
+                  ]
+                : [
+                    {
+                      label: t("footer.links.home"),
+                      href: "/",
+                    },
+                    {
+                      label: t("footer.links.products"),
+                      href: "/products",
+                    },
+                    {
+                      label: t("footer.links.about"),
+                      href: "/about",
+                    },
+                    {
+                      label: t("footer.links.contact"),
+                      href: "/contact",
+                    },
+                  ]
+              ).map((item) => (
                 <li key={item.href}>
                   <motion.div
                     whileHover={{
                       x: 6,
                     }}
                   >
-                    <Link
-                      href={item.href}
-                      className="transition-colors hover:text-[color:var(--website-secondary-color)]"
-                    >
-                      {item.label}
-                    </Link>
+                    {isTenantWebsite ? (
+                      <NextLink
+                        href={item.href}
+                        className="transition-colors hover:text-[color:var(--website-secondary-color)]"
+                      >
+                        {item.label}
+                      </NextLink>
+                    ) : (
+                      <Link
+                        href={item.href}
+                        className="transition-colors hover:text-[color:var(--website-secondary-color)]"
+                      >
+                        {item.label}
+                      </Link>
+                    )}
                   </motion.div>
                 </li>
               ))}
@@ -431,41 +470,62 @@ export default function Footer({
               {t("footer.headings.products")}
             </h3>
 
-            <ul className="mt-6 space-y-3">
-              {[
-                {
-                  label: t("footer.products.makhana"),
-                  href: "/products/makhana",
-                },
-                {
-                  label: t("footer.products.onion"),
-                  href: "/products/onion",
-                },
-                {
-                  label: t("footer.products.potato"),
-                  href: "/products/potato",
-                },
-                {
-                  label: t("footer.products.mango"),
-                  href: "/products/mango",
-                },
-              ].map((item) => (
-                <li key={item.href}>
-                  <motion.div
-                    whileHover={{
-                      x: 6,
-                    }}
-                  >
-                    <Link
-                      href={item.href}
-                      className="text-[color:var(--website-accent-color)] transition-colors hover:text-[color:var(--website-secondary-color)]"
+            {websiteProducts && websiteProducts.length > 0 ? (
+              <ul className="mt-6 space-y-3">
+                {websiteProducts.slice(0, 6).map((product) => (
+                  <li key={product.id}>
+                    <motion.div
+                      whileHover={{
+                        x: 6,
+                      }}
                     >
-                      {item.label}
-                    </Link>
-                  </motion.div>
-                </li>
-              ))}
-            </ul>
+                      <NextLink
+                        href={`/website/${websiteSlug}/${locale}/products/${product.slug}`}
+                        className="text-[color:var(--website-accent-color)] transition-colors hover:text-[color:var(--website-secondary-color)]"
+                      >
+                        {product.name}
+                      </NextLink>
+                    </motion.div>
+                  </li>
+                ))}
+              </ul>
+            ) : !isTenantWebsite ? (
+              <ul className="mt-6 space-y-3">
+                {[
+                  {
+                    label: t("footer.products.makhana"),
+                    href: "/products/makhana",
+                  },
+                  {
+                    label: t("footer.products.onion"),
+                    href: "/products/onion",
+                  },
+                  {
+                    label: t("footer.products.potato"),
+                    href: "/products/potato",
+                  },
+                  {
+                    label: t("footer.products.mango"),
+                    href: "/products/mango",
+                  },
+                ].map((item) => (
+                  <li key={item.href}>
+                    <motion.div
+                      whileHover={{
+                        x: 6,
+                      }}
+                    >
+                      <Link
+                        href={item.href}
+                        className="text-[color:var(--website-accent-color)] transition-colors hover:text-[color:var(--website-secondary-color)]"
+                      >
+                        {item.label}
+                      </Link>
+                    </motion.div>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </motion.div>
 
           {/* ========================================================
@@ -608,9 +668,11 @@ export default function Footer({
             © {new Date().getFullYear()} {resolvedLegalName}. All Rights Reserved.
           </p>
 
-          <p className="mt-2 text-xs text-[color:var(--website-secondary-color)]">
-            {t("footer.tagline")}
-          </p>
+          {!businessIdentity?.businessName && (
+  <p className="mt-2 text-xs text-[color:var(--website-secondary-color)]">
+    {t("footer.tagline")}
+  </p>
+)}
         </motion.div>
       </div>
     </motion.footer>

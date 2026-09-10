@@ -75,8 +75,20 @@ const features = [
   },
 ];
 
-export default function BuyerConfidence() {
+export type BuyerConfidenceProps = {
+  websiteCompanyName?: string | null;
+};
+
+export default function BuyerConfidence({
+  websiteCompanyName,
+}: BuyerConfidenceProps) {
   const { t } = useTranslation();
+
+  const resolvedCompanyName =
+    websiteCompanyName?.trim() || "Company";
+
+  const resolveTenantText = (value: string) =>
+    value.replace(/ROOTYM\b/gi, resolvedCompanyName);
 
   return (
     <section className="bg-[#F8FBF8] py-24">
@@ -96,11 +108,11 @@ export default function BuyerConfidence() {
             </span>
 
             <h2 className="mt-4 text-4xl font-bold text-gray-900">
-              {t("products.buyerConfidence.title")}
+              {resolveTenantText(t("products.buyerConfidence.title"))}
             </h2>
 
             <p className="mt-6 text-lg leading-8 text-gray-600">
-              {t("products.buyerConfidence.description")}
+              {resolveTenantText(t("products.buyerConfidence.description"))}
             </p>
           </motion.div>
 
@@ -116,8 +128,8 @@ export default function BuyerConfidence() {
                 >
                   <FeatureCard
                     icon={<Icon className="h-7 w-7" />}
-                    title={t(feature.title)}
-                    description={t(feature.description)}
+                    title={resolveTenantText(t(feature.title))}
+                    description={resolveTenantText(t(feature.description))}
                   />
                 </motion.div>
               );

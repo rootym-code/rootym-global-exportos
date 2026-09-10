@@ -67,8 +67,20 @@ const steps = [
   },
 ];
 
-export default function ExportJourney() {
+export type ExportJourneyProps = {
+  websiteCompanyName?: string | null;
+};
+
+export default function ExportJourney({
+  websiteCompanyName,
+}: ExportJourneyProps) {
   const { t } = useTranslation();
+
+  const resolvedCompanyName =
+    websiteCompanyName?.trim() || "Company";
+
+  const resolveTenantText = (value: string) =>
+    value.replace(/ROOTYM\b/gi, resolvedCompanyName);
 
   return (
     <section className="mx-auto max-w-7xl px-6 py-24">
@@ -83,15 +95,15 @@ export default function ExportJourney() {
           className="text-center"
         >
           <span className="font-semibold uppercase tracking-[0.25em] text-[#2E7D32]">
-            {t("products.exportJourney.badge")}
+            {resolveTenantText(t("products.exportJourney.badge"))}
           </span>
 
           <h2 className="mt-4 text-4xl font-bold text-gray-900">
-            {t("products.exportJourney.title")}
+            {resolveTenantText(t("products.exportJourney.title"))}
           </h2>
 
           <p className="mx-auto mt-6 max-w-3xl text-lg leading-8 text-gray-600">
-            {t("products.exportJourney.description")}
+            {resolveTenantText(t("products.exportJourney.description"))}
           </p>
         </motion.div>
 
@@ -103,8 +115,8 @@ export default function ExportJourney() {
             >
               <JourneyStep
                 number={step.number}
-                title={t(step.title)}
-                description={t(step.description)}
+                title={resolveTenantText(t(step.title))}
+                description={resolveTenantText(t(step.description))}
               />
             </motion.div>
           ))}

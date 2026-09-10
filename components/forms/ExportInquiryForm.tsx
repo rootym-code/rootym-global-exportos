@@ -1,3 +1,13 @@
+/**
+ * ============================================================
+ * ROOTYM Global ExportOS
+ * ============================================================
+ * Author: Prem Singh
+ * Purpose: Handles customer export inquiry submission with
+ *          Website and Product context.
+ * ============================================================
+ */
+
 "use client";
 
 import { useState } from "react";
@@ -18,6 +28,7 @@ type InquiryFormState = {
   phone: string;
   country: string;
   product: string;
+  productId: string;
   quantity: string;
   packaging: string;
   destinationPort: string;
@@ -33,6 +44,7 @@ const initialForm: InquiryFormState = {
   phone: "",
   country: "",
   product: "",
+  productId: "",
   quantity: "",
   packaging: "",
   destinationPort: "",
@@ -40,7 +52,6 @@ const initialForm: InquiryFormState = {
   purchaseDate: "",
   requirements: "",
 };
-
 
 const incotermOptions = [
   "FOB",
@@ -102,7 +113,7 @@ export default function ExportInquiryForm({
   function handleChange(
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
+    >,
   ) {
     const { name, value } = e.target;
 
@@ -112,14 +123,34 @@ export default function ExportInquiryForm({
     }));
   }
 
+  function handleProductChange(
+    e: React.ChangeEvent<HTMLSelectElement>,
+  ) {
+    const productId = e.target.value;
+
+    const selectedProduct = products.find(
+      (product) => product.id === productId,
+    );
+
+    setForm((previous) => ({
+      ...previous,
+      productId,
+      product: selectedProduct?.name ?? "",
+    }));
+  }
+
   async function handleSubmit(
-    e: React.FormEvent<HTMLFormElement>
+    e: React.FormEvent<HTMLFormElement>,
   ) {
     e.preventDefault();
 
     setSuccessMessage("");
     setErrorMessage("");
     setIsSubmitting(true);
+
+    const selectedProduct = products.find(
+      (product) => product.id === form.productId,
+    );
 
     const message = `
 Packaging Preference:
@@ -147,17 +178,23 @@ ${form.requirements || "-"}
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
+      
+            productId: form.productId,
+
+            product:
+              selectedProduct?.name ??
+              form.product,
+
             companyName: form.company,
             contactPerson: form.contact,
             email: form.email,
             phone: form.phone,
             country: form.country,
-            product: form.product,
             quantity: form.quantity,
             unit: "Custom",
             message,
           }),
-        }
+        },
       );
 
       const data: {
@@ -167,12 +204,12 @@ ${form.requirements || "-"}
       if (!response.ok) {
         throw new Error(
           data.message ||
-            "Unable to submit export inquiry."
+            "Unable to submit export inquiry.",
         );
       }
 
       setSuccessMessage(
-        "Thank you! Your export inquiry has been submitted successfully. Our team will contact you shortly."
+        "Thank you! Your export inquiry has been submitted successfully. Our team will contact you shortly.",
       );
 
       setForm(initialForm);
@@ -180,7 +217,7 @@ ${form.requirements || "-"}
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : "Something went wrong. Please try again."
+          : "Something went wrong. Please try again.",
       );
     } finally {
       setIsSubmitting(false);
@@ -232,9 +269,9 @@ ${form.requirements || "-"}
         onSubmit={handleSubmit}
         className="space-y-10 p-8"
       >
-                {/* Company Information */}
+        {/* Company Information */}
 
-                <section>
+        <section>
           <div className="mb-6 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-100">
               <CheckCircle2 className="h-5 w-5 text-green-700" />
@@ -326,9 +363,9 @@ ${form.requirements || "-"}
               </label>
 
               <select
-                name="product"
-                value={form.product}
-                onChange={handleChange}
+                name="productId"
+                value={form.productId}
+                onChange={handleProductChange}
                 required
                 className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none transition focus:border-green-700"
               >
@@ -337,13 +374,13 @@ ${form.requirements || "-"}
                 </option>
 
                 {products.map((product) => (
-  <option
-    key={product.id}
-    value={product.name}
-  >
-    {product.name}
-  </option>
-))}
+                  <option
+                    key={product.id}
+                    value={product.id}
+                  >
+                    {product.name}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -373,9 +410,10 @@ ${form.requirements || "-"}
             />
           </div>
         </section>
-                {/* Shipping & Commercial Terms */}
 
-                <section>
+        {/* Shipping & Commercial Terms */}
+
+        <section>
           <div className="mb-6 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-100">
               <Globe2 className="h-5 w-5 text-green-700" />
@@ -454,7 +492,7 @@ ${form.requirements || "-"}
             name="requirements"
             value={form.requirements}
             onChange={handleChange}
-            placeholder="Examples:
+            placeholder={`Examples:
 • Product specifications
 • Grade / Quality requirements
 • Packaging preferences
@@ -462,7 +500,7 @@ ${form.requirements || "-"}
 • Destination country regulations
 • Payment terms
 • Delivery schedule
-• Any additional information"
+• Any additional information`}
             className="w-full rounded-2xl border border-gray-300 px-4 py-4 leading-7 outline-none transition focus:border-green-700"
           />
         </section>
@@ -540,14 +578,16 @@ ${form.requirements || "-"}
               ? "Submitting Export Inquiry..."
               : "Submit Export Inquiry"}
           </Button>
-        </section>      </form>
+        </section>
+      </form>
     </section>
   );
 }
 
-type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {
-  label: string;
-};
+type InputProps =
+  React.InputHTMLAttributes<HTMLInputElement> & {
+    label: string;
+  };
 
 function Input({
   label,
@@ -559,7 +599,9 @@ function Input({
       <label className="mb-2 block text-sm font-semibold text-gray-700">
         {label}
         {props.required && (
-          <span className="ml-1 text-red-500">*</span>
+          <span className="ml-1 text-red-500">
+            *
+          </span>
         )}
       </label>
 
@@ -570,5 +612,3 @@ function Input({
     </div>
   );
 }
-
- 

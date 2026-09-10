@@ -1,14 +1,13 @@
 /**
  * ============================================================
- * ROOTYM Customer Website Product Detail
+ * Customer Website Product Detail
  * ============================================================
  * Author: Prem Singh
  * Module      : Public Website
  * Feature     : Customer Website Product Detail
- * Purpose     : Reuses the existing premium Product Detail
- *               experience inside a tenant Website while
- *               displaying Website-scoped active Product Pricing
- *               and an available Buyer Specification Sheet.
+ * Purpose     : Displays a Website-scoped Product with its
+ *               active pricing and Buyer Specification Sheet
+ *               using tenant-neutral customer-facing content.
  * ============================================================
  */
 
@@ -19,7 +18,6 @@ import type { Metadata } from "next";
 
 import {
   ArrowLeft,
-  BadgeCheck,
   MapPin,
   Package,
   Ship,
@@ -128,17 +126,6 @@ function getProductImageUrl(fileUrl?: string | null) {
 
 /**
  * ============================================================
- * PRODUCT SPECIFICATION DOCUMENT
- * ============================================================
- *
- * The specification is owned by the Website-scoped Product and
- * resolved from its linked Media record. No product-name mapping
- * or hard-coded public download path is used.
- * ============================================================
- */
-
-/**
- * ============================================================
  * PRODUCT PRICE FORMATTER
  * ============================================================
  *
@@ -155,13 +142,16 @@ function getProductImageUrl(fileUrl?: string | null) {
  */
 
 function formatPrice(
-  pricing: Awaited<ReturnType<typeof getActiveProductPrice>>
+  pricing: Awaited<ReturnType<typeof getActiveProductPrice>>,
 ) {
   if (!pricing) {
     return "Price on Request";
   }
 
-  if (pricing.price !== null && pricing.price !== undefined) {
+  if (
+    pricing.price !== null &&
+    pricing.price !== undefined
+  ) {
     const price = Number(pricing.price);
 
     if (!Number.isNaN(price)) {
@@ -218,7 +208,10 @@ export default async function CustomerWebsiteProductPage({
    * ------------------------------------------------------------
    */
 
-  const product = await getProductBySlug(website.id, slug);
+  const product = await getProductBySlug(
+    website.id,
+    slug,
+  );
 
   if (!product) {
     notFound();
@@ -228,18 +221,11 @@ export default async function CustomerWebsiteProductPage({
    * ------------------------------------------------------------
    * Resolve active Website-scoped Product Pricing
    * ------------------------------------------------------------
-   *
-   * Only an active pricing record belonging to this Website
-   * and Product is eligible for display.
-   *
-   * The pricing service also evaluates the pricing validity
-   * period using validFrom and validTo.
-   * ------------------------------------------------------------
    */
 
   const activePricing = await getActiveProductPrice(
     website.id,
-    product.id
+    product.id,
   );
 
   /**
@@ -249,20 +235,22 @@ export default async function CustomerWebsiteProductPage({
    */
 
   const imageUrl = getProductImageUrl(
-    product.featuredImage?.fileUrl
+    product.featuredImage?.fileUrl,
   );
 
   const description =
-    product.description ??
-    "Premium export-quality agricultural product sourced directly from trusted farms across India and prepared for international markets with strict quality control.";
+    product.description?.trim() ||
+    "Product information is available on request.";
 
   const packaging = product.defaultUnit
     ? `Available in ${product.defaultUnit} units`
-    : "Export packaging available";
+    : "Packaging information available on request";
 
-  const availability = "Available for Export";
+  const availability =
+    "Availability subject to confirmation";
 
-  const priceDisplay = formatPrice(activePricing);
+  const priceDisplay =
+    formatPrice(activePricing);
 
   /**
    * ------------------------------------------------------------
@@ -292,16 +280,18 @@ export default async function CustomerWebsiteProductPage({
     `/website/${websiteSlug}/${locale}/products`;
 
   /**
-   * Request Quote uses the existing locale-scoped
-   * Request Quote page.
+   * ------------------------------------------------------------
+   * Tenant Request Quote route
+   * ------------------------------------------------------------
    *
-   * Example:
-   * /en/request-quote
+   * Keep the buyer inside the current Website and carry the
+   * Product ID so the Request Quote page can preselect the
+   * Product that the buyer is enquiring about.
    * ------------------------------------------------------------
    */
 
   const requestQuoteHref =
-    `/${locale}/request-quote`;
+    `/website/${websiteSlug}/${locale}/request-quote?productId=${encodeURIComponent(product.id)}`;
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -339,7 +329,7 @@ export default async function CustomerWebsiteProductPage({
 
           <div>
             <span className="rounded-full bg-green-100 px-4 py-2 text-sm font-semibold text-[#2E7D32]">
-              {product.category ?? "Agricultural Product"}
+              {product.category ?? "Product"}
             </span>
 
             <h1 className="mt-6 text-5xl font-bold text-gray-900">
@@ -391,7 +381,10 @@ export default async function CustomerWebsiteProductPage({
               <InfoRow
                 icon={<MapPin className="h-5 w-5" />}
                 title="Origin"
-                value={product.origin ?? "India"}
+                value={
+                  product.origin?.trim() ||
+                  "Origin not specified"
+                }
               />
 
               <InfoRow
@@ -408,24 +401,16 @@ export default async function CustomerWebsiteProductPage({
             </div>
 
             {/* ==================================================
-                PRODUCT BADGES
+                PRODUCT IDENTIFIERS
                 ================================================== */}
 
-            <div className="mt-10 flex flex-wrap gap-3">
-              <Badge text="APEDA Registered" />
-
-              <Badge text="Export Ready" />
-
-              <Badge text="Premium Quality" />
-
-              <Badge text="Global Logistics" />
-
-              {product.hsCode && (
-                <Badge
-                  text={`HS Code: ${product.hsCode}`}
-                />
-              )}
-            </div>
+            {product.hsCode && (
+              <div className="mt-10">
+                <span className="rounded-full bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-700">
+                  HS Code: {product.hsCode}
+                </span>
+              </div>
+            )}
 
             {/* ==================================================
                 ACTIONS
@@ -437,6 +422,7 @@ export default async function CustomerWebsiteProductPage({
                   Request Quotation
                 </Button>
               </Link>
+
               {specificationDocument && (
                 <a
                   href={specificationDocument.fileUrl}
@@ -448,42 +434,6 @@ export default async function CustomerWebsiteProductPage({
                   Download Specification
                 </a>
               )}
-            </div>
-
-            {/* ==================================================
-                WHY ROOTYM
-                ================================================== */}
-
-            <div className="mt-12 rounded-2xl bg-white p-6 shadow">
-              <div className="flex items-center gap-3">
-                <BadgeCheck className="h-6 w-6 text-[#2E7D32]" />
-
-                <h3 className="text-lg font-semibold">
-                  Why Buy From ROOTYM?
-                </h3>
-              </div>
-
-              <ul className="mt-5 space-y-3 text-gray-600">
-                <li>
-                  ✓ Direct sourcing from trusted farmers
-                </li>
-
-                <li>
-                  ✓ Export documentation assistance
-                </li>
-
-                <li>
-                  ✓ Quality inspection before shipment
-                </li>
-
-                <li>
-                  ✓ Worldwide logistics support
-                </li>
-
-                <li>
-                  ✓ Dedicated importer assistance
-                </li>
-              </ul>
             </div>
           </div>
         </div>
@@ -523,23 +473,5 @@ function InfoRow({
         </p>
       </div>
     </div>
-  );
-}
-
-/**
- * ============================================================
- * PRODUCT BADGE
- * ============================================================
- */
-
-function Badge({
-  text,
-}: {
-  text: string;
-}) {
-  return (
-    <span className="rounded-full bg-green-100 px-4 py-2 text-sm font-semibold text-[#2E7D32]">
-      {text}
-    </span>
   );
 }

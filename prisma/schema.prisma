@@ -35,15 +35,23 @@ model WhatsAppMessage {
 }
 
 model Inquiry {
-  id               String                 @id @default(cuid())
-  companyName      String
-  contactPerson    String
-  email            String
-  phone            String?
-  country          String
-  /// Product name submitted by customer
-  product          String
-  quantity         String?
+  id            String  @id @default(cuid())
+  companyName   String
+  contactPerson String
+  email         String
+  phone         String?
+  country       String
+
+  /// Product name snapshot submitted by customer.
+  /// Kept for legacy compatibility and historical display.
+  product String
+
+  /// Optional link to the Website Product master.
+  /// Nullable so existing/legacy inquiries remain valid.
+  productId     String?
+  linkedProduct Product? @relation("InquiryProduct", fields: [productId], references: [id], onDelete: SetNull)
+  quantity      String?
+
   message          String
   status           InquiryStatus          @default(NEW)
   priority         InquiryPriority        @default(MEDIUM)
@@ -66,10 +74,11 @@ model Inquiry {
 
   /// Website ownership for customer-originated inquiries.
   /// Nullable for legacy inquiries during the initial backfill.
-  websiteId        String?
-  website          Website? @relation(fields: [websiteId], references: [id], onDelete: SetNull)
+  websiteId String?
+  website   Website? @relation(fields: [websiteId], references: [id], onDelete: SetNull)
 
   @@index([websiteId])
+  @@index([productId])
   @@index([inquiryNumber])
   @@index([email])
   @@index([status])
@@ -210,43 +219,44 @@ model FollowUp {
  * ============================================================
  * Author: Prem Singh
  * Purpose: Stores products as Website-owned catalogue records.
- *          Product identity, presentation, pricing and publication
- *          are independently configurable by each tenant.
+ * Product identity, presentation, pricing and publication
+ * are independently configurable by each tenant.
  * ============================================================
  */
 model Product {
-  id                   String                @id @default(cuid())
+  id String @id @default(cuid())
 
   /// Website ownership. Every Product belongs to exactly one Website.
-  websiteId            String
-  website              Website               @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  websiteId String
+  website   Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
 
   /// SKU is unique within a Website, not globally.
-  sku                  String
-  name                 String
+  sku  String
+  name String
 
   /// Public URL slug is unique within a Website.
-  slug                 String
+  slug String
 
-  shortDescription     String?
-  description          String?
-  category             String?
-  origin               String?
-  hsCode               String?
-  defaultUnit          String
-  minOrderQty          Decimal?              @db.Decimal(18, 3)
-  maxOrderQty          Decimal?              @db.Decimal(18, 3)
-  status               ProductStatus         @default(DRAFT)
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
-  featuredImageId          String?
-  featuredImage            Media?                @relation("ProductFeaturedImage", fields: [featuredImageId], references: [id])
+  shortDescription        String?
+  description             String?
+  category                String?
+  origin                  String?
+  hsCode                  String?
+  defaultUnit             String
+  minOrderQty             Decimal?              @db.Decimal(18, 3)
+  maxOrderQty             Decimal?              @db.Decimal(18, 3)
+  status                  ProductStatus         @default(DRAFT)
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @updatedAt
+  featuredImageId         String?
+  featuredImage           Media?                @relation("ProductFeaturedImage", fields: [featuredImageId], references: [id])
   /// Optional Website-scoped buyer specification document.
-  specificationDocumentId  String?
-  specificationDocument    Media?                @relation("ProductSpecificationDocument", fields: [specificationDocumentId], references: [id], onDelete: SetNull)
-  pricing                  ProductPricing[]
-  proformaInvoiceItems ProformaInvoiceItem[]
-  quoteItems           QuoteItem[]
+  specificationDocumentId String?
+  specificationDocument   Media?                @relation("ProductSpecificationDocument", fields: [specificationDocumentId], references: [id], onDelete: SetNull)
+  pricing                 ProductPricing[]
+  proformaInvoiceItems    ProformaInvoiceItem[]
+  quoteItems              QuoteItem[]
+  inquiries               Inquiry[]             @relation("InquiryProduct")
 
   @@unique([websiteId, sku])
   @@unique([websiteId, slug])
@@ -264,7 +274,7 @@ model Product {
  * ============================================================
  * Author: Prem Singh
  * Purpose: Stores Website Product pricing, including fixed
- *          prices and market/price-on-request pricing.
+ * prices and market/price-on-request pricing.
  * ============================================================
  */
 model ProductPricing {
@@ -284,12 +294,13 @@ model ProductPricing {
   @@index([productId])
   @@index([isActive])
 }
+
 model Quote {
-  id              String           @id @default(cuid())
+  id String @id @default(cuid())
 
   /// Website ownership. Nullable during the initial backfill.
-  websiteId       String?
-  website         Website?         @relation(fields: [websiteId], references: [id], onDelete: SetNull)
+  websiteId String?
+  website   Website? @relation(fields: [websiteId], references: [id], onDelete: SetNull)
 
   quoteNumber     String           @unique
   inquiryId       String?
@@ -352,11 +363,11 @@ model QuoteItem {
 }
 
 model ProformaInvoice {
-  id             String                @id @default(cuid())
+  id String @id @default(cuid())
 
   /// Website ownership. Nullable during the initial backfill.
-  websiteId      String?
-  website        Website?              @relation(fields: [websiteId], references: [id], onDelete: SetNull)
+  websiteId String?
+  website   Website? @relation(fields: [websiteId], references: [id], onDelete: SetNull)
 
   piNumber       String                @unique
   quoteId        String                @unique
@@ -587,9 +598,9 @@ model Media {
   featuredInProducts       Product[]            @relation("ProductFeaturedImage")
   specificationForProducts Product[]            @relation("ProductSpecificationDocument")
   whatsAppAttachments      WhatsAppAttachment[]
-  websiteBrandingLogos    WebsiteBranding[]    @relation("WebsiteBrandingLogo")
-  websiteBrandingFavicons WebsiteBranding[]    @relation("WebsiteBrandingFavicon")
-  websiteBrandingOgImages WebsiteBranding[]    @relation("WebsiteBrandingOgImage")
+  websiteBrandingLogos     WebsiteBranding[]    @relation("WebsiteBrandingLogo")
+  websiteBrandingFavicons  WebsiteBranding[]    @relation("WebsiteBrandingFavicon")
+  websiteBrandingOgImages  WebsiteBranding[]    @relation("WebsiteBrandingOgImage")
 
   @@index([mediaType])
   @@index([folder])
@@ -770,23 +781,23 @@ model Tenant {
 ///  * ============================================================
 
 model Website {
-  id            String                @id @default(cuid())
-  tenantId      String                @unique
-  name          String
-  slug          String                @unique
-  isActive      Boolean               @default(true)
-  createdAt     DateTime              @default(now())
-  updatedAt     DateTime              @updatedAt
-  cmsPages      CmsPage[]
-  branding      WebsiteBranding?
-  media         Media[]
-  mediaFolders  MediaFolder[]
-  configuration WebsiteConfiguration?
-  products       Product[]
-  inquiries      Inquiry[]
-  quotes         Quote[]
+  id               String                @id @default(cuid())
+  tenantId         String                @unique
+  name             String
+  slug             String                @unique
+  isActive         Boolean               @default(true)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  cmsPages         CmsPage[]
+  branding         WebsiteBranding?
+  media            Media[]
+  mediaFolders     MediaFolder[]
+  configuration    WebsiteConfiguration?
+  products         Product[]
+  inquiries        Inquiry[]
+  quotes           Quote[]
   proformaInvoices ProformaInvoice[]
-  tenant        Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant           Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
 
 /**

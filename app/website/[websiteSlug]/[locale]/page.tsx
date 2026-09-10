@@ -137,12 +137,36 @@ export async function generateMetadata({
    * ------------------------------------------------------------
    */
 
-  const translation = page.translations.find(
-    (item) =>
-      item.language.code.toLowerCase() === locale.toLowerCase(),
-  );
+  /**
+   * ------------------------------------------------------------
+   * Resolve locale-specific homepage translation
+   * ------------------------------------------------------------
+   *
+   * Prefer the requested locale. If that locale does not have
+   * a published translation, fall back to English and then to
+   * the first published Website translation so a valid tenant
+   * homepage URL does not return a 404 simply because a locale
+   * translation has not been published yet.
+   * ------------------------------------------------------------
+   */
 
-  if (!translation || !translation.isPublished) {
+  const translation =
+    page.translations.find(
+      (item) =>
+        item.isPublished &&
+        item.language.code.toLowerCase() ===
+          locale.toLowerCase(),
+    ) ||
+    page.translations.find(
+      (item) =>
+        item.isPublished &&
+        item.language.code.toLowerCase() === "en",
+    ) ||
+    page.translations.find(
+      (item) => item.isPublished,
+    );
+
+  if (!translation) {
     return {
       title: websiteTitle,
       description: websiteDescription,
@@ -321,12 +345,35 @@ export default async function CustomerWebsiteHomepagePage({
    * ------------------------------------------------------------
    */
 
-  const translation = page.translations.find(
-    (item) =>
-      item.language.code.toLowerCase() === locale.toLowerCase(),
-  );
+  /**
+   * ------------------------------------------------------------
+   * Resolve locale-specific homepage translation
+   * ------------------------------------------------------------
+   *
+   * Prefer the requested locale. If it is not published, use
+   * English and then the first published Website translation.
+   * This keeps the tenant homepage available at every supported
+   * URL without changing the Website ownership boundary.
+   * ------------------------------------------------------------
+   */
 
-  if (!translation || !translation.isPublished) {
+  const translation =
+    page.translations.find(
+      (item) =>
+        item.isPublished &&
+        item.language.code.toLowerCase() ===
+          locale.toLowerCase(),
+    ) ||
+    page.translations.find(
+      (item) =>
+        item.isPublished &&
+        item.language.code.toLowerCase() === "en",
+    ) ||
+    page.translations.find(
+      (item) => item.isPublished,
+    );
+
+  if (!translation) {
     notFound();
   }
 
