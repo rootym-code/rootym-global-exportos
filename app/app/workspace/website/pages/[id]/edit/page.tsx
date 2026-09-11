@@ -12,8 +12,6 @@
 
 "use client";
 
-import Link from "next/link";
-
 import {
   FormEvent,
   ReactNode,
@@ -26,13 +24,10 @@ import {
   ArrowLeft,
   ChevronDown,
   ChevronUp,
-  FileText,
   Loader2,
-  LayoutDashboard,
   Plus,
   Save,
   Send,
-  Settings,
   Trash2,
 } from "lucide-react";
 
@@ -44,6 +39,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+
+import SectionElementsEditor from "@/components/workspace/website/SectionElementsEditor";
+import type { SectionElement } from "@/lib/workspace/website/section-elements";
 
 import type {
   PageLayout,
@@ -58,6 +56,7 @@ type HeroSection = {
   subheading: string;
   primaryCtaText: string;
   secondaryCtaText: string;
+  elements?: SectionElement[];
 };
 
 type ValuePropositionSection = {
@@ -67,6 +66,7 @@ type ValuePropositionSection = {
   heading: string;
   description: string;
   points: string[];
+  elements?: SectionElement[];
 };
 
 type ProductSection = {
@@ -81,6 +81,7 @@ type ProductSection = {
   packaging: string;
   moq: string;
   applications: string[];
+  elements?: SectionElement[];
 };
 
 type ApplicationsSection = {
@@ -93,6 +94,7 @@ type ApplicationsSection = {
     title: string;
     description: string;
   }>;
+  elements?: SectionElement[];
 };
 
 type WhyRootymSection = {
@@ -104,6 +106,7 @@ type WhyRootymSection = {
     title: string;
     description: string;
   }>;
+  elements?: SectionElement[];
 };
 
 type BuyerFocusSection = {
@@ -113,6 +116,7 @@ type BuyerFocusSection = {
   heading: string;
   description: string;
   buyerTypes: string[];
+  elements?: SectionElement[];
 };
 
 type PackagingSection = {
@@ -122,6 +126,7 @@ type PackagingSection = {
   heading: string;
   description: string;
   options: string[];
+  elements?: SectionElement[];
 };
 
 type ExportDocumentsSection = {
@@ -131,6 +136,7 @@ type ExportDocumentsSection = {
   heading: string;
   description: string;
   documents: string[];
+  elements?: SectionElement[];
 };
 
 type CtaSection = {
@@ -141,6 +147,7 @@ type CtaSection = {
   description: string;
   primaryCtaText: string;
   secondaryCtaText: string;
+  elements?: SectionElement[];
 };
 
 type FaqSection = {
@@ -152,6 +159,7 @@ type FaqSection = {
     question: string;
     answer: string;
   }>;
+  elements?: SectionElement[];
 };
 
 type LandingPageSection =
@@ -206,6 +214,7 @@ function createDefaultStructuredContent(
         subheading: "",
         primaryCtaText: "",
         secondaryCtaText: "",
+     elements: [],
       },
       {
         type: "valueProposition",
@@ -214,6 +223,7 @@ function createDefaultStructuredContent(
         heading: "",
         description: "",
         points: [],
+     elements: [],
       },
       {
         type: "product",
@@ -227,6 +237,7 @@ function createDefaultStructuredContent(
         packaging: "",
         moq: "",
         applications: [],
+     elements: [],
       },
       {
         type: "applications",
@@ -235,13 +246,15 @@ function createDefaultStructuredContent(
         heading: "",
         description: "",
         items: [],
+     elements: [],
       },
       {
         type: "whyRootym",
-        sectionTitle: "Why ROOTYM",
+        sectionTitle: "Why Us",
         sectionDescription: "Build buyer confidence around sourcing, quality and export execution.",
         heading: "",
         points: [],
+        elements: [],
       },
       {
         type: "buyerFocus",
@@ -250,6 +263,7 @@ function createDefaultStructuredContent(
         heading: "",
         description: "",
         buyerTypes: [],
+     elements: [],
       },
       {
         type: "packaging",
@@ -258,14 +272,16 @@ function createDefaultStructuredContent(
         heading: "",
         description: "",
         options: [],
+     elements: [],
       },
       {
         type: "exportDocuments",
         sectionTitle: "Export Documents",
-        sectionDescription: "List the standard export documentation buyers can expect from ROOTYM.",
+        sectionDescription: "List the standard export documentation buyers can provide to buyers.",
         heading: "",
         description: "",
         documents: [],
+     elements: [],
       },
       {
         type: "cta",
@@ -275,13 +291,15 @@ function createDefaultStructuredContent(
         description: "",
         primaryCtaText: "",
         secondaryCtaText: "",
+        elements: [],
       },
       {
         type: "faq",
         sectionTitle: "FAQ",
-        sectionDescription: "Answer the most common buyer questions before they contact ROOTYM.",
+        sectionDescription: "Answer the most common buyer questions before they get in touch.",
         heading: "",
         items: [],
+        elements: [],
       },
     ],
   };
@@ -663,15 +681,15 @@ export default function EditCmsPage() {
   const [openSections, setOpenSections] =
     useState<Record<string, boolean>>({
       hero: true,
-      valueProposition: true,
-      product: true,
-      applications: true,
-      whyRootym: true,
-      buyerFocus: true,
-      packaging: true,
-      exportDocuments: true,
-      cta: true,
-      faq: true,
+      valueProposition: false,
+      product: false,
+      applications: false,
+      whyRootym: false,
+      buyerFocus: false,
+      packaging: false,
+      exportDocuments: false,
+      cta: false,
+      faq: false,
     });
 
   useEffect(() => {
@@ -1084,6 +1102,15 @@ export default function EditCmsPage() {
             </div>
 
             {children}
+
+            <SectionElementsEditor
+              value={section.elements ?? []}
+              onChange={(elements) =>
+                updateSection(type, {
+                  elements,
+                })
+              }
+            />
           </div>
         )}
       </Card>
@@ -1412,7 +1439,7 @@ export default function EditCmsPage() {
         {renderSectionCard(
           "whyRootym",
           5,
-          "Why ROOTYM",
+          "Why Us",
           "Build buyer confidence around sourcing, quality and export execution.",
           <div className="space-y-5">
             <div className="space-y-2">
@@ -1427,7 +1454,7 @@ export default function EditCmsPage() {
               />
             </div>
             <ObjectArrayEditor
-              label="Why ROOTYM Points"
+              label="Why Us Points"
               values={whyRootym.points}
               firstPlaceholder="Quality-focused sourcing"
               secondPlaceholder="Explain the buyer benefit."
@@ -1579,7 +1606,7 @@ export default function EditCmsPage() {
           "exportDocuments",
           8,
           "Export Documents",
-          "List the standard export documentation buyers can expect from ROOTYM.",
+          "List the standard export documentation buyers can provide to buyers.",
           <div className="space-y-5">
             <div className="space-y-2">
               <Label>Heading</Label>
@@ -1680,7 +1707,7 @@ export default function EditCmsPage() {
               <Label>Secondary CTA</Label>
               <Input
                 value={cta.secondaryCtaText}
-                placeholder="Contact ROOTYM"
+                placeholder="Contact Us"
                 onChange={(event) =>
                   updateSection("cta", {
                     secondaryCtaText:
@@ -1696,7 +1723,7 @@ export default function EditCmsPage() {
           "faq",
           10,
           "FAQ",
-          "Answer the most common buyer questions before they contact ROOTYM.",
+          "Answer the most common buyer questions before they get in touch.",
           <div className="space-y-5">
             <div className="space-y-2">
               <Label>Heading</Label>
@@ -1945,89 +1972,32 @@ export default function EditCmsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8 lg:py-10">
-        {/* =====================================================
-            TOP NAVIGATION
-            ===================================================== */}
+    <div className="space-y-6 pb-10">
+      <div>
+        <button
+          type="button"
+          onClick={() =>
+            router.push("/app/workspace/website/pages/all")
+          }
+          className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-gray-500 transition hover:text-[#2E7D32]"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to All Pages
+        </button>
 
-        <header className="mb-8">
-          <div className="flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-950">
-                <FileText className="h-5 w-5 text-white" />
-              </div>
-
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-600">
-                  ROOTYM
-                </p>
-
-                <p className="text-lg font-bold">
-                  Edit Website Page
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <Link
-                href="/app/workspace/website/pages"
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Pages & Content
-              </Link>
-
-              <Link
-                href="/app/workspace/website"
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-              >
-                Website & Marketing
-              </Link>
-
-              <Link
-                href="/app/workspace"
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-              >
-                <LayoutDashboard className="h-4 w-4" />
-                Workspace
-              </Link>
-
-              <Link
-                href="/settings"
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-              >
-                <Settings className="h-4 w-4" />
-                Settings
-              </Link>
-            </div>
-          </div>
-        </header>
-
-        <div>
-          <button
-            type="button"
-            onClick={() =>
-              router.push("/app/workspace/website/pages/all")
-            }
-            className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-gray-500 transition hover:text-[#2E7D32]"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to All Pages
-          </button>
-
-          <div className="mb-2 inline-flex items-center rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-[#2E7D32] ring-1 ring-green-100">
-            Customer Website
-          </div>
-
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900">
-            Edit Website Page
-          </h1>
-
-          <p className="mt-1 text-sm text-gray-500">
-            Edit a ROOTYM Standard Page, choose the page language, and manage only the sections this page uses.
-          </p>
+        <div className="mb-2 inline-flex items-center rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-[#2E7D32] ring-1 ring-green-100">
+          Customer Website
         </div>
+
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+          Edit Website Page
+        </h1>
+
+        <p className="mt-1 text-sm text-gray-500">
+          Update page structure, content, publishing
+          settings and SEO metadata.
+        </p>
+      </div>
 
       {error && (
         <div
@@ -2202,7 +2172,7 @@ export default function EditCmsPage() {
                 }
                 options={[
                   {
-                    label: "ROOTYM Website",
+                    label: "Website Page",
                     value: "WEBSITE",
                   },
                   {
@@ -2213,7 +2183,7 @@ export default function EditCmsPage() {
               />
               <p className="text-xs text-gray-500">
                 Choose whether this page uses the
-                ROOTYM website header and footer or
+                website header and footer or
                 works as a standalone landing page.
               </p>
             </div>
@@ -2329,7 +2299,7 @@ export default function EditCmsPage() {
               Structured Page Sections
             </h2>
             <p className="mt-1 text-sm text-gray-500">
-              Build the page from the selected ROOTYM Standard Page
+              Build the page from the selected Standard Page
               sections. Only sections saved for the selected language
               are displayed here.
             </p>
@@ -2347,58 +2317,6 @@ export default function EditCmsPage() {
           </div>
 
           {renderStructuredSections()}
-        </Card>
-
-        <Card
-          hover={false}
-          className="p-6"
-        >
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Legacy / Additional Content
-            </h2>
-            <p className="mt-1 text-sm text-gray-500">
-              Optional plain-text content retained for
-              compatibility with existing CMS pages.
-            </p>
-          </div>
-
-          <div className="space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="excerpt">
-                Excerpt
-              </Label>
-              <Textarea
-                id="excerpt"
-                value={form.excerpt}
-                onChange={(event) =>
-                  updateField(
-                    "excerpt",
-                    event.target.value
-                  )
-                }
-                maxLength={500}
-                rows={4}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="content">
-                Page Content
-              </Label>
-              <Textarea
-                id="content"
-                value={form.content}
-                onChange={(event) =>
-                  updateField(
-                    "content",
-                    event.target.value
-                  )
-                }
-                rows={10}
-              />
-            </div>
-          </div>
         </Card>
 
         <Card
@@ -2487,8 +2405,7 @@ export default function EditCmsPage() {
           </div>
         </Card>
 
-        {/* ROOTYM Standard Page editor action bar; reserve space for the floating reCAPTCHA widget. */}
-        <div className="sticky bottom-4 z-10 flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-xl backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:pr-32">
+        <div className="sticky bottom-4 z-10 flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-xl backdrop-blur sm:flex-row sm:items-center sm:justify-between">
           <Button
             type="button"
             variant="outline"
@@ -2544,8 +2461,6 @@ export default function EditCmsPage() {
           </div>
         </div>
       </form>
-      </div>
-    </main>
+    </div>
   );
-  // End of ROOTYM Standard Page editor.
 }

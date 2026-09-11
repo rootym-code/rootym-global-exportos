@@ -19,7 +19,6 @@ import {
   ImageIcon,
   LayoutDashboard,
   Menu,
-  Search,
   Settings,
   ShieldCheck,
   Sparkles,
@@ -60,14 +59,7 @@ const websiteModules = [
     href: "/app/workspace/website/navigation",
     status: "Available",
   },
-  {
-    title: "SEO & Search",
-    description:
-      "Manage search engine settings, metadata and website discoverability.",
-    icon: Search,
-    href: "/app/workspace/website/seo",
-    status: "Available",
-  },
+
   {
     title: "Site Settings",
     description:

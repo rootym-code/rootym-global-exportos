@@ -1,3 +1,15 @@
+/**
+ * ============================================================
+ * ROOTYM Admin CMS
+ * ============================================================
+ * Author: Prem Singh
+ * Purpose: Provides the platform-admin Website Page Editor
+ *          using the same latest editor capabilities as the
+ *          Customer Workspace while keeping Admin authentication
+ *          and ROOTYM Website scoping.
+ * ============================================================
+ */
+
 "use client";
 
 import {
@@ -35,6 +47,8 @@ import type {
 
 type HeroSection = {
   type: "hero";
+  sectionTitle?: string;
+  sectionDescription?: string;
   heading: string;
   subheading: string;
   primaryCtaText: string;
@@ -43,6 +57,8 @@ type HeroSection = {
 
 type ValuePropositionSection = {
   type: "valueProposition";
+  sectionTitle?: string;
+  sectionDescription?: string;
   heading: string;
   description: string;
   points: string[];
@@ -50,6 +66,8 @@ type ValuePropositionSection = {
 
 type ProductSection = {
   type: "product";
+  sectionTitle?: string;
+  sectionDescription?: string;
   heading: string;
   description: string;
   productName: string;
@@ -62,6 +80,8 @@ type ProductSection = {
 
 type ApplicationsSection = {
   type: "applications";
+  sectionTitle?: string;
+  sectionDescription?: string;
   heading: string;
   description: string;
   items: Array<{
@@ -72,6 +92,8 @@ type ApplicationsSection = {
 
 type WhyRootymSection = {
   type: "whyRootym";
+  sectionTitle?: string;
+  sectionDescription?: string;
   heading: string;
   points: Array<{
     title: string;
@@ -81,6 +103,8 @@ type WhyRootymSection = {
 
 type BuyerFocusSection = {
   type: "buyerFocus";
+  sectionTitle?: string;
+  sectionDescription?: string;
   heading: string;
   description: string;
   buyerTypes: string[];
@@ -88,6 +112,8 @@ type BuyerFocusSection = {
 
 type PackagingSection = {
   type: "packaging";
+  sectionTitle?: string;
+  sectionDescription?: string;
   heading: string;
   description: string;
   options: string[];
@@ -95,6 +121,8 @@ type PackagingSection = {
 
 type ExportDocumentsSection = {
   type: "exportDocuments";
+  sectionTitle?: string;
+  sectionDescription?: string;
   heading: string;
   description: string;
   documents: string[];
@@ -102,6 +130,8 @@ type ExportDocumentsSection = {
 
 type CtaSection = {
   type: "cta";
+  sectionTitle?: string;
+  sectionDescription?: string;
   heading: string;
   description: string;
   primaryCtaText: string;
@@ -110,6 +140,8 @@ type CtaSection = {
 
 type FaqSection = {
   type: "faq";
+  sectionTitle?: string;
+  sectionDescription?: string;
   heading: string;
   items: Array<{
     question: string;
@@ -136,6 +168,7 @@ type StructuredContent = {
 };
 
 type FormState = {
+  languageId: string;
   internalTitle: string;
   title: string;
   slug: string;
@@ -162,6 +195,8 @@ function createDefaultStructuredContent(
     sections: [
       {
         type: "hero",
+        sectionTitle: "Hero",
+        sectionDescription: "Primary headline, supporting message and calls to action.",
         heading: "",
         subheading: "",
         primaryCtaText: "",
@@ -169,12 +204,16 @@ function createDefaultStructuredContent(
       },
       {
         type: "valueProposition",
+        sectionTitle: "Value Proposition",
+        sectionDescription: "Explain why the product is relevant to the target market.",
         heading: "",
         description: "",
         points: [],
       },
       {
         type: "product",
+        sectionTitle: "Product",
+        sectionDescription: "Capture the core product specifications buyers need before making an enquiry.",
         heading: "",
         description: "",
         productName: "",
@@ -186,35 +225,47 @@ function createDefaultStructuredContent(
       },
       {
         type: "applications",
+        sectionTitle: "Applications",
+        sectionDescription: "Show where and how the product is used by commercial buyers.",
         heading: "",
         description: "",
         items: [],
       },
       {
         type: "whyRootym",
+        sectionTitle: "Why ROOTYM",
+        sectionDescription: "Build buyer confidence around sourcing, quality and export execution.",
         heading: "",
         points: [],
       },
       {
         type: "buyerFocus",
+        sectionTitle: "Buyer Focus",
+        sectionDescription: "Define the buyer profiles and commercial audiences this page targets.",
         heading: "",
         description: "",
         buyerTypes: [],
       },
       {
         type: "packaging",
+        sectionTitle: "Packaging",
+        sectionDescription: "Present practical packaging choices for export buyers.",
         heading: "",
         description: "",
         options: [],
       },
       {
         type: "exportDocuments",
+        sectionTitle: "Export Documents",
+        sectionDescription: "List the standard export documentation buyers can expect from ROOTYM.",
         heading: "",
         description: "",
         documents: [],
       },
       {
         type: "cta",
+        sectionTitle: "CTA",
+        sectionDescription: "Close the page with a clear commercial action for the buyer.",
         heading: "",
         description: "",
         primaryCtaText: "",
@@ -222,6 +273,8 @@ function createDefaultStructuredContent(
       },
       {
         type: "faq",
+        sectionTitle: "FAQ",
+        sectionDescription: "Answer the most common buyer questions before they contact ROOTYM.",
         heading: "",
         items: [],
       },
@@ -254,26 +307,47 @@ function normalizeStructuredContent(
 
   const existingSections = candidate.sections as LandingPageSection[];
 
+  const normalizedSections = existingSections
+    .filter(
+      (section) =>
+        section &&
+        typeof section === "object" &&
+        defaults.sections.some(
+          (defaultSection) =>
+            defaultSection.type === section.type
+        )
+    )
+    .map((section) => {
+      const defaultSection = defaults.sections.find(
+        (item) => item.type === section.type
+      );
+
+      return defaultSection
+        ? ({
+            ...defaultSection,
+            ...section,
+            sectionTitle:
+              (section as LandingPageSection).sectionTitle ??
+              (defaultSection as LandingPageSection).sectionTitle,
+            sectionDescription:
+              (section as LandingPageSection).sectionDescription ??
+              (defaultSection as LandingPageSection).sectionDescription,
+          } as LandingPageSection)
+        : section;
+    });
+
   return {
     version: 1,
     template:
       candidate.template === "COUNTRY_LANDING"
         ? "COUNTRY_LANDING"
         : template,
-    sections: defaults.sections.map((defaultSection) => {
-      return (
-        existingSections.find(
-          (section) =>
-            section &&
-            typeof section === "object" &&
-            section.type === defaultSection.type
-        ) ?? defaultSection
-      );
-    }),
+    sections: normalizedSections,
   };
 }
 
 const INITIAL_FORM: FormState = {
+  languageId: "lang_en",
   internalTitle: "",
   title: "",
   slug: "",
@@ -657,6 +731,9 @@ export default function EditCmsPage() {
           );
 
         setForm({
+          languageId:
+            defaultTranslation?.languageId ??
+            "lang_en",
           internalTitle: page.title ?? "",
           title:
             defaultTranslation?.title ??
@@ -762,9 +839,25 @@ export default function EditCmsPage() {
   function getSection<T extends LandingPageSection["type"]>(
     type: T
   ): Extract<LandingPageSection, { type: T }> {
-    return form.structuredContent.sections.find(
+    const existingSection = form.structuredContent.sections.find(
       (section) => section.type === type
-    ) as Extract<LandingPageSection, { type: T }>;
+    );
+
+    if (existingSection) {
+      return existingSection as Extract<
+        LandingPageSection,
+        { type: T }
+      >;
+    }
+
+    const fallbackSection = createDefaultStructuredContent(
+      form.template
+    ).sections.find((section) => section.type === type);
+
+    return fallbackSection as Extract<
+      LandingPageSection,
+      { type: T }
+    >;
   }
 
   function updateStringArrayItem(
@@ -908,6 +1001,24 @@ export default function EditCmsPage() {
     description: string,
     children: ReactNode
   ) {
+    const existingSection = form.structuredContent.sections.find(
+      (item) => item.type === type
+    );
+
+    if (!existingSection) {
+      return null;
+    }
+
+    const section = getSection(type) as LandingPageSection & {
+      sectionTitle?: string;
+      sectionDescription?: string;
+    };
+
+    const displayTitle =
+      section.sectionTitle?.trim() || title;
+    const displayDescription =
+      section.sectionDescription?.trim() || description;
+
     return (
       <Card
         hover={false}
@@ -920,8 +1031,8 @@ export default function EditCmsPage() {
         >
           <SectionHeader
             number={number}
-            title={title}
-            description={description}
+            title={displayTitle}
+            description={displayDescription}
           />
           {openSections[type] ? (
             <ChevronUp className="h-5 w-5 shrink-0 text-gray-400" />
@@ -932,6 +1043,41 @@ export default function EditCmsPage() {
 
         {openSections[type] && (
           <div className="border-t border-gray-100 p-6">
+            <div className="mb-6 grid gap-5 rounded-2xl border border-emerald-100 bg-emerald-50/40 p-5 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Section Header</Label>
+                <Input
+                  value={section.sectionTitle ?? title}
+                  placeholder={title}
+                  onChange={(event) =>
+                    updateSection(type, {
+                      sectionTitle: event.target.value,
+                    })
+                  }
+                />
+                <p className="text-xs text-gray-500">
+                  Rename this section for this page.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Section Description</Label>
+                <Textarea
+                  value={section.sectionDescription ?? description}
+                  placeholder={description}
+                  rows={3}
+                  onChange={(event) =>
+                    updateSection(type, {
+                      sectionDescription: event.target.value,
+                    })
+                  }
+                />
+                <p className="text-xs text-gray-500">
+                  Explain what this section is for on this page.
+                </p>
+              </div>
+            </div>
+
             {children}
           </div>
         )}
@@ -1716,6 +1862,7 @@ export default function EditCmsPage() {
             metaKeywords:
               form.metaKeywords.trim(),
             translation: {
+              languageId: form.languageId,
               title,
               slug,
               excerpt:
@@ -1806,13 +1953,16 @@ export default function EditCmsPage() {
           Back to CMS Pages
         </button>
 
+        <div className="mb-2 inline-flex items-center rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-[#2E7D32] ring-1 ring-green-100">
+          Admin Website
+        </div>
+
         <h1 className="text-2xl font-bold tracking-tight text-gray-900">
           Edit CMS Page
         </h1>
 
         <p className="mt-1 text-sm text-gray-500">
-          Update page structure, content, publishing
-          settings and SEO metadata.
+          Edit the page structure, choose the page language, and manage only the sections this page uses.
         </p>
       </div>
 
@@ -1872,6 +2022,39 @@ export default function EditCmsPage() {
               <p className="text-xs text-gray-500">
                 Used internally to identify the page
                 in the CMS.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="languageId">
+                Page Language
+              </Label>
+              <Select
+                id="languageId"
+                value={form.languageId}
+                onChange={(event) =>
+                  updateField(
+                    "languageId",
+                    event.target.value
+                  )
+                }
+                options={[
+                  {
+                    label: "English",
+                    value: "lang_en",
+                  },
+                  {
+                    label: "Hindi",
+                    value: "lang_hi",
+                  },
+                  {
+                    label: "Arabic",
+                    value: "lang_ar",
+                  },
+                ]}
+              />
+              <p className="text-xs text-gray-500">
+                Language used for this page translation.
               </p>
             </div>
 
@@ -2083,9 +2266,9 @@ export default function EditCmsPage() {
               Structured Page Sections
             </h2>
             <p className="mt-1 text-sm text-gray-500">
-              Build the real landing page from structured
-              sections. Existing saved sections are loaded
-              automatically from the default CMS language.
+              Build the page from the selected ROOTYM Standard Page
+              sections. Only sections saved for the selected language
+              are displayed here.
             </p>
           </div>
 
@@ -2241,7 +2424,8 @@ export default function EditCmsPage() {
           </div>
         </Card>
 
-        <div className="sticky bottom-4 z-10 flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-xl backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+        {/* ROOTYM CMS page editor action bar; reserve space for the floating reCAPTCHA widget. */}
+        <div className="sticky bottom-4 z-10 flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-xl backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:pr-32">
           <Button
             type="button"
             variant="outline"
@@ -2299,4 +2483,5 @@ export default function EditCmsPage() {
       </form>
     </div>
   );
+  // End of ROOTYM Standard Page editor.
 }

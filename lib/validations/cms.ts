@@ -42,12 +42,55 @@ Final publishing validation should be handled separately so that
 an administrator can save incomplete work as a draft.
 ============================================================ */
 
-const sectionPresentationSchema = z.object({
-  sectionTitle: z.string().trim().max(200).optional(),
-  sectionDescription: z.string().trim().max(1000).optional(),
-});
+const sectionElementsSchema = z
+  .array(
+    z.discriminatedUnion("type", [
+      z.object({
+        id: z.string().trim().min(1).max(100),
+        type: z.literal("image"),
+        placement: z.enum(["before", "after"]),
+        url: z.string().trim().max(2000),
+        mediaId: z.string().trim().max(100).optional(),
+        altText: z.string().trim().max(500).optional(),
+        caption: z.string().trim().max(500).optional(),
+      }),
+      z.object({
+        id: z.string().trim().min(1).max(100),
+        type: z.literal("youtube"),
+        placement: z.enum(["before", "after"]),
+        url: z.string().trim().max(2000),
+        title: z.string().trim().max(300).optional(),
+      }),
+      z.object({
+        id: z.string().trim().min(1).max(100),
+        type: z.literal("video"),
+        placement: z.enum(["before", "after"]),
+        url: z.string().trim().max(2000),
+        mediaId: z.string().trim().max(100).optional(),
+        title: z.string().trim().max(300).optional(),
+        posterUrl: z.string().trim().max(2000).optional(),
+      }),
+      z.object({
+        id: z.string().trim().min(1).max(100),
+        type: z.literal("pdf"),
+        placement: z.enum(["before", "after"]),
+        url: z.string().trim().max(2000),
+        mediaId: z.string().trim().max(100).optional(),
+        label: z.string().trim().max(200).optional(),
+      }),
+      z.object({
+        id: z.string().trim().min(1).max(100),
+        type: z.literal("cta"),
+        placement: z.enum(["before", "after"]),
+        label: z.string().trim().max(100),
+        href: z.string().trim().max(2000),
+        openInNewTab: z.boolean().optional(),
+      }),
+    ]),
+  )
+  .max(20);
 
-const heroSectionSchema = sectionPresentationSchema.extend({
+const heroSectionSchema = z.object({
   type: z.literal("hero"),
 
   heading: z.string().trim().max(300),
@@ -59,7 +102,7 @@ const heroSectionSchema = sectionPresentationSchema.extend({
   secondaryCtaText: z.string().trim().max(100),
 });
 
-const valuePropositionSectionSchema = sectionPresentationSchema.extend({
+const valuePropositionSectionSchema = z.object({
   type: z.literal("valueProposition"),
 
   heading: z.string().trim().max(300),
@@ -71,7 +114,7 @@ const valuePropositionSectionSchema = sectionPresentationSchema.extend({
     .max(20),
 });
 
-const productSectionSchema = sectionPresentationSchema.extend({
+const productSectionSchema = z.object({
   type: z.literal("product"),
 
   heading: z.string().trim().max(300),
@@ -93,7 +136,7 @@ const productSectionSchema = sectionPresentationSchema.extend({
     .max(30),
 });
 
-const applicationsSectionSchema = sectionPresentationSchema.extend({
+const applicationsSectionSchema = z.object({
   type: z.literal("applications"),
 
   heading: z.string().trim().max(300),
@@ -111,7 +154,7 @@ const applicationsSectionSchema = sectionPresentationSchema.extend({
     .max(30),
 });
 
-const whyRootymSectionSchema = sectionPresentationSchema.extend({
+const whyRootymSectionSchema = z.object({
   type: z.literal("whyRootym"),
 
   heading: z.string().trim().max(300),
@@ -127,7 +170,7 @@ const whyRootymSectionSchema = sectionPresentationSchema.extend({
     .max(30),
 });
 
-const buyerFocusSectionSchema = sectionPresentationSchema.extend({
+const buyerFocusSectionSchema = z.object({
   type: z.literal("buyerFocus"),
 
   heading: z.string().trim().max(300),
@@ -139,7 +182,7 @@ const buyerFocusSectionSchema = sectionPresentationSchema.extend({
     .max(30),
 });
 
-const packagingSectionSchema = sectionPresentationSchema.extend({
+const packagingSectionSchema = z.object({
   type: z.literal("packaging"),
 
   heading: z.string().trim().max(300),
@@ -151,7 +194,7 @@ const packagingSectionSchema = sectionPresentationSchema.extend({
     .max(30),
 });
 
-const exportDocumentsSectionSchema = sectionPresentationSchema.extend({
+const exportDocumentsSectionSchema = z.object({
   type: z.literal("exportDocuments"),
 
   heading: z.string().trim().max(300),
@@ -163,7 +206,7 @@ const exportDocumentsSectionSchema = sectionPresentationSchema.extend({
     .max(30),
 });
 
-const ctaSectionSchema = sectionPresentationSchema.extend({
+const ctaSectionSchema = z.object({
   type: z.literal("cta"),
 
   heading: z.string().trim().max(300),
@@ -175,7 +218,7 @@ const ctaSectionSchema = sectionPresentationSchema.extend({
   secondaryCtaText: z.string().trim().max(100),
 });
 
-const faqSectionSchema = sectionPresentationSchema.extend({
+const faqSectionSchema = z.object({
   type: z.literal("faq"),
 
   heading: z.string().trim().max(300),
@@ -191,19 +234,20 @@ const faqSectionSchema = sectionPresentationSchema.extend({
     .max(50),
 });
 
+
 const landingPageSectionSchema = z.discriminatedUnion(
   "type",
   [
-    heroSectionSchema,
-    valuePropositionSectionSchema,
-    productSectionSchema,
-    applicationsSectionSchema,
-    whyRootymSectionSchema,
-    buyerFocusSectionSchema,
-    packagingSectionSchema,
-    exportDocumentsSectionSchema,
-    ctaSectionSchema,
-    faqSectionSchema,
+    heroSectionSchema.extend({ elements: sectionElementsSchema }),
+    valuePropositionSectionSchema.extend({ elements: sectionElementsSchema }),
+    productSectionSchema.extend({ elements: sectionElementsSchema }),
+    applicationsSectionSchema.extend({ elements: sectionElementsSchema }),
+    whyRootymSectionSchema.extend({ elements: sectionElementsSchema }),
+    buyerFocusSectionSchema.extend({ elements: sectionElementsSchema }),
+    packagingSectionSchema.extend({ elements: sectionElementsSchema }),
+    exportDocumentsSectionSchema.extend({ elements: sectionElementsSchema }),
+    ctaSectionSchema.extend({ elements: sectionElementsSchema }),
+    faqSectionSchema.extend({ elements: sectionElementsSchema }),
   ]
 );
 

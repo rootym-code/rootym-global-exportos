@@ -308,6 +308,8 @@ model Quote {
   contactPerson   String
   email           String
   phone           String?
+  buyerAddress    String?
+buyerGstin      String?
   country         String
   currency        String
   subtotal        Decimal          @default(0) @db.Decimal(18, 2)
@@ -377,6 +379,8 @@ model ProformaInvoice {
   contactPerson  String
   email          String
   phone          String?
+  buyerAddress    String?
+buyerGstin      String?
   country        String
   currency       String
   subtotal       Decimal               @default(0) @db.Decimal(18, 2)

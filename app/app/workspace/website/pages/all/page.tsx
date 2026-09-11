@@ -4,8 +4,8 @@
  * ============================================================
  * Author: Prem Singh
  * Purpose: Provides the authenticated All Pages workspace
- *          for managing tenant-owned CMS pages through the
- *          existing Website-scoped CMS service.
+ *          for managing tenant-owned CMS pages with focused
+ *          search, filtering, viewing and editing actions.
  * ============================================================
  */
 
@@ -18,14 +18,13 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock3,
+  Eye,
   FileText,
   Filter,
-  LayoutDashboard,
   LockKeyhole,
   PenLine,
   Plus,
   Search,
-  Settings,
 } from "lucide-react";
 
 import { CmsPageStatus } from "@/lib/generated/prisma";
@@ -269,58 +268,22 @@ export default async function AllWebsitePagesPage({
     <main className="min-h-screen bg-slate-50 text-slate-900">
       <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8 lg:py-10">
         {/* =====================================================
-            TOP NAVIGATION
+            PAGE HEADER
             ===================================================== */}
-
         <header className="mb-8">
-          <div className="flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-950">
-                <FileText className="h-5 w-5 text-white" />
-              </div>
-
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-600">
-                  ROOTYM
-                </p>
-
-                <p className="text-lg font-bold">
-                  All Pages
-                </p>
-              </div>
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-950">
+              <FileText className="h-5 w-5 text-white" />
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <Link
-                href="/app/workspace/website/pages"
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Pages & Content
-              </Link>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-600">
+                Website
+              </p>
 
-              <Link
-                href="/app/workspace/website"
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-              >
-                Website & Marketing
-              </Link>
-
-              <Link
-                href="/app/workspace"
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-              >
-                <LayoutDashboard className="h-4 w-4" />
-                Workspace
-              </Link>
-
-              <Link
-                href="/settings"
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-              >
-                <Settings className="h-4 w-4" />
-                Settings
-              </Link>
+              <h1 className="text-2xl font-bold tracking-tight">
+                All Pages
+              </h1>
             </div>
           </div>
         </header>
@@ -365,35 +328,6 @@ export default async function AllWebsitePagesPage({
               <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 ring-1 ring-emerald-400/20">
                 <FileText className="h-4 w-4" />
                 {total} {total === 1 ? "Page" : "Pages"}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* =====================================================
-            WEBSITE CONTEXT
-            ===================================================== */}
-
-        <section className="mt-8">
-          <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200 sm:p-7">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-600">
-                  Website
-                </p>
-
-                <h2 className="mt-2 text-xl font-bold">
-                  {website.name}
-                </h2>
-
-                <p className="mt-1 text-sm text-slate-500">
-                  {website.slug}
-                </p>
-              </div>
-
-              <div className="inline-flex w-fit items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-100">
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                Tenant Website
               </div>
             </div>
           </div>
@@ -579,6 +513,19 @@ export default async function AllWebsitePagesPage({
                         )
                         .filter(Boolean);
 
+                    const primaryLanguageCode =
+                      primaryTranslation?.language.code?.trim();
+
+                    const viewSlug =
+                      primaryTranslation?.slug?.trim() || page.slug;
+
+                    const viewHref =
+                      page.status === CmsPageStatus.PUBLISHED &&
+                      primaryLanguageCode &&
+                      viewSlug
+                        ? `/website/${website.slug}/${primaryLanguageCode}/${viewSlug}`
+                        : null;
+
                     return (
                       <div
                         key={page.id}
@@ -669,13 +616,33 @@ export default async function AllWebsitePagesPage({
                             </p>
                           </div>
 
-                          <div>
+                          <div className="flex items-center justify-end gap-2">
+                            {viewHref ? (
+                              <Link
+                                href={viewHref}
+                                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
+                                title="View"
+                                aria-label={`View ${page.title}`}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Link>
+                            ) : (
+                              <span
+                                className="inline-flex h-10 w-10 cursor-not-allowed items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-300"
+                                title="View is available after publishing"
+                                aria-label={`View ${page.title} is unavailable`}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </span>
+                            )}
+
                             <Link
                               href={`/app/workspace/website/pages/${page.id}/edit`}
-                              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+                              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
+                              title="Edit"
+                              aria-label={`Edit ${page.title}`}
                             >
                               <PenLine className="h-4 w-4" />
-                              Edit
                             </Link>
                           </div>
                         </div>
@@ -749,49 +716,6 @@ export default async function AllWebsitePagesPage({
           </section>
         )}
 
-        {/* =====================================================
-            FOOTER
-            ===================================================== */}
-
-        <footer className="mt-10 border-t border-slate-200 pt-6">
-          <div className="flex flex-col gap-4 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <span className="font-semibold text-slate-700">
-                ROOTYM All Pages
-              </span>
-
-              <span className="ml-2">
-                · {website.name}
-              </span>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-5">
-              <Link
-                href="/app/workspace/website/pages"
-                className="inline-flex items-center gap-1.5 transition hover:text-slate-900"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Pages & Content
-              </Link>
-
-              <Link
-                href="/app/workspace"
-                className="inline-flex items-center gap-1.5 transition hover:text-slate-900"
-              >
-                <LayoutDashboard className="h-4 w-4" />
-                Workspace
-              </Link>
-
-              <Link
-                href="/settings"
-                className="inline-flex items-center gap-1.5 transition hover:text-slate-900"
-              >
-                <Settings className="h-4 w-4" />
-                Settings
-              </Link>
-            </div>
-          </div>
-        </footer>
       </div>
     </main>
   );

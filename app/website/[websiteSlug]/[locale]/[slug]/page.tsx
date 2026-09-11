@@ -1,35 +1,24 @@
 /**
  * ============================================================
- * ROOTYM Customer Website Product Detail
+ * ROOTYM Customer Website CMS Page
  * ============================================================
- * Author      : Prem Singh
- * Module      : Public Website
- * Feature     : Customer Website Product Detail
- * Purpose     : Displays a Website-scoped Product Detail page
- *               with Website-scoped active Product Pricing.
+ * Author: Prem Singh
+ * Purpose: Resolves and renders Website-scoped published CMS
+ *          pages using the shared public CMS renderer while
+ *          keeping Product Detail routes under /products/[slug].
  * ============================================================
  */
 
-import Image from "next/image";
-import Link from "next/link";
-import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
-import {
-  ArrowLeft,
-  BadgeCheck,
-  MapPin,
-  Package,
-  Ship,
-} from "lucide-react";
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
+import { renderCmsPageContent } from "@/components/public/cms-page-renderer";
 
-import { Button } from "@/components/ui/Button";
-
-import { getProductBySlug } from "@/lib/services/product.service";
-
-import { getActiveProductPrice } from "@/lib/services/product-pricing.service";
-
+import { CmsPageStatus } from "@/lib/generated/prisma";
 import prisma from "@/lib/prisma";
+import cmsPageService from "@/lib/services/cms/page.service";
 
 type PageProps = {
   params: Promise<{
@@ -39,21 +28,8 @@ type PageProps = {
   }>;
 };
 
-/**
- * ============================================================
- * PUBLIC CUSTOMER WEBSITE PRODUCT METADATA
- * ============================================================
- */
-
-export async function generateMetadata({
-  params,
-}: PageProps): Promise<Metadata> {
-  const {
-    websiteSlug,
-    slug,
-  } = await params;
-
-  const website = await prisma.website.findUnique({
+async function getWebsite(websiteSlug: string) {
+  return prisma.website.findUnique({
     where: {
       slug: websiteSlug,
     },
@@ -62,9 +38,24 @@ export async function generateMetadata({
       name: true,
       isActive: true,
 
+      branding: {
+        select: {
+          logoMedia: {
+            select: {
+              fileUrl: true,
+            },
+          },
+          primaryColor: true,
+          secondaryColor: true,
+          accentColor: true,
+          fontFamily: true,
+        },
+      },
+
       configuration: {
         select: {
           websiteTitle: true,
+          tagline: true,
           websiteDescription: true,
         },
       },
@@ -74,30 +65,100 @@ export async function generateMetadata({
           businessProfile: {
             select: {
               businessName: true,
+              legalName: true,
               description: true,
+            },
+          },
+
+          businessAddress: {
+            select: {
+              addressLine1: true,
+              addressLine2: true,
+              city: true,
+              state: true,
+              postalCode: true,
+              country: true,
+            },
+          },
+
+          businessContactCommunication: {
+            select: {
+              primaryEmail: true,
+              primaryPhone: true,
+              whatsapp: true,
+              linkedinUrl: true,
+              facebookUrl: true,
+              instagramUrl: true,
+              youtubeUrl: true,
             },
           },
         },
       },
     },
   });
+}
+
+async function getPublishedCmsPage(
+  websiteId: string,
+  locale: string,
+  slug: string,
+) {
+  const page = await cmsPageService.getByWebsiteAndSlug(
+    websiteId,
+    slug,
+  );
+
+  if (!page || page.status !== CmsPageStatus.PUBLISHED) {
+    return null;
+  }
+
+  const translation =
+    page.translations.find(
+      (item) =>
+        item.isPublished &&
+        item.language.code.toLowerCase() === locale.toLowerCase(),
+    ) ||
+    page.translations.find(
+      (item) =>
+        item.isPublished &&
+        item.language.code.toLowerCase() === "en",
+    ) ||
+    page.translations.find(
+      (item) => item.isPublished,
+    );
+
+  if (!translation) {
+    return null;
+  }
+
+  return {
+    page,
+    translation,
+  };
+}
+
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
+  const {
+    websiteSlug,
+    locale,
+    slug,
+  } = await params;
+
+  const website = await getWebsite(websiteSlug);
 
   if (!website || !website.isActive) {
     return {};
   }
 
-  /**
-   * ------------------------------------------------------------
-   * Resolve Product within the Website boundary
-   * ------------------------------------------------------------
-   */
-
-  const product = await getProductBySlug(
+  const resolved = await getPublishedCmsPage(
     website.id,
-    slug
+    locale,
+    slug,
   );
 
-  if (!product) {
+  if (!resolved) {
     return {};
   }
 
@@ -106,87 +167,25 @@ export async function generateMetadata({
     website.tenant.businessProfile?.businessName?.trim() ||
     website.name;
 
-  const websiteDescription =
-    website.configuration?.websiteDescription?.trim() ||
-    website.tenant.businessProfile?.description?.trim() ||
-    undefined;
+  const metaTitle =
+    resolved.translation.metaTitle?.trim() ||
+    resolved.translation.title?.trim();
 
   return {
-    title: `${product.name} | ${websiteTitle}`,
+    title: metaTitle
+      ? `${metaTitle} | ${websiteTitle}`
+      : websiteTitle,
+
     description:
-      product.description?.trim() ||
-      websiteDescription ||
-      `Discover ${product.name} from ${websiteTitle}.`,
+      resolved.translation.metaDescription?.trim() ||
+      resolved.translation.excerpt?.trim() ||
+      website.configuration?.websiteDescription?.trim() ||
+      website.tenant.businessProfile?.description?.trim() ||
+      undefined,
   };
 }
 
-/**
- * ============================================================
- * PRODUCT IMAGE RESOLVER
- * ============================================================
- */
-
-function getProductImageUrl(
-  fileUrl?: string | null
-) {
-  if (!fileUrl) {
-    return "/images/products/placeholder.png";
-  }
-
-  if (fileUrl.startsWith("http")) {
-    return fileUrl;
-  }
-
-  return `${process.env.NEXT_PUBLIC_SITE_URL}${fileUrl}`;
-}
-
-/**
- * ============================================================
- * PRODUCT PRICE FORMATTER
- * ============================================================
- *
- * FIXED:
- *   Displays currency + configured price.
- *
- * MARKET:
- *   Displays currency + price when available.
- *   Otherwise displays Price on Request.
- *
- * No active pricing:
- *   Price on Request.
- * ============================================================
- */
-
-function formatPrice(
-  pricing: Awaited<
-    ReturnType<typeof getActiveProductPrice>
-  >
-) {
-  if (!pricing) {
-    return "Price on Request";
-  }
-
-  if (
-    pricing.price !== null &&
-    pricing.price !== undefined
-  ) {
-    const price = Number(pricing.price);
-
-    if (!Number.isNaN(price)) {
-      return `${pricing.currency} ${price.toFixed(2)}`;
-    }
-  }
-
-  return "Price on Request";
-}
-
-/**
- * ============================================================
- * PUBLIC CUSTOMER WEBSITE PRODUCT PAGE
- * ============================================================
- */
-
-export default async function CustomerWebsiteProductPage({
+export default async function CustomerWebsiteCmsPage({
   params,
 }: PageProps) {
   const {
@@ -195,352 +194,93 @@ export default async function CustomerWebsiteProductPage({
     slug,
   } = await params;
 
-  /**
-   * ------------------------------------------------------------
-   * Resolve Website
-   * ------------------------------------------------------------
-   */
-
-  const website = await prisma.website.findUnique({
-    where: {
-      slug: websiteSlug,
-    },
-    select: {
-      id: true,
-      name: true,
-      isActive: true,
-    },
-  });
+  const website = await getWebsite(websiteSlug);
 
   if (!website || !website.isActive) {
     notFound();
   }
 
-  /**
-   * ------------------------------------------------------------
-   * Resolve Product within the Website boundary
-   * ------------------------------------------------------------
-   *
-   * Product is Website-owned.
-   *
-   * Therefore the Website ID MUST be passed to the
-   * Product service.
-   * ------------------------------------------------------------
-   */
-
-  const product = await getProductBySlug(
+  const resolved = await getPublishedCmsPage(
     website.id,
-    slug
+    locale,
+    slug,
   );
 
-  if (!product) {
+  if (!resolved) {
     notFound();
   }
 
-  /**
-   * ------------------------------------------------------------
-   * Resolve active Website-scoped Product Pricing
-   * ------------------------------------------------------------
-   *
-   * Only pricing belonging to this Website and Product
-   * is eligible for display.
-   *
-   * The pricing service also checks:
-   * - isActive
-   * - validFrom
-   * - validTo
-   * ------------------------------------------------------------
-   */
+  const businessProfile =
+    website.tenant.businessProfile;
 
-  const activePricing =
-    await getActiveProductPrice(
-      website.id,
-      product.id
+  const websiteBranding = {
+    companyName:
+      businessProfile?.businessName?.trim() ||
+      website.name,
+
+    logoMediaUrl:
+      website.branding?.logoMedia?.fileUrl ??
+      null,
+
+    primaryColor:
+      website.branding?.primaryColor ??
+      null,
+
+    secondaryColor:
+      website.branding?.secondaryColor ??
+      null,
+
+    accentColor:
+      website.branding?.accentColor ??
+      null,
+
+    fontFamily:
+      website.branding?.fontFamily ??
+      null,
+  };
+
+  const pageContent = renderCmsPageContent({
+    translation: resolved.translation,
+    pageTemplate: resolved.page.template,
+    locale,
+    branding: websiteBranding,
+  });
+
+  if (resolved.page.layout === "WEBSITE") {
+    return (
+      <>
+        <Navbar
+          websiteBranding={websiteBranding}
+        />
+
+        {pageContent}
+
+        <Footer
+          websiteSlug={websiteSlug}
+          locale={locale}
+          websiteBranding={websiteBranding}
+          websiteConfiguration={
+            website.configuration
+          }
+          businessIdentity={{
+            businessName:
+              businessProfile?.businessName ??
+              null,
+            legalName:
+              businessProfile?.legalName ??
+              null,
+          }}
+          businessAddress={
+            website.tenant.businessAddress
+          }
+          businessContactCommunication={
+            website.tenant
+              .businessContactCommunication
+          }
+        />
+      </>
     );
+  }
 
-  /**
-   * ------------------------------------------------------------
-   * Product Presentation Data
-   * ------------------------------------------------------------
-   */
-
-  const imageUrl = getProductImageUrl(
-    product.featuredImage?.fileUrl
-  );
-
-  const description =
-    product.description ??
-    "Premium export-quality agricultural product sourced directly from trusted farms across India and prepared for international markets with strict quality control.";
-
-  const packaging =
-    product.defaultUnit
-      ? `Available in ${product.defaultUnit} units`
-      : "Export packaging available";
-
-  const availability = "Available for Export";
-
-  const priceDisplay =
-    formatPrice(activePricing);
-
-  /**
-   * ------------------------------------------------------------
-   * Customer Website Navigation
-   * ------------------------------------------------------------
-   */
-
-  const productsHref =
-    `/website/${websiteSlug}/${locale}/products`;
-
-  const requestQuoteHref =
-    `/website/${websiteSlug}/${locale}/request-quote`;
-
-  return (
-    <main className="min-h-screen bg-gray-50">
-      <section className="mx-auto max-w-7xl px-6 py-14">
-        <Link
-          href={productsHref}
-          className="mb-10 inline-flex items-center gap-2 text-[#2E7D32] hover:underline"
-        >
-          <ArrowLeft className="h-5 w-5" />
-          Back to Products
-        </Link>
-
-        <div className="grid gap-14 lg:grid-cols-2">
-          {/* ==================================================
-              LEFT - PRODUCT IMAGE
-              ================================================== */}
-
-          <div className="rounded-3xl bg-white p-8 shadow-xl">
-            <div className="relative aspect-square">
-              <Image
-                src={imageUrl}
-                alt={product.name}
-                fill
-                sizes="(max-width: 768px) 100vw, 50vw"
-                className="object-contain"
-                priority
-                unoptimized
-              />
-            </div>
-          </div>
-
-          {/* ==================================================
-              RIGHT - PRODUCT INFORMATION
-              ================================================== */}
-
-          <div>
-            <span className="rounded-full bg-green-100 px-4 py-2 text-sm font-semibold text-[#2E7D32]">
-              {product.category ??
-                "Agricultural Product"}
-            </span>
-
-            <h1 className="mt-6 text-5xl font-bold text-gray-900">
-              {product.name}
-            </h1>
-
-            <p className="mt-4 text-lg leading-8 text-gray-600">
-              {description}
-            </p>
-
-            {/* ==================================================
-                PRODUCT PRICING
-                ================================================== */}
-
-            <div className="mt-8 rounded-2xl bg-white p-6 shadow-md">
-              <p className="text-sm font-medium text-gray-500">
-                Price
-              </p>
-
-              <p className="mt-2 text-3xl font-bold text-[#2E7D32]">
-                {priceDisplay}
-              </p>
-
-              {/* MARKET pricing */}
-              {activePricing?.pricingType ===
-                "MARKET" && (
-                <p className="mt-2 text-sm text-gray-500">
-                  Latest market pricing may vary.
-                </p>
-              )}
-
-              {/* FIXED pricing */}
-              {activePricing?.pricingType ===
-                "FIXED" &&
-                product.defaultUnit && (
-                  <p className="mt-2 text-sm text-gray-500">
-                    Per {product.defaultUnit}
-                  </p>
-                )}
-
-              {/* No active pricing */}
-              {!activePricing && (
-                <p className="mt-2 text-sm text-gray-500">
-                  Contact us for the latest quotation.
-                </p>
-              )}
-            </div>
-
-            {/* ==================================================
-                PRODUCT INFORMATION
-                ================================================== */}
-
-            <div className="mt-10 space-y-5">
-              <InfoRow
-                icon={
-                  <MapPin className="h-5 w-5" />
-                }
-                title="Origin"
-                value={
-                  product.origin ?? "India"
-                }
-              />
-
-              <InfoRow
-                icon={
-                  <Package className="h-5 w-5" />
-                }
-                title="Packaging"
-                value={packaging}
-              />
-
-              <InfoRow
-                icon={
-                  <Ship className="h-5 w-5" />
-                }
-                title="Availability"
-                value={availability}
-              />
-            </div>
-
-            {/* ==================================================
-                PRODUCT BADGES
-                ================================================== */}
-
-            <div className="mt-10 flex flex-wrap gap-3">
-              <Badge text="APEDA Registered" />
-
-              <Badge text="Export Ready" />
-
-              <Badge text="Premium Quality" />
-
-              <Badge text="Global Logistics" />
-
-              {product.hsCode && (
-                <Badge
-                  text={`HS Code: ${product.hsCode}`}
-                />
-              )}
-            </div>
-
-            {/* ==================================================
-                ACTIONS
-                ================================================== */}
-
-            <div className="mt-12 flex flex-col gap-4 sm:flex-row">
-              <Link href={requestQuoteHref}>
-                <Button>
-                  Request Quotation
-                </Button>
-              </Link>
-
-              <Button variant="secondary">
-                Download Specification
-              </Button>
-            </div>
-
-            {/* ==================================================
-                WHY ROOTYM
-                ================================================== */}
-
-            <div className="mt-12 rounded-2xl bg-white p-6 shadow">
-              <div className="flex items-center gap-3">
-                <BadgeCheck className="h-6 w-6 text-[#2E7D32]" />
-
-                <h3 className="text-lg font-semibold">
-                  Why Buy From ROOTYM?
-                </h3>
-              </div>
-
-              <ul className="mt-5 space-y-3 text-gray-600">
-                <li>
-                  ✓ Direct sourcing from trusted
-                  farmers
-                </li>
-
-                <li>
-                  ✓ Export documentation
-                  assistance
-                </li>
-
-                <li>
-                  ✓ Quality inspection before
-                  shipment
-                </li>
-
-                <li>
-                  ✓ Worldwide logistics support
-                </li>
-
-                <li>
-                  ✓ Dedicated importer assistance
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-    </main>
-  );
-}
-
-/**
- * ============================================================
- * INFORMATION ROW
- * ============================================================
- */
-
-function InfoRow({
-  icon,
-  title,
-  value,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  value: string;
-}) {
-  return (
-    <div className="flex items-center gap-4 rounded-2xl bg-white p-5 shadow-sm">
-      <div className="text-[#2E7D32]">
-        {icon}
-      </div>
-
-      <div>
-        <p className="text-sm text-gray-500">
-          {title}
-        </p>
-
-        <p className="font-semibold text-gray-900">
-          {value}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-/**
- * ============================================================
- * PRODUCT BADGE
- * ============================================================
- */
-
-function Badge({
-  text,
-}: {
-  text: string;
-}) {
-  return (
-    <span className="rounded-full bg-green-100 px-4 py-2 text-sm font-semibold text-[#2E7D32]">
-      {text}
-    </span>
-  );
+  return pageContent;
 }

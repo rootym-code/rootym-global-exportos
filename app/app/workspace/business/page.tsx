@@ -3,368 +3,742 @@
  * ROOTYM Customer Workspace
  * ============================================================
  * Author: Prem Singh
- * Purpose: Provides the authenticated Business Configuration
- *          workspace area for managing customer business,
- *          compliance, operating and workspace settings.
+ * Purpose: Consolidates related Business Settings into a single
+ *          searchable, sectioned workspace while preserving the
+ *          existing tenant-scoped forms, services and permissions.
  * ============================================================
  */
 
 import Link from "next/link";
-
 import {
   ArrowLeft,
-  ArrowRight,
   Building2,
   FileCheck2,
   Globe2,
-  LayoutDashboard,
-  Settings,
+  Mail,
+  MapPin,
   ShieldCheck,
-  SlidersHorizontal,
   UsersRound,
   WalletCards,
+  SlidersHorizontal,
 } from "lucide-react";
 
+import BusinessSettingsShell from "./BusinessSettingsShell";
+
+import BusinessAddressForm from "./address/BusinessAddressForm";
+import BusinessContactCommunicationForm from "./contact-communication/BusinessContactCommunicationForm";
+import BusinessExportCredentialsForm from "./export-credentials/BusinessExportCredentialsForm";
+import BusinessFinancialSettingsForm from "./financial-settings/BusinessFinancialSettingsForm";
+import BusinessOperatingPreferencesForm from "./operating-preferences/BusinessOperatingPreferencesForm";
+import BusinessProfileForm from "./profile/BusinessProfileForm";
+import BusinessTaxComplianceForm from "./tax-compliance/BusinessTaxComplianceForm";
+import TeamAccessInviteForm from "./team-access/TeamAccessInviteForm";
+import TeamAccessMemberActions from "./team-access/TeamAccessMemberActions";
+
+import getBusinessAddress from "@/app/lib/workspace/business/business-address.service";
+import { getBusinessContactCommunication } from "@/app/lib/workspace/business/business-contact-communication.service";
+import { getBusinessExportCredentials } from "@/app/lib/workspace/business/business-export-credentials.service";
+import { getBusinessFinancialSettings } from "@/app/lib/workspace/business/business-financial-settings.service";
+import { getBusinessOperatingPreferences } from "@/app/lib/workspace/business/business-operating-preferences.service";
+import { getBusinessProfile } from "@/app/lib/workspace/business/business-profile.service";
+import { getBusinessTaxCompliance } from "@/app/lib/workspace/business/business-tax-compliance.service";
+import { getTeamAccess } from "@/app/lib/workspace/business/team-access.service";
 import { requireWorkspaceAccess } from "@/app/lib/workspace/require-workspace-access";
 
-const businessModules = [
-  {
-    title: "Business Profile",
-    description:
-      "Manage the core business identity and information associated with your ROOTYM workspace.",
-    icon: Building2,
-    status: "Available",
-    href: "/app/workspace/business/profile",
-  },
-  {
-    title: "Business Address",
-    description:
-      "Manage the primary business address associated with your ROOTYM workspace.",
-    icon: Building2,
-    status: "Available",
-    href: "/app/workspace/business/address",
-  },
-  {
-    title: "Company Information",
-    description:
-      "Maintain legal name, registered address, contact details and other company information.",
-    icon: Building2,
-    status: "Available",
-    href: "/app/workspace/business/company-information",
-  },
-  {
-    title: "Contact & Communication",
-    description:
-      "Configure business email, phone, WhatsApp and other customer communication details.",
-    icon: UsersRound,
-    status: "Available",
-    href: "/app/workspace/business/contact-communication",
-  },
-  {
-    title: "Export Credentials",
-    description:
-      "Manage export-related business credentials and identification information.",
-    icon: Globe2,
-    status: "Available",
-    href: "/app/workspace/business/export-credentials",
-  },
-  {
-    title: "Tax & Compliance",
-    description:
-      "Configure tax, regulatory and compliance information required for export operations.",
-    icon: FileCheck2,
-    status: "Available",
-    href: "/app/workspace/business/tax-compliance",
-  },
-  {
-    title: "Financial Settings",
-    description:
-      "Manage business financial configuration used by future ROOTYM operational workflows.",
-    icon: WalletCards,
-    status: "Available",
-    href: "/app/workspace/business/financial-settings",
-  },
-  {
-    title: "Operating Preferences",
-    description:
-      "Configure business operating preferences and defaults used across ROOTYM applications.",
-    icon: SlidersHorizontal,
-    status: "Available",
-    href: "/app/workspace/business/operating-preferences",
-  },
-  {
-    title: "Team & Access",
-    description:
-      "Manage future workspace users, roles and access permissions for your business.",
-    icon: ShieldCheck,
-    status: "Available",
-    href: "/app/workspace/business/team-access",
-  },
-];
+export const dynamic = "force-dynamic";
+
+function getRoleLabel(role: string) {
+  switch (role) {
+    case "OWNER":
+      return "Owner";
+    case "ADMIN":
+      return "Administrator";
+    case "MEMBER":
+      return "Member";
+    default:
+      return role;
+  }
+}
+
+function getRoleDescription(role: string) {
+  switch (role) {
+    case "OWNER":
+      return "Full workspace ownership and administrative access.";
+    case "ADMIN":
+      return "Administrative access to the workspace.";
+    case "MEMBER":
+      return "Standard workspace member access.";
+    default:
+      return "Workspace membership access.";
+  }
+}
+
+function formatDate(value: Date | string | null | undefined) {
+  if (!value) {
+    return "Not configured";
+  }
+
+  const date = value instanceof Date ? value : new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Not configured";
+  }
+
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
+
+function dateInput(value: Date | string | null | undefined) {
+  if (!value) {
+    return "";
+  }
+
+  const date = value instanceof Date ? value : new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return date.toISOString().split("T")[0];
+}
 
 export default async function BusinessConfigurationPage() {
-  const workspace = await requireWorkspaceAccess();
+  const { tenant, membership } = await requireWorkspaceAccess();
 
-  const { membership } = workspace;
+  // Keep these tenant-scoped reads sequentially. The project has a small
+  // Prisma connection pool, so parallelizing eight service reads here
+  // would unnecessarily increase connection pressure.
+  const businessProfile = await getBusinessProfile();
+  const businessAddress = await getBusinessAddress();
+  const contactCommunication = await getBusinessContactCommunication();
+  const exportCredentials = await getBusinessExportCredentials();
+  const financialSettings = await getBusinessFinancialSettings();
+  const operatingPreferences = await getBusinessOperatingPreferences();
+  const taxCompliance = await getBusinessTaxCompliance();
+  const teamAccess = await getTeamAccess();
+
+  const canEdit =
+    membership.role === "OWNER" || membership.role === "ADMIN";
+
+  const profileInitialData = businessProfile
+    ? {
+        businessName: businessProfile.businessName,
+        legalName: businessProfile.legalName ?? "",
+        businessType: businessProfile.businessType ?? "",
+        email: businessProfile.email ?? "",
+        phone: businessProfile.phone ?? "",
+        country: businessProfile.country ?? "",
+        website: businessProfile.website ?? "",
+        description: businessProfile.description ?? "",
+      }
+    : null;
+
+  const addressInitialData = {
+    addressLine1: businessAddress?.addressLine1 ?? "",
+    addressLine2: businessAddress?.addressLine2 ?? "",
+    city: businessAddress?.city ?? "",
+    state: businessAddress?.state ?? "",
+    postalCode: businessAddress?.postalCode ?? "",
+    country: businessAddress?.country ?? "",
+  };
+
+  const contactInitialData = {
+    primaryEmail: contactCommunication?.primaryEmail ?? "",
+    alternateEmail1: contactCommunication?.alternateEmail1 ?? "",
+    alternateEmail2: contactCommunication?.alternateEmail2 ?? "",
+    salesEmail: contactCommunication?.salesEmail ?? "",
+    infoEmail: contactCommunication?.infoEmail ?? "",
+    primaryPhone: contactCommunication?.primaryPhone ?? "",
+    alternatePhone: contactCommunication?.alternatePhone ?? "",
+    whatsapp: contactCommunication?.whatsapp ?? "",
+    linkedinUrl: contactCommunication?.linkedinUrl ?? "",
+    facebookUrl: contactCommunication?.facebookUrl ?? "",
+    instagramUrl: contactCommunication?.instagramUrl ?? "",
+    youtubeUrl: contactCommunication?.youtubeUrl ?? "",
+    googleBusinessUrl: contactCommunication?.googleBusinessUrl ?? "",
+    xTwitterUrl: contactCommunication?.xTwitterUrl ?? "",
+    pinterestUrl: contactCommunication?.pinterestUrl ?? "",
+    otherSocialUrls: contactCommunication?.otherSocialUrls ?? "",
+  };
+
+  const exportInitialData = {
+    iecNumber: exportCredentials?.iecNumber ?? "",
+    iecStatus: exportCredentials?.iecStatus ?? "",
+    iecIssueDate: dateInput(exportCredentials?.iecIssueDate),
+    dgftProfileUrl: exportCredentials?.dgftProfileUrl ?? "",
+    gstin: exportCredentials?.gstin ?? "",
+    gstStatus: exportCredentials?.gstStatus ?? "",
+    gstRegistrationDate: dateInput(exportCredentials?.gstRegistrationDate),
+    udyamNumber: exportCredentials?.udyamNumber ?? "",
+    udyamStatus: exportCredentials?.udyamStatus ?? "",
+    udyamRegistrationDate: dateInput(exportCredentials?.udyamRegistrationDate),
+    adCode: exportCredentials?.adCode ?? "",
+    adCodeStatus: exportCredentials?.adCodeStatus ?? "",
+    adCodeBankName: exportCredentials?.adCodeBankName ?? "",
+    icegateRegistrationId: exportCredentials?.icegateRegistrationId ?? "",
+    icegateStatus: exportCredentials?.icegateStatus ?? "",
+    rcmcNumber: exportCredentials?.rcmcNumber ?? "",
+    rcmcIssuingAuthority: exportCredentials?.rcmcIssuingAuthority ?? "",
+    rcmcStatus: exportCredentials?.rcmcStatus ?? "",
+    rcmcIssueDate: dateInput(exportCredentials?.rcmcIssueDate),
+    rcmcExpiryDate: dateInput(exportCredentials?.rcmcExpiryDate),
+    otherLicense1Name: exportCredentials?.otherLicense1Name ?? "",
+    otherLicense1Number: exportCredentials?.otherLicense1Number ?? "",
+    otherLicense1Status: exportCredentials?.otherLicense1Status ?? "",
+    otherLicense1ExpiryDate: dateInput(exportCredentials?.otherLicense1ExpiryDate),
+    otherLicense2Name: exportCredentials?.otherLicense2Name ?? "",
+    otherLicense2Number: exportCredentials?.otherLicense2Number ?? "",
+    otherLicense2Status: exportCredentials?.otherLicense2Status ?? "",
+    otherLicense2ExpiryDate: dateInput(exportCredentials?.otherLicense2ExpiryDate),
+    otherLicense3Name: exportCredentials?.otherLicense3Name ?? "",
+    otherLicense3Number: exportCredentials?.otherLicense3Number ?? "",
+    otherLicense3Status: exportCredentials?.otherLicense3Status ?? "",
+    otherLicense3ExpiryDate: dateInput(exportCredentials?.otherLicense3ExpiryDate),
+    notes: exportCredentials?.notes ?? "",
+  };
+
+  const financialInitialData = financialSettings
+    ? {
+        baseCurrency: financialSettings.baseCurrency ?? "",
+        defaultInvoiceCurrency:
+          financialSettings.defaultInvoiceCurrency ?? "",
+        currencyNotes: financialSettings.currencyNotes ?? "",
+        defaultPaymentTermsDays:
+          financialSettings.defaultPaymentTermsDays ?? undefined,
+        defaultPaymentMethod:
+          financialSettings.defaultPaymentMethod ?? "",
+        paymentTermsNotes:
+          financialSettings.paymentTermsNotes ?? "",
+        beneficiaryName: financialSettings.beneficiaryName ?? "",
+        bankName: financialSettings.bankName ?? "",
+        branchName: financialSettings.branchName ?? "",
+        accountNumber: financialSettings.accountNumber ?? "",
+        accountCurrency: financialSettings.accountCurrency ?? "",
+        ifscCode: financialSettings.ifscCode ?? "",
+        swiftBic: financialSettings.swiftBic ?? "",
+        iban: financialSettings.iban ?? "",
+        bankAddress: financialSettings.bankAddress ?? "",
+        bankCountry: financialSettings.bankCountry ?? "",
+        remittanceBankName:
+          financialSettings.remittanceBankName ?? "",
+        remittanceBankSwiftBic:
+          financialSettings.remittanceBankSwiftBic ?? "",
+        correspondentBankName:
+          financialSettings.correspondentBankName ?? "",
+        correspondentBankSwiftBic:
+          financialSettings.correspondentBankSwiftBic ?? "",
+        intermediaryBankName:
+          financialSettings.intermediaryBankName ?? "",
+        intermediaryBankSwiftBic:
+          financialSettings.intermediaryBankSwiftBic ?? "",
+        foreignBankAccountNumber:
+          financialSettings.foreignBankAccountNumber ?? "",
+        foreignBankIban:
+          financialSettings.foreignBankIban ?? "",
+        routingOrSortCode:
+          financialSettings.routingOrSortCode ?? "",
+        remittanceCurrency:
+          financialSettings.remittanceCurrency ?? "",
+        rbiPurposeCode:
+          financialSettings.rbiPurposeCode ?? "",
+        foreignRemittanceInstructions:
+          financialSettings.foreignRemittanceInstructions ?? "",
+        remittanceReferenceInstructions:
+          financialSettings.remittanceReferenceInstructions ?? "",
+        bankChargesArrangement:
+          financialSettings.bankChargesArrangement ?? "",
+        foreignRemittanceNotes:
+          financialSettings.foreignRemittanceNotes ?? "",
+      }
+    : null;
+
+  const operatingInitialData = operatingPreferences
+    ? {
+        defaultOrderProcessingPriority:
+          operatingPreferences.defaultOrderProcessingPriority ?? "",
+        defaultShipmentMode:
+          operatingPreferences.defaultShipmentMode ?? "",
+        defaultIncoterm:
+          operatingPreferences.defaultIncoterm ?? "",
+        defaultPortOfLoading:
+          operatingPreferences.defaultPortOfLoading ?? "",
+        defaultDestinationHandling:
+          operatingPreferences.defaultDestinationHandling ?? "",
+        allowPartialShipment:
+          operatingPreferences.allowPartialShipment ?? false,
+        allowSplitShipment:
+          operatingPreferences.allowSplitShipment ?? false,
+        defaultDocumentLanguage:
+          operatingPreferences.defaultDocumentLanguage ?? "",
+        documentNumberingPreference:
+          operatingPreferences.documentNumberingPreference ?? "",
+        invoiceNumberPrefix:
+          operatingPreferences.invoiceNumberPrefix ?? "",
+        quoteNumberPrefix:
+          operatingPreferences.quoteNumberPrefix ?? "",
+        packingListNumberPrefix:
+          operatingPreferences.packingListNumberPrefix ?? "",
+        shippingDocumentNumberPrefix:
+          operatingPreferences.shippingDocumentNumberPrefix ?? "",
+        documentNotes:
+          operatingPreferences.documentNotes ?? "",
+        defaultTransportMode:
+          operatingPreferences.defaultTransportMode ?? "",
+        defaultShipmentType:
+          operatingPreferences.defaultShipmentType ?? "",
+        defaultPackageUnit:
+          operatingPreferences.defaultPackageUnit ?? "",
+        defaultWeightUnit:
+          operatingPreferences.defaultWeightUnit ?? "",
+        defaultDimensionUnit:
+          operatingPreferences.defaultDimensionUnit ?? "",
+        shipmentHandlingInstructions:
+          operatingPreferences.shipmentHandlingInstructions ?? "",
+        defaultCustomerCommunicationChannel:
+          operatingPreferences.defaultCustomerCommunicationChannel ?? "",
+        internalApprovalRequired:
+          operatingPreferences.internalApprovalRequired ?? false,
+        orderApprovalRequired:
+          operatingPreferences.orderApprovalRequired ?? false,
+        shipmentApprovalRequired:
+          operatingPreferences.shipmentApprovalRequired ?? false,
+        documentApprovalRequired:
+          operatingPreferences.documentApprovalRequired ?? false,
+        workflowNotes:
+          operatingPreferences.workflowNotes ?? "",
+        businessWorkingDays:
+          operatingPreferences.businessWorkingDays ?? "",
+        businessTimezone:
+          operatingPreferences.businessTimezone ?? "",
+        defaultDateFormat:
+          operatingPreferences.defaultDateFormat ?? "",
+        defaultNumberFormat:
+          operatingPreferences.defaultNumberFormat ?? "",
+        operationalNotes:
+          operatingPreferences.operationalNotes ?? "",
+      }
+    : null;
+
+  const taxInitialData = taxCompliance
+    ? {
+        gstRegistrationType: taxCompliance.gstRegistrationType ?? "",
+        gstExportTreatment: taxCompliance.gstExportTreatment ?? "",
+        defaultTaxRate:
+          taxCompliance.defaultTaxRate === null ||
+          taxCompliance.defaultTaxRate === undefined
+            ? undefined
+            : Number(taxCompliance.defaultTaxRate),
+        taxNotes: taxCompliance.taxNotes ?? "",
+        lutBondStatus: taxCompliance.lutBondStatus ?? "",
+        lutBondNumber: taxCompliance.lutBondNumber ?? "",
+        lutBondFinancialYear:
+          taxCompliance.lutBondFinancialYear ?? "",
+        lutBondIssueDate: dateInput(taxCompliance.lutBondIssueDate),
+        lutBondExpiryDate: dateInput(taxCompliance.lutBondExpiryDate),
+        tdsApplicable: taxCompliance.tdsApplicable,
+        tdsNotes: taxCompliance.tdsNotes ?? "",
+        tcsApplicable: taxCompliance.tcsApplicable,
+        tcsNotes: taxCompliance.tcsNotes ?? "",
+        complianceStatus:
+          taxCompliance.complianceStatus ?? "",
+        nextComplianceDate:
+          dateInput(taxCompliance.nextComplianceDate),
+        complianceNotes:
+          taxCompliance.complianceNotes ?? "",
+      }
+    : null;
+
+  const activeMembers = teamAccess.members.filter(
+    (member) => member.isActive
+  );
+
+  const canManageAccess =
+    membership.role === "OWNER" || membership.role === "ADMIN";
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8 lg:py-10">
-        {/* =====================================================
-            TOP NAVIGATION
-            ===================================================== */}
-
-        <header className="mb-8">
-          <div className="flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-950">
-                <Building2 className="h-5 w-5 text-white" />
-              </div>
-
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-600">
-                  ROOTYM
-                </p>
-
-                <p className="text-lg font-bold">
-                  Business Configuration
-                </p>
-              </div>
+    <BusinessSettingsShell>
+      <header className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-col gap-5 p-7 sm:flex-row sm:items-center sm:justify-between sm:p-8">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950">
+              <Building2 className="h-5 w-5 text-white" />
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <Link
-                href="/app/workspace"
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Workspace
-              </Link>
-
-              <Link
-                href="/settings"
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-              >
-                <Settings className="h-4 w-4" />
-                Settings
-              </Link>
-            </div>
-          </div>
-        </header>
-
-        {/* =====================================================
-            MODULE HEADER
-            ===================================================== */}
-
-        <section className="rounded-3xl bg-slate-950 p-7 text-white shadow-sm sm:p-9">
-          <div className="flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-3xl">
-              <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.16em] text-emerald-400">
-                <Building2 className="h-4 w-4" />
-                Business Configuration
-              </div>
-
-              <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
-                Configure your business
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-600">
+                ROOTYM
+              </p>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-950">
+                Business Settings
               </h1>
-
-              <p className="mt-5 max-w-2xl text-sm leading-7 text-slate-300 sm:text-base">
-                Manage the business information, compliance details,
-                operating preferences and workspace configuration used
-                across your ROOTYM environment.
+              <p className="mt-1 text-sm text-slate-500">
+                {tenant.name}
               </p>
             </div>
+          </div>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold ring-1 ring-white/10">
-                <ShieldCheck className="h-4 w-4 text-emerald-400" />
-                {String(membership.role)}
-              </div>
+          <Link
+            href="/app/workspace"
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Workspace Home
+          </Link>
+        </div>
+      </header>
 
-              <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 ring-1 ring-emerald-400/20">
-                All Modules Available
-              </div>
+      <section
+        id="identity"
+        className="scroll-mt-6 rounded-3xl border border-slate-200 bg-white shadow-sm"
+      >
+        <SectionHeader
+          icon={<Building2 className="h-5 w-5 text-white" />}
+          eyebrow="Company & Identity"
+          title="Business identity and address"
+          description="Keep your core company profile and primary business location together."
+        />
+
+        <div className="space-y-8 p-6 sm:p-8">
+          <div>
+            <SubHeader
+              icon={<Building2 className="h-4 w-4 text-slate-700" />}
+              title="Business Profile"
+              description="Core business identity used across ROOTYM."
+            />
+            <BusinessProfileForm
+              initialData={profileInitialData}
+              canEdit={canEdit}
+            />
+          </div>
+
+          <div className="border-t border-slate-200 pt-8">
+            <SubHeader
+              icon={<MapPin className="h-4 w-4 text-slate-700" />}
+              title="Primary Business Address"
+              description="Registered or primary operating address for the business."
+            />
+            <BusinessAddressForm
+              initialData={addressInitialData}
+              canEdit={canEdit}
+            />
+          </div>
+
+        </div>
+      </section>
+
+      <section
+        id="contact"
+        className="scroll-mt-6 rounded-3xl border border-slate-200 bg-white shadow-sm"
+      >
+        <SectionHeader
+          icon={<UsersRound className="h-5 w-5 text-white" />}
+          eyebrow="Contact & Online Presence"
+          title="Contact, communication and social channels"
+          description="Manage business email addresses, phone numbers, WhatsApp and online presence in one place."
+        />
+
+        <div className="p-6 sm:p-8">
+          <BusinessContactCommunicationForm
+            initialData={contactInitialData}
+            canEdit={canEdit}
+          />
+        </div>
+      </section>
+
+      <section
+        id="compliance"
+        className="scroll-mt-6 rounded-3xl border border-slate-200 bg-white shadow-sm"
+      >
+        <SectionHeader
+          icon={<FileCheck2 className="h-5 w-5 text-white" />}
+          eyebrow="Export & Compliance"
+          title="Export credentials and tax compliance"
+          description="Keep export registrations and tax/compliance configuration together so regulatory settings are easier to find."
+        />
+
+        <div className="space-y-8 p-6 sm:p-8">
+          <div>
+            <SubHeader
+              icon={<Globe2 className="h-4 w-4 text-slate-700" />}
+              title="Export Credentials"
+              description="IEC, DGFT, GST registration, Udyam, AD Code, ICEGATE, RCMC and other registrations."
+            />
+            <BusinessExportCredentialsForm
+              initialData={exportInitialData}
+              canEdit={canEdit}
+            />
+          </div>
+
+          <div className="border-t border-slate-200 pt-8">
+            <SubHeader
+              icon={<ShieldCheck className="h-4 w-4 text-slate-700" />}
+              title="Tax & Compliance"
+              description="GST treatment, LUT, TDS/TCS and compliance tracking."
+            />
+            <BusinessTaxComplianceForm
+              initialData={taxInitialData}
+              canEdit={canEdit}
+            />
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="finance"
+        className="scroll-mt-6 rounded-3xl border border-slate-200 bg-white shadow-sm"
+      >
+        <SectionHeader
+          icon={<WalletCards className="h-5 w-5 text-white" />}
+          eyebrow="Finance & Payments"
+          title="Currency, payment and banking"
+          description="Keep commercial payment defaults, beneficiary details and foreign remittance settings together."
+        />
+
+        <div className="p-6 sm:p-8">
+          <BusinessFinancialSettingsForm
+            initialData={financialInitialData}
+            canEdit={canEdit}
+          />
+        </div>
+      </section>
+
+      <section
+        id="operations"
+        className="scroll-mt-6 rounded-3xl border border-slate-200 bg-white shadow-sm"
+      >
+        <SectionHeader
+          icon={<SlidersHorizontal className="h-5 w-5 text-white" />}
+          eyebrow="Operations & Documents"
+          title="Operational defaults and workflows"
+          description="Manage order, shipment, document, communication and working preferences from one place."
+        />
+
+        <div className="p-6 sm:p-8">
+          <BusinessOperatingPreferencesForm
+            initialData={operatingInitialData}
+            canEdit={canEdit}
+          />
+        </div>
+      </section>
+
+      <section
+        id="access"
+        className="scroll-mt-6 rounded-3xl border border-slate-200 bg-white shadow-sm"
+      >
+        <SectionHeader
+          icon={<ShieldCheck className="h-5 w-5 text-white" />}
+          eyebrow="Team & Access"
+          title="Workspace members and permissions"
+          description="Invite users, review membership roles and manage authorized workspace access."
+        />
+
+        <div className="space-y-8 p-6 sm:p-8">
+          <div className="grid gap-4 md:grid-cols-3">
+            <InfoCard
+              label="Total Members"
+              value={String(teamAccess.members.length)}
+            />
+            <InfoCard
+              label="Active Members"
+              value={String(activeMembers.length)}
+            />
+            <InfoCard
+              label="Your Role"
+              value={getRoleLabel(membership.role)}
+            />
+          </div>
+
+          {canManageAccess ? (
+            <div className="border-t border-slate-200 pt-8">
+              <SubHeader
+                icon={<Mail className="h-4 w-4 text-slate-700" />}
+                title="Invite a Team Member"
+                description="Create a tenant-scoped workspace invitation."
+              />
+              <TeamAccessInviteForm />
             </div>
-          </div>
-        </section>
+          ) : null}
 
-        {/* =====================================================
-            WORKSPACE CONTEXT
-            ===================================================== */}
+          <div className="border-t border-slate-200 pt-8">
+            <SubHeader
+              icon={<UsersRound className="h-4 w-4 text-slate-700" />}
+              title="Workspace Members"
+              description="Users currently associated with this workspace."
+            />
 
-        <section className="mt-8">
-          <div className="rounded-3xl bg-white p-7 shadow-sm ring-1 ring-slate-200 sm:p-8">
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-emerald-600">
-                  Workspace
+            {teamAccess.members.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-300 px-6 py-12 text-center">
+                <UsersRound className="mx-auto h-10 w-10 text-slate-300" />
+                <p className="mt-4 text-sm font-semibold text-slate-900">
+                  No workspace members found
                 </p>
-
-                <h2 className="mt-2 text-2xl font-bold">
-                  {membership.tenant.name}
-                </h2>
-
-                <p className="mt-2 text-sm text-slate-500">
-                  {membership.tenant.slug}
+                <p className="mt-1 text-sm text-slate-500">
+                  There are currently no membership records for this workspace.
                 </p>
               </div>
+            ) : (
+              <div className="overflow-hidden rounded-2xl border border-slate-200">
+                <div className="divide-y divide-slate-200">
+                  {teamAccess.members.map((member) => (
+                    <div
+                      key={member.membershipId}
+                      className="flex flex-col gap-4 px-5 py-5 md:flex-row md:items-center md:justify-between"
+                    >
+                      <div className="flex min-w-0 items-center gap-4">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100">
+                          {member.avatarUrl ? (
+                            <img
+                              src={member.avatarUrl}
+                              alt=""
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <UsersRound className="h-5 w-5 text-slate-500" />
+                          )}
+                        </div>
 
-              <Link
-                href="/app/workspace"
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-              >
-                <LayoutDashboard className="h-4 w-4" />
-                Workspace Home
-              </Link>
-            </div>
-          </div>
-        </section>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="truncate text-sm font-semibold text-slate-900">
+                              {member.name}
+                            </p>
 
-        {/* =====================================================
-            BUSINESS CONFIGURATION CAPABILITIES
-            ===================================================== */}
+                            <span
+                              className={
+                                member.isActive
+                                  ? "rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700"
+                                  : "rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500"
+                              }
+                            >
+                              {member.isActive ? "Active" : "Inactive"}
+                            </span>
+                          </div>
 
-        <section className="mt-8">
-          <div className="mb-6">
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-emerald-600">
-              Business Capabilities
-            </p>
+                          <p className="mt-1 truncate text-sm text-slate-500">
+                            {member.email}
+                          </p>
+                        </div>
+                      </div>
 
-            <h2 className="mt-2 text-2xl font-bold tracking-tight">
-              Configure your business environment
-            </h2>
+                      <div className="flex shrink-0 flex-col items-start gap-2 md:items-end">
+                        <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">
+                          {getRoleLabel(member.role)}
+                        </span>
 
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-              Access the business configuration capabilities available
-              within your ROOTYM customer workspace.
-            </p>
-          </div>
+                        <p className="max-w-xs text-xs text-slate-400 md:text-right">
+                          {getRoleDescription(member.role)}
+                        </p>
 
-          <div className="grid gap-5 md:grid-cols-2">
-            {businessModules.map((module) => {
-              const Icon = module.icon;
-
-              const cardContent = (
-                <>
-                  <div className="flex items-start justify-between gap-5">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 ring-1 ring-emerald-100">
-                      <Icon className="h-6 w-6 text-emerald-600" />
+                        <TeamAccessMemberActions
+                          membershipId={member.membershipId}
+                          userId={member.userId}
+                          name={member.name}
+                          email={member.email}
+                          role={member.role}
+                          currentUserId={membership.userId}
+                          currentUserRole={membership.role}
+                        />
+                      </div>
                     </div>
-
-                    <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
-                      {module.status}
-                    </span>
-                  </div>
-
-                  <h3 className="mt-6 text-xl font-bold">
-                    {module.title}
-                  </h3>
-
-                  <p className="mt-3 text-sm leading-6 text-slate-500">
-                    {module.description}
-                  </p>
-
-                  <div className="mt-6">
-                    <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-600">
-                      Open {module.title}
-
-                      <ArrowRight className="h-4 w-4" />
-                    </span>
-                  </div>
-                </>
-              );
-
-              return (
-                <Link
-                  key={module.title}
-                  href={module.href}
-                  className="block rounded-3xl bg-white p-7 shadow-sm ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:shadow-md"
-                >
-                  {cardContent}
-                </Link>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* =====================================================
-            CONFIGURATION ARCHITECTURE
-            ===================================================== */}
-
-        <section className="mt-8">
-          <div className="rounded-3xl border border-emerald-100 bg-emerald-50 p-7 sm:p-8">
-            <div className="flex items-start gap-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white ring-1 ring-emerald-100">
-                <SlidersHorizontal className="h-5 w-5 text-emerald-600" />
+                  ))}
+                </div>
               </div>
-
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-emerald-700">
-                  Business Architecture
-                </p>
-
-                <h2 className="mt-2 text-xl font-bold text-slate-900">
-                  One business configuration for your ROOTYM environment
-                </h2>
-
-                <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-600">
-                  This workspace area provides the central
-                  customer-facing configuration layer for business
-                  identity, export credentials, compliance and
-                  operating preferences. Future ROOTYM applications
-                  will consume this trusted business configuration
-                  rather than maintaining separate copies of the same
-                  information.
-                </p>
-              </div>
-            </div>
+            )}
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* =====================================================
-            FOOTER NAVIGATION
-            ===================================================== */}
+      <footer className="flex flex-col gap-2 border-t border-slate-200 pt-6 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+        <span className="font-medium text-slate-700">
+          ROOTYM Business Settings
+        </span>
+        <span>
+          Tenant: {tenant.name} · Created {formatDate(tenant.createdAt)}
+        </span>
+      </footer>
+    </BusinessSettingsShell>
+  );
+}
 
-        <footer className="mt-10 border-t border-slate-200 pt-6">
-          <div className="flex flex-col gap-4 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <span className="font-semibold text-slate-700">
-                ROOTYM Business Configuration
-              </span>
+function SectionHeader({
+  icon,
+  eyebrow,
+  title,
+  description,
+}: {
+  icon: React.ReactNode;
+  eyebrow: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="border-b border-slate-200 bg-slate-950 p-6 text-white sm:p-7">
+      <div className="flex items-start gap-4">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10">
+          {icon}
+        </div>
 
-              <span className="ml-2">
-                · {membership.tenant.name}
-              </span>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-5">
-              <Link
-                href="/app/workspace"
-                className="inline-flex items-center gap-1.5 transition hover:text-slate-900"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Workspace
-              </Link>
-
-              <Link
-                href="/app"
-                className="inline-flex items-center gap-1.5 transition hover:text-slate-900"
-              >
-                <LayoutDashboard className="h-4 w-4" />
-                Control Center
-              </Link>
-
-              <Link
-                href="/settings"
-                className="inline-flex items-center gap-1.5 transition hover:text-slate-900"
-              >
-                <Settings className="h-4 w-4" />
-                Settings
-              </Link>
-            </div>
-          </div>
-        </footer>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-400">
+            {eyebrow}
+          </p>
+          <h2 className="mt-1 text-xl font-bold tracking-tight">
+            {title}
+          </h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
+            {description}
+          </p>
+        </div>
       </div>
-    </main>
+    </div>
+  );
+}
+
+function SubHeader({
+  icon,
+  title,
+  description,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="mb-5 flex items-start gap-3">
+      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100">
+        {icon}
+      </div>
+
+      <div>
+        <h3 className="text-lg font-semibold text-slate-950">
+          {title}
+        </h3>
+        <p className="mt-1 text-sm leading-6 text-slate-500">
+          {description}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function InfoCard({
+  label,
+  value,
+}: {
+  label: string;
+  value?: string | null;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+        {label}
+      </p>
+      <p className="mt-2 break-words text-sm font-semibold text-slate-900">
+        {value || "Not configured"}
+      </p>
+    </div>
   );
 }

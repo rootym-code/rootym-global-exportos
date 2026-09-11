@@ -651,13 +651,13 @@ export default function CmsPagesPage() {
 
                       <td className="px-6 py-5">
                         <div className="flex justify-end gap-2">
-                          <Link
-                            href={`/admin/cms/pages/${item.id}`}
-                            className="rounded-lg border border-slate-300 p-2 text-slate-600 transition hover:bg-slate-100"
-                            title="View"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Link>
+                        <Link
+  href={`/website/rootym-agro/en/${item.slug}`}
+  className="rounded-lg border border-slate-300 p-2 text-slate-600 transition hover:bg-slate-100"
+  title="View Public Page"
+>
+  <Eye className="h-4 w-4" />
+</Link>
 
                           <Link
                             href={`/admin/cms/pages/${item.id}/edit`}

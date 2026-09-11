@@ -3,8 +3,11 @@
  * ROOTYM Admin CMS Pages API
  * ============================================================
  * Author: Prem Singh
- * Purpose: Provides authenticated platform-admin CMS page
- *          listing and creation scoped to an explicit Website.
+ * Purpose: Provides authenticated Admin CMS page listing and
+ *          creation using the current ROOTYM Website context.
+ *
+ *          Website ownership is resolved server-side so the
+ *          client does not need to provide or control websiteId.
  * ============================================================
  */
 
@@ -12,10 +15,29 @@ import { NextRequest } from "next/server";
 
 import ApiResponse from "@/lib/api/api-response";
 import handleApiError from "@/lib/api/handle-api-error";
-
 import { authenticateAdmin } from "@/lib/auth";
-
+import { prisma } from "@/lib/prisma";
 import cmsPageService from "@/lib/services/cms/page.service";
+
+const ROOTYM_WEBSITE_SLUG = "rootym-agro";
+
+async function getAdminWebsite() {
+  const website = await prisma.website.findUnique({
+    where: {
+      slug: ROOTYM_WEBSITE_SLUG,
+    },
+    select: {
+      id: true,
+      isActive: true,
+    },
+  });
+
+  if (!website || !website.isActive) {
+    return null;
+  }
+
+  return website;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -23,56 +45,49 @@ export async function GET(request: NextRequest) {
 
     if (!auth.authenticated) {
       return ApiResponse.error({
-        message:
-          auth.error ?? "Unauthorized.",
+        message: auth.error ?? "Unauthorized.",
         code: "UNAUTHORIZED",
         status: auth.status,
       });
     }
 
-    const { searchParams } =
-      new URL(request.url);
+    const website = await getAdminWebsite();
 
-    const websiteId =
-      searchParams.get("websiteId")?.trim();
-
-    if (!websiteId) {
+    if (!website) {
       return ApiResponse.error({
-        message:
-          "Website ID is required.",
-        code: "WEBSITE_REQUIRED",
-        status: 400,
+        message: "Website is not available.",
+        code: "WEBSITE_NOT_AVAILABLE",
+        status: 404,
       });
     }
 
+    const { searchParams } = new URL(request.url);
+
     const page = Number(
-      searchParams.get("page") ?? 1
+      searchParams.get("page") ?? "1"
     );
 
     const limit = Number(
-      searchParams.get("limit") ?? 20
+      searchParams.get("limit") ?? "20"
     );
 
     const status =
-      searchParams.get("status") ??
-      undefined;
+      searchParams.get("status") ?? undefined;
 
     const search =
-      searchParams.get("search") ??
-      undefined;
+      searchParams.get("search") ?? undefined;
 
-    const result =
-      await cmsPageService.list(
-        websiteId,
-        {
-          status: status as never,
-          search,
-        },
-        {
-          page,
-          limit,
-        }
-      );
+    const result = await cmsPageService.list(
+      website.id,
+      {
+        status: status as never,
+        search,
+      },
+      {
+        page,
+        limit,
+      }
+    );
 
     return ApiResponse.paginated({
       data: result.data,
@@ -92,46 +107,43 @@ export async function POST(
   request: NextRequest
 ) {
   try {
-    const auth =
-      await authenticateAdmin(request);
+    const auth = await authenticateAdmin(request);
 
     if (!auth.authenticated) {
       return ApiResponse.error({
-        message:
-          auth.error ?? "Unauthorized.",
+        message: auth.error ?? "Unauthorized.",
         code: "UNAUTHORIZED",
         status: auth.status,
       });
     }
 
-    const body =
-      await request.json();
+    const website = await getAdminWebsite();
 
-    const websiteId =
-      typeof body?.websiteId ===
-        "string"
-        ? body.websiteId.trim()
-        : "";
-
-    if (!websiteId) {
+    if (!website) {
       return ApiResponse.error({
-        message:
-          "Website ID is required.",
-        code: "WEBSITE_REQUIRED",
-        status: 400,
+        message: "Website is not available.",
+        code: "WEBSITE_NOT_AVAILABLE",
+        status: 404,
       });
     }
 
+    const body = await request.json();
+
+    /*
+     * websiteId is intentionally not accepted from the client.
+     *
+     * The Admin CMS currently operates against the ROOTYM Website
+     * context, matching the existing Admin Product architecture.
+     */
     const {
       websiteId: _websiteId,
       ...pageData
-    } = body;
+    } = body ?? {};
 
-    const page =
-      await cmsPageService.create(
-        websiteId,
-        pageData
-      );
+    const page = await cmsPageService.create(
+      website.id,
+      pageData
+    );
 
     return ApiResponse.created({
       message:

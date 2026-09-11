@@ -17,6 +17,7 @@ import {
   ImageIcon,
   ClipboardCheck,
   CreditCard,
+  Sparkles,
 } from "lucide-react";
 
 
@@ -64,6 +65,12 @@ const navigationGroups: NavigationGroup[] = [
     title: "CONTENT",
 
     items: [
+      {
+        title: "R-CAPTAIN SIGHTS",
+        href: "/admin/dashboard",
+        icon: Sparkles,
+      },
+
       {
         title: "CMS Pages",
         href: "/admin/cms/pages",

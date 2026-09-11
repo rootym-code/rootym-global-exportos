@@ -57,6 +57,21 @@ export interface QuotePdfData {
   buyerCompany?: string;
   buyerAddress?: string;
   buyerCountry?: string;
+  buyerGstin?: string;
+
+  seller?: {
+    businessName?: string;
+    tagline?: string;
+    address?: string;
+    phone?: string;
+    email?: string;
+    website?: string;
+    gstin?: string;
+    fssaiNumber?: string;
+    iecNumber?: string;
+    logoUrl?: string;
+    logoMimeType?: string;
+  };
 
   currency: string;
 
@@ -185,6 +200,7 @@ export class QuoteTemplate {
   private bold!: PDFFont;
 
   private logo?: PDFImage;
+  private sellerLogoMimeType = "";
 
   private pageNumber = 1;
 
@@ -208,7 +224,10 @@ export class QuoteTemplate {
       StandardFonts.HelveticaBold
     );
 
-    await this.loadLogo();
+    this.sellerLogoMimeType =
+      data.seller?.logoMimeType || "";
+
+    await this.loadLogo(data.seller?.logoUrl);
 
     this.addPage();
 
@@ -265,37 +284,92 @@ export class QuoteTemplate {
    * ==========================================================
    */
 
-  private async loadLogo() {
+  private async loadLogo(
+    logoUrl?: string,
+  ) {
     try {
-      const logoPath = path.join(
-        process.cwd(),
-        "public",
-        "images",
-        "rootym-logo.svg"
-      );
+      if (logoUrl) {
+        const absoluteUrl = logoUrl.startsWith("http")
+          ? logoUrl
+          : new URL(
+              logoUrl,
+              process.env.NEXT_PUBLIC_APP_URL ||
+                "http://localhost:3000",
+            ).toString();
 
-      const svg = await fs.readFile(
-        logoPath,
-        "utf8"
-      );
+        const response = await fetch(absoluteUrl, {
+          cache: "no-store",
+        });
 
-      const renderer = new Resvg(svg, {
-        fitTo: {
-          mode: "width",
-          value: 500,
-        },
-      });
+        if (!response.ok) {
+          throw new Error(
+            `Logo request failed with ${response.status}.`,
+          );
+        }
 
-      const png = renderer
-        .render()
-        .asPng();
+        const bytes = new Uint8Array(
+          await response.arrayBuffer(),
+        );
 
-      this.logo =
-        await this.pdf.embedPng(png);
+        const mimeType =
+          this.sellerLogoMimeType;
+
+        if (mimeType.includes("jpeg") ||
+            mimeType.includes("jpg")) {
+          this.logo =
+            await this.pdf.embedJpg(bytes);
+        } else if (mimeType.includes("png")) {
+          this.logo =
+            await this.pdf.embedPng(bytes);
+        } else {
+          const svg =
+            new TextDecoder().decode(bytes);
+
+          const renderer = new Resvg(svg, {
+            fitTo: {
+              mode: "width",
+              value: 500,
+            },
+          });
+
+          const png = renderer
+            .render()
+            .asPng();
+
+          this.logo =
+            await this.pdf.embedPng(png);
+        }
+      } else {
+        const logoPath = path.join(
+          process.cwd(),
+          "public",
+          "images",
+          "rootym-logo.svg",
+        );
+
+        const svg = await fs.readFile(
+          logoPath,
+          "utf8",
+        );
+
+        const renderer = new Resvg(svg, {
+          fitTo: {
+            mode: "width",
+            value: 500,
+          },
+        });
+
+        const png = renderer
+          .render()
+          .asPng();
+
+        this.logo =
+          await this.pdf.embedPng(png);
+      }
     } catch (error) {
       console.warn(
-        "ROOTYM PDF logo could not be loaded:",
-        error
+        "Commercial PDF logo could not be loaded:",
+        error,
       );
 
       this.logo = undefined;
@@ -353,14 +427,81 @@ export class QuoteTemplate {
     /*
      * Tagline.
      */
+    const seller = data.seller;
+
     this.text(
-      ROOTYM_COMPANY.tagline,
+      seller?.tagline ||
+        ROOTYM_COMPANY.tagline,
       MARGIN_LEFT,
       top - 66,
       8,
       false,
       COLORS.muted
     );
+
+    this.text(
+      seller?.businessName ||
+        ROOTYM_COMPANY.name,
+      MARGIN_LEFT,
+      top - 80,
+      7.5,
+      true,
+      COLORS.text
+    );
+
+    const sellerContact = [
+      seller?.phone,
+      seller?.email,
+    ]
+      .filter(Boolean)
+      .join("  |  ");
+
+    const sellerRegistrations = [
+      seller?.gstin
+        ? `GSTIN: ${seller.gstin}`
+        : "",
+      seller?.fssaiNumber
+        ? `FSSAI: ${seller.fssaiNumber}`
+        : "",
+      seller?.iecNumber
+        ? `IEC: ${seller.iecNumber}`
+        : "",
+    ]
+      .filter(Boolean)
+      .join("  |  ");
+
+    if (seller?.address) {
+      this.text(
+        seller.address,
+        MARGIN_LEFT,
+        top - 94,
+        6.5,
+        false,
+        COLORS.muted
+      );
+    }
+
+    if (sellerContact) {
+      this.text(
+        sellerContact,
+        MARGIN_LEFT,
+        top - 106,
+        6.5,
+        false,
+        COLORS.muted
+      );
+    }
+
+    if (sellerRegistrations) {
+      this.textRight(
+        sellerRegistrations,
+        PAGE_WIDTH - MARGIN_RIGHT,
+        top - 106,
+        6.5,
+        false,
+        COLORS.muted
+      );
+    }
 
     /*
      * Right title.
@@ -389,17 +530,17 @@ export class QuoteTemplate {
     this.page.drawLine({
       start: {
         x: MARGIN_LEFT,
-        y: top - 66,
+        y: top - 114,
       },
       end: {
         x: PAGE_WIDTH - MARGIN_RIGHT,
-        y: top - 66,
+        y: top - 114,
       },
       thickness: 1,
       color: COLORS.mediumGray,
     });
 
-    this.y = top - 88;
+    this.y = top - 136;
 
     /*
      * Keep quote number referenced to avoid unused-data
@@ -503,6 +644,9 @@ export class QuoteTemplate {
 
     const country =
       data.buyerCountry?.trim() || "";
+
+    const buyerGstin =
+      data.buyerGstin?.trim() || "";
 
     /*
      * Build the buyer block as a single ordered list.

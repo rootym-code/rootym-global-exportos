@@ -38,6 +38,9 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
+import SectionElementsEditor from "@/components/workspace/website/SectionElementsEditor";
+import type { SectionElement } from "@/lib/workspace/website/section-elements";
+
 import type {
   PageLayout,
   PageTemplate,
@@ -51,6 +54,7 @@ type HeroSection = {
   subheading: string;
   primaryCtaText: string;
   secondaryCtaText: string;
+  elements?: SectionElement[];
 };
 
 type ValuePropositionSection = {
@@ -60,6 +64,7 @@ type ValuePropositionSection = {
   heading: string;
   description: string;
   points: string[];
+  elements?: SectionElement[];
 };
 
 type ProductSection = {
@@ -74,6 +79,7 @@ type ProductSection = {
   packaging: string;
   moq: string;
   applications: string[];
+  elements?: SectionElement[];
 };
 
 type ApplicationsSection = {
@@ -86,6 +92,7 @@ type ApplicationsSection = {
     title: string;
     description: string;
   }>;
+  elements?: SectionElement[];
 };
 
 type WhyRootymSection = {
@@ -97,6 +104,7 @@ type WhyRootymSection = {
     title: string;
     description: string;
   }>;
+  elements?: SectionElement[];
 };
 
 type BuyerFocusSection = {
@@ -106,6 +114,7 @@ type BuyerFocusSection = {
   heading: string;
   description: string;
   buyerTypes: string[];
+  elements?: SectionElement[];
 };
 
 type PackagingSection = {
@@ -115,6 +124,7 @@ type PackagingSection = {
   heading: string;
   description: string;
   options: string[];
+  elements?: SectionElement[];
 };
 
 type ExportDocumentsSection = {
@@ -124,6 +134,7 @@ type ExportDocumentsSection = {
   heading: string;
   description: string;
   documents: string[];
+  elements?: SectionElement[];
 };
 
 type CtaSection = {
@@ -134,6 +145,7 @@ type CtaSection = {
   description: string;
   primaryCtaText: string;
   secondaryCtaText: string;
+  elements?: SectionElement[];
 };
 
 type FaqSection = {
@@ -145,6 +157,7 @@ type FaqSection = {
     question: string;
     answer: string;
   }>;
+  elements?: SectionElement[];
 };
 
 type LandingPageSection =
@@ -199,6 +212,7 @@ function createDefaultStructuredContent(
         subheading: "",
         primaryCtaText: "",
         secondaryCtaText: "",
+        elements: [],
       },
       {
         type: "valueProposition",
@@ -207,6 +221,7 @@ function createDefaultStructuredContent(
         heading: "",
         description: "",
         points: [],
+        elements: [],
       },
       {
         type: "product",
@@ -220,6 +235,7 @@ function createDefaultStructuredContent(
         packaging: "",
         moq: "",
         applications: [],
+        elements: [],
       },
       {
         type: "applications",
@@ -228,6 +244,7 @@ function createDefaultStructuredContent(
         heading: "",
         description: "",
         items: [],
+        elements: [],
       },
       {
         type: "whyRootym",
@@ -235,6 +252,7 @@ function createDefaultStructuredContent(
         sectionDescription: "Build buyer confidence around sourcing, quality and export execution.",
         heading: "",
         points: [],
+        elements: [],
       },
       {
         type: "buyerFocus",
@@ -243,6 +261,7 @@ function createDefaultStructuredContent(
         heading: "",
         description: "",
         buyerTypes: [],
+        elements: [],
       },
       {
         type: "packaging",
@@ -251,14 +270,16 @@ function createDefaultStructuredContent(
         heading: "",
         description: "",
         options: [],
+        elements: [],
       },
       {
         type: "exportDocuments",
         sectionTitle: "Export Documents",
-        sectionDescription: "List the standard export documentation buyers can expect from ROOTYM.",
+        sectionDescription: "List the standard export documentation buyers can expect from the business.",
         heading: "",
         description: "",
         documents: [],
+        elements: [],
       },
       {
         type: "cta",
@@ -268,13 +289,15 @@ function createDefaultStructuredContent(
         description: "",
         primaryCtaText: "",
         secondaryCtaText: "",
+        elements: [],
       },
       {
         type: "faq",
         sectionTitle: "FAQ",
-        sectionDescription: "Answer the most common buyer questions before they contact ROOTYM.",
+        sectionDescription: "Answer the most common buyer questions before they contact the business.",
         heading: "",
         items: [],
+        elements: [],
       },
     ],
   };
@@ -319,12 +342,12 @@ const ROOTYM_SECTION_OPTIONS: Array<{
   { type: "valueProposition", number: 2, title: "Value Proposition", description: "Explain why the product is relevant to the target market." },
   { type: "product", number: 3, title: "Product", description: "Capture the core product specifications buyers need before making an enquiry." },
   { type: "applications", number: 4, title: "Applications", description: "Show where and how the product is used by commercial buyers." },
-  { type: "whyRootym", number: 5, title: "Why ROOTYM", description: "Build buyer confidence around sourcing, quality and export execution." },
+  { type: "whyRootym", number: 5, title: "Why Us", description: "Build buyer confidence around sourcing, quality and export execution." },
   { type: "buyerFocus", number: 6, title: "Buyer Focus", description: "Define the buyer profiles and commercial audiences this page targets." },
   { type: "packaging", number: 7, title: "Packaging", description: "Present practical packaging choices for export buyers." },
-  { type: "exportDocuments", number: 8, title: "Export Documents", description: "List the standard export documentation buyers can expect from ROOTYM." },
+  { type: "exportDocuments", number: 8, title: "Export Documents", description: "List the standard export documentation buyers can expect from the business." },
   { type: "cta", number: 9, title: "CTA", description: "Close the page with a clear commercial action for the buyer." },
-  { type: "faq", number: 10, title: "FAQ", description: "Answer the most common buyer questions before they contact ROOTYM." },
+  { type: "faq", number: 10, title: "FAQ", description: "Answer the most common buyer questions before they contact the business." },
 ];
 
 function createSlug(value: string) {
@@ -601,15 +624,15 @@ export default function CreateWebsitePage() {
   const [success, setSuccess] = useState("");
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     hero: true,
-    valueProposition: true,
-    product: true,
-    applications: true,
-    whyRootym: true,
-    buyerFocus: true,
-    packaging: true,
-    exportDocuments: true,
-    cta: true,
-    faq: true,
+    valueProposition: false,
+    product: false,
+    applications: false,
+    whyRootym: false,
+    buyerFocus: false,
+    packaging: false,
+    exportDocuments: false,
+    cta: false,
+    faq: false,
   });
 
   function updateField<K extends keyof FormState>(field: K, value: FormState[K]) {
@@ -1117,7 +1140,7 @@ export default function CreateWebsitePage() {
               />
             </div>
             <ObjectArrayEditor
-              label="Why ROOTYM Points"
+              label="Why Us Points"
               values={whyRootym.points}
               firstPlaceholder="Quality-focused sourcing"
               secondPlaceholder="Explain the buyer benefit."
@@ -1269,7 +1292,7 @@ export default function CreateWebsitePage() {
           "exportDocuments",
           8,
           "Export Documents",
-          "List the standard export documentation buyers can expect from ROOTYM.",
+          "List the standard export documentation buyers can expect from the business.",
           <div className="space-y-5">
             <div className="space-y-2">
               <Label>Heading</Label>
@@ -1370,7 +1393,7 @@ export default function CreateWebsitePage() {
               <Label>Secondary CTA</Label>
               <Input
                 value={cta.secondaryCtaText}
-                placeholder="Contact ROOTYM"
+                placeholder="Contact Us"
                 onChange={(event) =>
                   updateSection("cta", {
                     secondaryCtaText:
@@ -1386,7 +1409,7 @@ export default function CreateWebsitePage() {
           "faq",
           10,
           "FAQ",
-          "Answer the most common buyer questions before they contact ROOTYM.",
+          "Answer the most common buyer questions before they contact the business.",
           <div className="space-y-5">
             <div className="space-y-2">
               <Label>Heading</Label>
@@ -1548,6 +1571,15 @@ export default function CreateWebsitePage() {
               </div>
             </div>
             {children}
+
+            <SectionElementsEditor
+              value={section.elements ?? []}
+              onChange={(elements) =>
+                updateSection(type, {
+                  elements,
+                })
+              }
+            />
           </div>
         )}
       </Card>
@@ -1630,7 +1662,7 @@ export default function CreateWebsitePage() {
         </button>
         <div className="mb-2 inline-flex items-center rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-[#2E7D32] ring-1 ring-green-100">Customer Website</div>
         <h1 className="text-2xl font-bold tracking-tight text-gray-900">Create Website Page</h1>
-        <p className="mt-1 text-sm text-gray-500">Create a ROOTYM Standard Page, choose the page language, and select only the sections this page needs.</p>
+        <p className="mt-1 text-sm text-gray-500">Create a Standard Page, choose the page language, and select only the sections this page needs.</p>
       </div>
 
       {error && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
@@ -1658,13 +1690,13 @@ export default function CreateWebsitePage() {
               <Label>Page Format</Label>
               <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
                 <p className="text-sm font-semibold text-emerald-800">ROOTYM Standard Page</p>
-                <p className="mt-1 text-xs leading-5 text-emerald-700">The page uses ROOTYM's structured page model. You can choose any combination of sections below.</p>
+                <p className="mt-1 text-xs leading-5 text-emerald-700">The page uses the structured page model. You can choose any combination of sections below.</p>
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="layout">Page Presentation</Label>
-              <Select id="layout" value={form.layout} onChange={(event) => updateField("layout", event.target.value as PageLayout)} options={[{ label: "ROOTYM Website", value: "WEBSITE" }, { label: "Standalone Landing Page", value: "STANDALONE" }]} />
-              <p className="text-xs text-gray-500">Choose whether this page uses the ROOTYM website header and footer or works as a standalone landing page.</p>
+              <Select id="layout" value={form.layout} onChange={(event) => updateField("layout", event.target.value as PageLayout)} options={[{ label: "Website Page", value: "WEBSITE" }, { label: "Standalone Landing Page", value: "STANDALONE" }]} />
+              <p className="text-xs text-gray-500">Choose whether this page uses the website header and footer or works as a standalone landing page.</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="title">Page Title</Label>

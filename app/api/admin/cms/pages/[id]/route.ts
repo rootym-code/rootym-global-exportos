@@ -4,7 +4,8 @@
  * ============================================================
  * Author: Prem Singh
  * Purpose: Provides authenticated platform-admin CMS page
- *          retrieval, update, and deletion scoped to a Website.
+ *          retrieval, update, and deletion using the current
+ *          ROOTYM Website context.
  * ============================================================
  */
 
@@ -14,8 +15,29 @@ import ApiResponse from "@/lib/api/api-response";
 import handleApiError from "@/lib/api/handle-api-error";
 
 import { authenticateAdmin } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 import cmsPageService from "@/lib/services/cms/page.service";
+
+const ROOTYM_WEBSITE_SLUG = "rootym-agro";
+
+async function getAdminWebsite() {
+  const website = await prisma.website.findUnique({
+    where: {
+      slug: ROOTYM_WEBSITE_SLUG,
+    },
+    select: {
+      id: true,
+      isActive: true,
+    },
+  });
+
+  if (!website || !website.isActive) {
+    return null;
+  }
+
+  return website;
+}
 
 type RouteContext = {
   params: Promise<{
@@ -28,42 +50,32 @@ export async function GET(
   { params }: RouteContext
 ) {
   try {
-    const auth =
-      await authenticateAdmin(request);
+    const auth = await authenticateAdmin(request);
 
     if (!auth.authenticated) {
       return ApiResponse.error({
-        message:
-          auth.error ?? "Unauthorized.",
+        message: auth.error ?? "Unauthorized.",
         code: "UNAUTHORIZED",
         status: auth.status,
       });
     }
 
-    const { id } = await params;
+    const website = await getAdminWebsite();
 
-    const { searchParams } =
-      new URL(request.url);
-
-    const websiteId =
-      searchParams
-        .get("websiteId")
-        ?.trim();
-
-    if (!websiteId) {
+    if (!website) {
       return ApiResponse.error({
-        message:
-          "Website ID is required.",
-        code: "WEBSITE_REQUIRED",
-        status: 400,
+        message: "Website is not available.",
+        code: "WEBSITE_NOT_FOUND",
+        status: 404,
       });
     }
 
-    const page =
-      await cmsPageService.getById(
-        websiteId,
-        id
-      );
+    const { id } = await params;
+
+    const page = await cmsPageService.getById(
+      website.id,
+      id
+    );
 
     return ApiResponse.success({
       data: page,
@@ -78,53 +90,43 @@ export async function PATCH(
   { params }: RouteContext
 ) {
   try {
-    const auth =
-      await authenticateAdmin(request);
+    const auth = await authenticateAdmin(request);
 
     if (!auth.authenticated) {
       return ApiResponse.error({
-        message:
-          auth.error ?? "Unauthorized.",
+        message: auth.error ?? "Unauthorized.",
         code: "UNAUTHORIZED",
         status: auth.status,
       });
     }
 
-    const { id } = await params;
+    const website = await getAdminWebsite();
 
-    const body =
-      await request.json();
-
-    const websiteId =
-      typeof body?.websiteId ===
-        "string"
-        ? body.websiteId.trim()
-        : "";
-
-    if (!websiteId) {
+    if (!website) {
       return ApiResponse.error({
-        message:
-          "Website ID is required.",
-        code: "WEBSITE_REQUIRED",
-        status: 400,
+        message: "Website is not available.",
+        code: "WEBSITE_NOT_FOUND",
+        status: 404,
       });
     }
+
+    const { id } = await params;
+
+    const body = await request.json();
 
     const {
       websiteId: _websiteId,
       ...pageData
-    } = body;
+    } = body ?? {};
 
-    const page =
-      await cmsPageService.update(
-        websiteId,
-        id,
-        pageData
-      );
+    const page = await cmsPageService.update(
+      website.id,
+      id,
+      pageData
+    );
 
     return ApiResponse.success({
-      message:
-        "CMS page updated successfully.",
+      message: "CMS page updated successfully.",
       data: page,
     });
   } catch (error) {
@@ -137,39 +139,30 @@ export async function DELETE(
   { params }: RouteContext
 ) {
   try {
-    const auth =
-      await authenticateAdmin(request);
+    const auth = await authenticateAdmin(request);
 
     if (!auth.authenticated) {
       return ApiResponse.error({
-        message:
-          auth.error ?? "Unauthorized.",
+        message: auth.error ?? "Unauthorized.",
         code: "UNAUTHORIZED",
         status: auth.status,
       });
     }
 
-    const { id } = await params;
+    const website = await getAdminWebsite();
 
-    const { searchParams } =
-      new URL(request.url);
-
-    const websiteId =
-      searchParams
-        .get("websiteId")
-        ?.trim();
-
-    if (!websiteId) {
+    if (!website) {
       return ApiResponse.error({
-        message:
-          "Website ID is required.",
-        code: "WEBSITE_REQUIRED",
-        status: 400,
+        message: "Website is not available.",
+        code: "WEBSITE_NOT_FOUND",
+        status: 404,
       });
     }
 
+    const { id } = await params;
+
     await cmsPageService.delete(
-      websiteId,
+      website.id,
       id
     );
 

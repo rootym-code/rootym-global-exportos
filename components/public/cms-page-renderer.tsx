@@ -5,7 +5,7 @@
  */
 
 import Link from "next/link";
-import type { CSSProperties } from "react";
+import { Fragment } from "react";
 
 import cmsPageService from "@/lib/services/cms/page.service";
 import { CmsPageTemplate } from "@/lib/generated/prisma";
@@ -14,57 +14,29 @@ import type {
   CmsLandingPageContent,
   LandingPageSection,
 } from "@/components/admin/cms/pages/types";
+import type { SectionElement } from "@/lib/workspace/website/section-elements";
 
-
-export interface CmsPageWebsiteBranding {
-  companyName?: string | null;
-  logoMediaUrl?: string | null;
-  primaryColor?: string | null;
-  secondaryColor?: string | null;
-  accentColor?: string | null;
-  fontFamily?: string | null;
-}
-
-const DEFAULT_WEBSITE_BRANDING = {
-  primaryColor: "#2E7D32",
-  secondaryColor: "#43A047",
-  accentColor: "#F1F6F3",
-};
-
-function resolveWebsiteBranding(branding?: CmsPageWebsiteBranding | null) {
-  return {
-    companyName: branding?.companyName?.trim() || "ROOTYM",
-    primaryColor: branding?.primaryColor || DEFAULT_WEBSITE_BRANDING.primaryColor,
-    secondaryColor:
-      branding?.secondaryColor || DEFAULT_WEBSITE_BRANDING.secondaryColor,
-    accentColor: branding?.accentColor || DEFAULT_WEBSITE_BRANDING.accentColor,
-    fontFamily: branding?.fontFamily?.trim() || undefined,
-  };
-}
 
 function SectionHeader({
   eyebrow,
   heading,
   description,
   light = false,
-  branding,
 }: {
   eyebrow?: string;
   heading: string;
   description?: string;
   light?: boolean;
-  branding?: CmsPageWebsiteBranding | null;
 }) {
   return (
     <div className={light ? "max-w-3xl mx-auto text-center" : "max-w-3xl"}>
       {eyebrow && (
         <p
-          className="mb-4 text-sm font-bold uppercase tracking-[0.18em]"
-          style={{
-            color: light
-              ? resolveWebsiteBranding(branding).accentColor
-              : resolveWebsiteBranding(branding).primaryColor,
-          }}
+          className={
+            light
+              ? "mb-4 text-sm font-bold uppercase tracking-[0.18em] text-green-100"
+              : "mb-4 text-sm font-bold uppercase tracking-[0.18em] text-green-700"
+          }
         >
           {eyebrow}
         </p>
@@ -82,7 +54,7 @@ function SectionHeader({
         <p
           className={
             light
-              ? "mt-5 max-w-2xl text-lg leading-8 text-white/90 mx-auto"
+              ? "mt-5 max-w-2xl text-lg leading-8 text-green-50 mx-auto"
               : "mt-5 max-w-2xl text-lg leading-8 text-gray-600"
           }
         >
@@ -119,14 +91,264 @@ function getSpecificationHref(productName: string): string | null {
   return null;
 }
 
-function renderSection(
-  section: LandingPageSection,
-  index: number,
-  locale: string,
-  branding?: CmsPageWebsiteBranding | null,
-) {
-  const resolvedBranding = resolveWebsiteBranding(branding);
 
+type SectionWithElements = LandingPageSection & {
+  elements?: SectionElement[];
+};
+
+function getSectionElements(section: LandingPageSection): SectionElement[] {
+  const candidate = section as SectionWithElements;
+  return Array.isArray(candidate.elements)
+    ? candidate.elements
+    : [];
+}
+
+function isExternalHref(href: string) {
+  return /^https?:\/\//i.test(href.trim());
+}
+
+function getYouTubeEmbedUrl(url: string): string | null {
+  try {
+    const parsed = new URL(url.trim());
+
+    if (parsed.hostname === "youtu.be") {
+      const id = parsed.pathname.replace(/^\/+/, "").split("/")[0];
+      return id
+        ? `https://www.youtube.com/embed/${id}?rel=0`
+        : null;
+    }
+
+    if (
+      parsed.hostname === "www.youtube.com" ||
+      parsed.hostname === "youtube.com" ||
+      parsed.hostname === "m.youtube.com"
+    ) {
+      if (parsed.pathname === "/watch") {
+        const id = parsed.searchParams.get("v");
+        return id
+          ? `https://www.youtube.com/embed/${id}?rel=0`
+          : null;
+      }
+
+      if (parsed.pathname.startsWith("/embed/")) {
+        const id = parsed.pathname.split("/")[2];
+        return id
+          ? `https://www.youtube.com/embed/${id}?rel=0`
+          : null;
+      }
+
+      if (parsed.pathname.startsWith("/shorts/")) {
+        const id = parsed.pathname.split("/")[2];
+        return id
+          ? `https://www.youtube.com/embed/${id}?rel=0`
+          : null;
+      }
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+function renderSectionElements(
+  section: LandingPageSection,
+  placement: "before" | "after",
+  index: number,
+) {
+  const elements = getSectionElements(section).filter(
+    (element) =>
+      element.placement === placement &&
+      typeof element === "object",
+  );
+
+  if (elements.length === 0) {
+    return null;
+  }
+
+  return (
+    <div
+      key={`section-elements-${placement}-${index}`}
+      className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-8 md:py-10"
+    >
+      {elements.map((element) => {
+        switch (element.type) {
+          case "image":
+            if (!element.url?.trim()) return null;
+
+            return (
+              <figure
+                key={element.id}
+                className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-gray-100"
+              >
+                <img
+                  src={element.url}
+                  alt={element.altText || ""}
+                  className="h-auto max-h-[38rem] w-full object-cover"
+                />
+                {element.caption?.trim() && (
+                  <figcaption className="px-5 py-3 text-sm text-gray-500">
+                    {element.caption}
+                  </figcaption>
+                )}
+              </figure>
+            );
+
+          case "youtube": {
+            const embedUrl = getYouTubeEmbedUrl(element.url);
+            if (!embedUrl) return null;
+
+            return (
+              <div
+                key={element.id}
+                className="overflow-hidden rounded-3xl bg-gray-950 shadow-xl"
+              >
+                <div className="aspect-video w-full">
+                  <iframe
+                    src={embedUrl}
+                    title={element.title || "YouTube video"}
+                    className="h-full w-full"
+                    loading="lazy"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                  />
+                </div>
+                {element.title?.trim() && (
+                  <p className="px-5 py-3 text-sm font-semibold text-white">
+                    {element.title}
+                  </p>
+                )}
+              </div>
+            );
+          }
+
+          case "video":
+            if (!element.url?.trim()) return null;
+
+            return (
+              <div
+                key={element.id}
+                className="overflow-hidden rounded-3xl bg-gray-950 shadow-xl"
+              >
+                <video
+                  src={element.url}
+                  poster={element.posterUrl || undefined}
+                  controls
+                  preload="metadata"
+                  className="h-auto max-h-[42rem] w-full"
+                />
+                {element.title?.trim() && (
+                  <p className="px-5 py-3 text-sm font-semibold text-white">
+                    {element.title}
+                  </p>
+                )}
+              </div>
+            );
+
+          case "pdf":
+            if (!element.url?.trim()) return null;
+
+            return (
+              <div
+                key={element.id}
+                className="flex flex-col gap-4 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between md:p-8"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-green-100 text-green-700">
+                    <FileTextIcon />
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-gray-950">
+                      {element.label || "Download PDF"}
+                    </p>
+                    <p className="mt-1 text-sm text-gray-500">
+                      PDF document
+                    </p>
+                  </div>
+                </div>
+
+                <a
+                  href={element.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex shrink-0 items-center justify-center rounded-xl bg-green-700 px-5 py-3 font-semibold text-white transition hover:bg-green-800"
+                >
+                  {element.label || "Download PDF"}
+                </a>
+              </div>
+            );
+
+          case "cta":
+            if (!element.label?.trim() || !element.href?.trim()) {
+              return null;
+            }
+
+            if (isExternalHref(element.href)) {
+              return (
+                <div key={element.id} className="flex justify-center">
+                  <a
+                    href={element.href}
+                    target={element.openInNewTab ? "_blank" : undefined}
+                    rel={
+                      element.openInNewTab
+                        ? "noreferrer"
+                        : undefined
+                    }
+                    className="inline-flex items-center justify-center rounded-xl bg-green-700 px-6 py-3.5 font-semibold text-white shadow-lg transition hover:bg-green-800"
+                  >
+                    {element.label}
+                  </a>
+                </div>
+              );
+            }
+
+            return (
+              <div key={element.id} className="flex justify-center">
+                <Link
+                  href={element.href}
+                  target={element.openInNewTab ? "_blank" : undefined}
+                  className="inline-flex items-center justify-center rounded-xl bg-green-700 px-6 py-3.5 font-semibold text-white shadow-lg transition hover:bg-green-800"
+                >
+                  {element.label}
+                </Link>
+              </div>
+            );
+        }
+      })}
+    </div>
+  );
+}
+
+function FileTextIcon() {
+  return (
+    <svg
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden="true"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+      />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M14 2v6h6"
+      />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M8 13h8M8 17h8"
+      />
+    </svg>
+  );
+}
+
+function renderSection(section: LandingPageSection, index: number, locale: string) {
   switch (section.type) {
     case "hero":
       return (
@@ -134,13 +356,13 @@ function renderSection(
           key={`hero-${index}`}
           className="relative overflow-hidden bg-white px-6 py-16 md:py-24 lg:py-28"
         >
-          <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-[var(--website-accent-color)]/60 blur-3xl" />
-          <div className="absolute -left-24 bottom-0 h-64 w-64 rounded-full bg-[var(--website-accent-color)]/50 blur-3xl" />
+          <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-green-100/60 blur-3xl" />
+          <div className="absolute -left-24 bottom-0 h-64 w-64 rounded-full bg-lime-100/50 blur-3xl" />
 
           <div className="relative mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[1.15fr_0.85fr] lg:gap-16">
             <div>
-              <span className="inline-flex items-center rounded-full bg-[var(--website-accent-color)] px-4 py-2 text-sm font-bold text-[var(--website-primary-color)] ring-1 ring-[var(--website-primary-color)]/30">
-                {resolvedBranding.companyName} Global Market
+              <span className="inline-flex items-center rounded-full bg-green-100 px-4 py-2 text-sm font-bold text-green-800 ring-1 ring-green-200">
+                Global Market
               </span>
 
               <h1 className="mt-7 max-w-5xl text-4xl font-bold leading-[1.05] tracking-[-0.03em] text-gray-950 sm:text-5xl md:text-6xl lg:text-7xl">
@@ -158,7 +380,7 @@ function renderSection(
 {section.primaryCtaText && (
   <Link
     href={getCtaHref(section.primaryCtaText, locale)}
-    className="rounded-xl bg-[var(--website-primary-color)] px-6 py-3.5 font-semibold text-white shadow-lg shadow-black/10 transition hover:bg-[var(--website-primary-color)]"
+    className="rounded-xl bg-green-700 px-6 py-3.5 font-semibold text-white shadow-lg shadow-green-900/10 transition hover:bg-green-800"
   >
     {section.primaryCtaText}
   </Link>
@@ -179,19 +401,19 @@ function renderSection(
 
             <div className="relative mx-auto w-full max-w-xl">
               <div className="rounded-[2rem] bg-gray-950 p-3 shadow-2xl shadow-gray-900/15">
-                <div className="rounded-[1.5rem] bg-gradient-to-br from-[var(--website-primary-color)] via-[var(--website-secondary-color)] to-gray-950 p-7 text-white md:p-9">
+                <div className="rounded-[1.5rem] bg-gradient-to-br from-green-700 via-green-800 to-gray-950 p-7 text-white md:p-9">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--website-accent-color)]">
-                      {resolvedBranding.companyName}
+                    <span className="text-xs font-bold uppercase tracking-[0.2em] text-green-100">
+                      Global Trade
                     </span>
-                    <span className="rounded-full border border-white/20 px-3 py-1 text-xs text-white/90">
+                    <span className="rounded-full border border-white/20 px-3 py-1 text-xs text-green-50">
                       Global Market
                     </span>
                   </div>
 
                   <div className="mt-16">
-                    <p className="text-sm font-medium text-[var(--website-accent-color)]">
-                      Rooted in India.
+                    <p className="text-sm font-medium text-green-100">
+                      Sourcing from India.
                     </p>
                     <p className="mt-1 text-3xl font-bold tracking-tight md:text-4xl">
                       Trusted Worldwide.
@@ -200,13 +422,13 @@ function renderSection(
 
                   <div className="mt-12 grid grid-cols-2 gap-3">
                     <div className="rounded-2xl bg-white/10 p-4 ring-1 ring-white/10">
-                      <p className="text-xs uppercase tracking-wide text-[var(--website-accent-color)]">
+                      <p className="text-xs uppercase tracking-wide text-green-100">
                         Sourcing
                       </p>
                       <p className="mt-1 font-semibold">India</p>
                     </div>
                     <div className="rounded-2xl bg-white/10 p-4 ring-1 ring-white/10">
-                      <p className="text-xs uppercase tracking-wide text-[var(--website-accent-color)]">
+                      <p className="text-xs uppercase tracking-wide text-green-100">
                         Focus
                       </p>
                       <p className="mt-1 font-semibold">Global Trade</p>
@@ -237,13 +459,13 @@ function renderSection(
             {pointsCount === 1 ? (
               <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-center">
                 <SectionHeader
-                  eyebrow={`Why ${resolvedBranding.companyName}`}
+                  eyebrow="Why Us"
                   heading={section.heading}
                   description={section.description}
                 />
-                <div className="group rounded-3xl bg-white p-8 shadow-md ring-1 ring-[var(--website-primary-color)]/20 transition hover:shadow-lg md:p-10">
+                <div className="group rounded-3xl bg-white p-8 shadow-md ring-1 ring-green-100/50 transition hover:shadow-lg md:p-10">
                   <div className="flex gap-5">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--website-accent-color)] text-lg font-bold text-[var(--website-primary-color)]">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-green-100 text-lg font-bold text-green-800">
                       ✓
                     </div>
                     <div>
@@ -258,7 +480,7 @@ function renderSection(
             ) : (
               <>
                 <SectionHeader
-                  eyebrow={`Why ${resolvedBranding.companyName}`}
+                  eyebrow="Why Us"
                   heading={section.heading}
                   description={section.description}
                 />
@@ -279,7 +501,7 @@ function renderSection(
                         className="group rounded-3xl bg-white p-7 shadow-sm ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-lg md:p-8"
                       >
                         <div className="flex items-start gap-5">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--website-accent-color)] text-sm font-bold text-[var(--website-primary-color)]">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100 text-sm font-bold text-green-800">
                             {pointIndex + 1}
                           </div>
                           <p className="pt-1 text-base font-semibold leading-7 text-gray-900">
@@ -312,9 +534,9 @@ function renderSection(
 
             <div className="mt-12 overflow-hidden rounded-[2rem] bg-gray-950 shadow-xl">
               <div className="grid lg:grid-cols-[0.95fr_1.05fr]">
-                <div className="relative flex min-h-[14rem] flex-col justify-end overflow-hidden bg-gradient-to-br from-gray-950 via-[var(--website-primary-color)] to-[var(--website-secondary-color)] p-8 text-white md:p-10 lg:min-h-[18rem]">
-                  <div className="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-[var(--website-secondary-color)]/20 blur-2xl" />
-                  <p className="relative text-sm font-bold uppercase tracking-[0.18em] text-[var(--website-accent-color)]">
+                <div className="relative flex min-h-[14rem] flex-col justify-end overflow-hidden bg-gradient-to-br from-gray-950 via-green-950 to-green-800 p-8 text-white md:p-10 lg:min-h-[18rem]">
+                  <div className="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-green-500/20 blur-2xl" />
+                  <p className="relative text-sm font-bold uppercase tracking-[0.18em] text-green-200">
                     Product
                   </p>
                   <h3 className="relative mt-3 max-w-xl text-3xl font-bold tracking-tight md:text-4xl">
@@ -344,7 +566,7 @@ function renderSection(
 
               {section.applications.length > 0 && (
                 <div className="border-t border-gray-800 bg-gray-950 p-6 md:p-8 text-white">
-                  <h4 className="text-sm font-bold uppercase tracking-[0.16em] text-[var(--website-accent-color)]">
+                  <h4 className="text-sm font-bold uppercase tracking-[0.16em] text-green-200">
                     Applications
                   </h4>
                   <div className="mt-4 flex flex-wrap gap-2.5">
@@ -374,7 +596,7 @@ function renderSection(
                         Buyer Specification Sheet
                       </p>
                       <p className="mt-1 text-sm leading-6 text-gray-300">
-                        Download the {resolvedBranding.companyName} Buyer Specification & Laboratory Analysis Sheet
+                        Download the Buyer Specification & Laboratory Analysis Sheet
                         for detailed product information.
                       </p>
                     </div>
@@ -382,7 +604,7 @@ function renderSection(
                     <a
                       href={specificationHref}
                       download
-                      className="inline-flex shrink-0 items-center justify-center rounded-xl bg-white px-5 py-3 font-semibold text-[var(--website-primary-color)] shadow-lg transition hover:bg-[var(--website-accent-color)]"
+                      className="inline-flex shrink-0 items-center justify-center rounded-xl bg-white px-5 py-3 font-semibold text-green-800 shadow-lg transition hover:bg-green-50"
                     >
                       Download Specification
                     </a>
@@ -413,7 +635,7 @@ function renderSection(
                 />
                 <div className="rounded-3xl bg-white p-8 shadow-md ring-1 ring-gray-100 md:p-10">
                   <div className="flex items-start gap-5">
-                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--website-accent-color)] text-lg font-bold text-[var(--website-primary-color)]">
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-green-100 text-lg font-bold text-green-800">
                       01
                     </span>
                     <div>
@@ -450,10 +672,10 @@ function renderSection(
                     {section.items.map((item, itemIndex) => (
                       <div
                         key={`${item.title}-${itemIndex}`}
-                        className="rounded-3xl bg-white p-7 shadow-sm ring-1 ring-gray-100 md:p-8 transition hover:shadow-md hover:border-[var(--website-primary-color)]/20"
+                        className="rounded-3xl bg-white p-7 shadow-sm ring-1 ring-gray-100 md:p-8 transition hover:shadow-md hover:border-green-100"
                       >
                         <div className="flex items-start gap-4">
-                          <span className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--website-accent-color)] text-sm font-bold text-[var(--website-primary-color)]">
+                          <span className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-green-100 text-sm font-bold text-green-800">
                             {String(itemIndex + 1).padStart(2, "0")}
                           </span>
                           <div>
@@ -488,9 +710,9 @@ function renderSection(
           <div className="mx-auto max-w-7xl">
             {pointsCount === 1 ? (
               <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-center">
-                <SectionHeader eyebrow={`The ${resolvedBranding.companyName} Difference`} heading={section.heading} />
-                <div className="rounded-3xl border border-[var(--website-primary-color)]/30 bg-[var(--website-accent-color)]/10 p-8 shadow-md md:p-10 transition hover:shadow-lg">
-                  <span className="text-base font-bold text-[var(--website-primary-color)]">01</span>
+                <SectionHeader eyebrow="Why Us" heading={section.heading} />
+                <div className="rounded-3xl border border-green-200 bg-green-50/10 p-8 shadow-md md:p-10 transition hover:shadow-lg">
+                  <span className="text-base font-bold text-green-700">01</span>
                   <h3 className="mt-4 text-2xl font-bold text-gray-950">
                     {section.points[0].title}
                   </h3>
@@ -503,7 +725,7 @@ function renderSection(
               </div>
             ) : (
               <>
-                <SectionHeader eyebrow={`The ${resolvedBranding.companyName} Difference`} heading={section.heading} />
+                <SectionHeader eyebrow="Why Us" heading={section.heading} />
 
                 {pointsCount > 0 && (
                   <div
@@ -518,9 +740,9 @@ function renderSection(
                     {section.points.map((point, pointIndex) => (
                       <div
                         key={`${point.title}-${pointIndex}`}
-                        className="rounded-3xl border border-gray-100 bg-white p-7 shadow-sm transition hover:shadow-md hover:border-[var(--website-primary-color)]/20 md:p-8"
+                        className="rounded-3xl border border-gray-100 bg-white p-7 shadow-sm transition hover:shadow-md hover:border-green-100 md:p-8"
                       >
-                        <span className="text-sm font-bold text-[var(--website-primary-color)]">
+                        <span className="text-sm font-bold text-green-700">
                           0{pointIndex + 1}
                         </span>
                         <h3 className="mt-4 text-xl font-bold text-gray-950">
@@ -557,14 +779,14 @@ function renderSection(
                   heading={section.heading}
                   description={section.description}
                 />
-                <div className="rounded-3xl bg-white p-8 shadow-md ring-1 ring-[var(--website-primary-color)]/20 md:p-10 flex items-center gap-6">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[var(--website-accent-color)] text-[var(--website-primary-color)]">
+                <div className="rounded-3xl bg-white p-8 shadow-md ring-1 ring-green-100/50 md:p-10 flex items-center gap-6">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-green-100 text-green-700">
                     <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-[var(--website-primary-color)]">Target Segment</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-green-700">Target Segment</p>
                     <p className="mt-1 text-2xl font-extrabold text-gray-950">{section.buyerTypes[0]}</p>
                   </div>
                 </div>
@@ -590,7 +812,7 @@ function renderSection(
                     {section.buyerTypes.map((buyerType, buyerIndex) => (
                       <div
                         key={`${buyerType}-${buyerIndex}`}
-                        className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100 transition hover:shadow-md hover:ring-[var(--website-primary-color)]/20"
+                        className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100 transition hover:shadow-md hover:ring-green-100"
                       >
                         <p className="font-bold text-gray-950">{buyerType}</p>
                       </div>
@@ -619,8 +841,8 @@ function renderSection(
                   heading={section.heading}
                   description={section.description}
                 />
-                <div className="rounded-[2rem] border-2 border-dashed border-[var(--website-primary-color)]/30 bg-[var(--website-accent-color)]/10 p-8 md:p-10 shadow-sm transition hover:bg-[var(--website-accent-color)]/20">
-                  <span className="inline-flex items-center rounded-full bg-[var(--website-accent-color)] px-3 py-1 text-xs font-bold text-[var(--website-primary-color)] uppercase tracking-wider">
+                <div className="rounded-[2rem] border-2 border-dashed border-green-200 bg-green-50/10 p-8 md:p-10 shadow-sm transition hover:bg-green-50/20">
+                  <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-800 uppercase tracking-wider">
                     Standard Packaging Option
                   </span>
                   <p className="mt-6 text-2xl font-extrabold leading-snug text-gray-950">
@@ -649,9 +871,9 @@ function renderSection(
                     {section.options.map((option, optionIndex) => (
                       <div
                         key={`${option}-${optionIndex}`}
-                        className="rounded-3xl border border-gray-200 bg-gray-50 p-7 transition hover:border-[var(--website-primary-color)]/30 hover:bg-[var(--website-accent-color)]/40"
+                        className="rounded-3xl border border-gray-200 bg-gray-50 p-7 transition hover:border-green-200 hover:bg-green-50/40"
                       >
-                        <span className="text-sm font-bold text-[var(--website-primary-color)]">
+                        <span className="text-sm font-bold text-green-700">
                           Option {optionIndex + 1}
                         </span>
                         <p className="mt-3 text-lg font-bold text-gray-950">
@@ -683,12 +905,12 @@ function renderSection(
                   heading={section.heading}
                   description={section.description}
                 />
-                <div className="flex items-center gap-5 rounded-3xl bg-white p-8 shadow-sm ring-1 ring-[var(--website-primary-color)]/20 md:p-10">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[var(--website-accent-color)] font-bold text-[var(--website-primary-color)] text-xl">
+                <div className="flex items-center gap-5 rounded-3xl bg-white p-8 shadow-sm ring-1 ring-green-100/50 md:p-10">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-green-100 font-bold text-green-700 text-xl">
                     ✓
                   </div>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-[var(--website-primary-color)]">Verified Export Document</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-green-700">Verified Export Document</p>
                     <p className="mt-1 text-2xl font-bold text-gray-900">{section.documents[0]}</p>
                   </div>
                 </div>
@@ -714,9 +936,9 @@ function renderSection(
                     {section.documents.map((document, documentIndex) => (
                       <div
                         key={`${document}-${documentIndex}`}
-                        className="flex items-center gap-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100 transition hover:shadow-md hover:ring-[var(--website-primary-color)]/20"
+                        className="flex items-center gap-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100 transition hover:shadow-md hover:ring-green-100"
                       >
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--website-accent-color)] font-bold text-[var(--website-primary-color)]">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100 font-bold text-green-700">
                           ✓
                         </div>
                         <p className="font-semibold text-gray-900">{document}</p>
@@ -735,10 +957,10 @@ function renderSection(
       return (
         <section
           key={`cta-${index}`}
-          className="relative overflow-hidden bg-[var(--website-primary-color)] px-6 py-16 md:py-20 text-white"
+          className="relative overflow-hidden bg-green-800 px-6 py-16 md:py-20 text-white"
         >
-          <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-[var(--website-secondary-color)]/20 blur-3xl" />
-          <div className="absolute -bottom-32 -right-24 h-96 w-96 rounded-full bg-[var(--website-primary-color)]/30 blur-3xl" />
+          <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-green-500/20 blur-3xl" />
+          <div className="absolute -bottom-32 -right-24 h-96 w-96 rounded-full bg-green-950/30 blur-3xl" />
 
           <div className="relative mx-auto max-w-5xl text-center flex flex-col items-center">
             <SectionHeader
@@ -752,7 +974,7 @@ function renderSection(
 {section.primaryCtaText && (
   <Link
     href={getCtaHref(section.primaryCtaText, locale)}
-    className="rounded-xl bg-white px-6 py-3.5 font-semibold text-[var(--website-primary-color)] shadow-lg transition hover:bg-[var(--website-accent-color)]"
+    className="rounded-xl bg-white px-6 py-3.5 font-semibold text-green-800 shadow-lg transition hover:bg-green-50"
   >
     {section.primaryCtaText}
   </Link>
@@ -761,7 +983,7 @@ function renderSection(
 {section.secondaryCtaText && (
   <Link
     href={getCtaHref(section.secondaryCtaText, locale)}
-    className="rounded-xl border border-[var(--website-accent-color)]/70 bg-transparent px-6 py-3.5 font-semibold text-white transition hover:bg-white/10"
+    className="rounded-xl border border-green-200/70 bg-transparent px-6 py-3.5 font-semibold text-white transition hover:bg-white/10"
   >
     {section.secondaryCtaText}
   </Link>
@@ -791,7 +1013,7 @@ function renderSection(
                     <summary className="cursor-pointer list-none pr-8 font-bold text-gray-950 marker:hidden">
                       <div className="flex items-start justify-between gap-6">
                         <span>{item.question}</span>
-                        <span className="shrink-0 text-xl font-normal text-[var(--website-primary-color)] transition group-open:rotate-45">
+                        <span className="shrink-0 text-xl font-normal text-green-700 transition group-open:rotate-45">
                           +
                         </span>
                       </div>
@@ -819,7 +1041,6 @@ export function renderCmsPageContent({
   translation,
   pageTemplate,
   locale,
-  branding,
 }: {
   translation: {
     title: string;
@@ -829,47 +1050,39 @@ export function renderCmsPageContent({
   };
   pageTemplate: CmsPageTemplate;
   locale: string;
-  branding?: CmsPageWebsiteBranding | null;
+  branding?: {
+    companyName: string;
+    logoMediaUrl: string | null;
+    primaryColor: string | null;
+    secondaryColor: string | null;
+    accentColor: string | null;
+    fontFamily: string | null;
+  };
 }) {
   const isCountryLanding = pageTemplate === CmsPageTemplate.COUNTRY_LANDING;
-  const resolvedBranding = resolveWebsiteBranding(branding);
 
   const structuredContent =
     translation.structuredContent as CmsLandingPageContent | null;
 
-  const pageContent = isCountryLanding ? (
+  const hasStructuredSections = Boolean(structuredContent?.sections?.length);
+
+  const pageContent = hasStructuredSections ? (
     structuredContent?.sections?.length ? (
-      <main
-        className="overflow-x-hidden bg-white"
-        style={{
-          "--website-primary-color": resolvedBranding.primaryColor,
-          "--website-secondary-color": resolvedBranding.secondaryColor,
-          "--website-accent-color": resolvedBranding.accentColor,
-          ...(resolvedBranding.fontFamily
-            ? { fontFamily: resolvedBranding.fontFamily }
-            : {}),
-        } as CSSProperties}
-      >
-        {structuredContent.sections.map((section, index) =>
-          renderSection(section, index, locale, branding)
-        )}
+      <main className="overflow-x-hidden bg-white">
+        {structuredContent.sections.map((section, index) => (
+          <Fragment key={`cms-section-${index}`}>
+            {renderSectionElements(section, "before", index)}
+            {renderSection(section, index, locale)}
+            {renderSectionElements(section, "after", index)}
+          </Fragment>
+        ))}
       </main>
     ) : (
-      <main
-        className="overflow-x-hidden bg-white"
-        style={{
-          "--website-primary-color": resolvedBranding.primaryColor,
-          "--website-secondary-color": resolvedBranding.secondaryColor,
-          "--website-accent-color": resolvedBranding.accentColor,
-          ...(resolvedBranding.fontFamily
-            ? { fontFamily: resolvedBranding.fontFamily }
-            : {}),
-        } as CSSProperties}
-      >
+      <main className="overflow-x-hidden bg-white">
         <section className="bg-white px-6 py-20 md:py-28">
           <div className="mx-auto max-w-6xl">
-            <span className="inline-flex rounded-full bg-[var(--website-accent-color)] px-4 py-2 text-sm font-semibold text-[var(--website-primary-color)]">
-              {resolvedBranding.companyName} Global Market
+            <span className="inline-flex rounded-full bg-green-100 px-4 py-2 text-sm font-semibold text-green-800">
+              Global Market
             </span>
 
             <h1 className="mt-6 text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
@@ -898,17 +1111,7 @@ export function renderCmsPageContent({
       </main>
     )
   ) : (
-    <main
-        className="overflow-x-hidden bg-white"
-        style={{
-          "--website-primary-color": resolvedBranding.primaryColor,
-          "--website-secondary-color": resolvedBranding.secondaryColor,
-          "--website-accent-color": resolvedBranding.accentColor,
-          ...(resolvedBranding.fontFamily
-            ? { fontFamily: resolvedBranding.fontFamily }
-            : {}),
-        } as CSSProperties}
-      >
+    <main className="overflow-x-hidden bg-white">
       <section className="mx-auto max-w-6xl px-6 py-16 md:py-20">
         <h1 className="text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
           {translation.title}

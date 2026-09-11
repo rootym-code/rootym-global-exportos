@@ -140,7 +140,7 @@ export default async function BillingPage() {
 
   if (!session) {
     redirect(
-      "/app/login?error=authentication_required",
+      "/login?error=authentication_required",
     );
   }
 
@@ -179,7 +179,7 @@ export default async function BillingPage() {
     !membership.tenant.isActive
   ) {
     redirect(
-      "/app/login?error=account_inactive",
+      "/login?error=account_inactive",
     );
   }
 
