@@ -493,7 +493,7 @@ class CmsPageService extends BaseCmsService {
    * ------------------------------------------------------------
    */
   async getBySlug(slug: string) {
-    return prisma.cmsPage.findUnique({
+    return prisma.cmsPage.findFirst({
       where: {
         slug: this.normalizeSlug(slug),
       },

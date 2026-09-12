@@ -334,6 +334,40 @@ export default async function AllWebsitePagesPage({
         </section>
 
         {/* =====================================================
+            DEFAULT PAGES NOTICE
+            ===================================================== */}
+        <section className="mt-6 rounded-3xl border border-emerald-100 bg-emerald-50/70 p-6 shadow-sm sm:p-7">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white ring-1 ring-emerald-100">
+              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+            </div>
+
+            <div className="max-w-4xl">
+              <h2 className="text-base font-bold text-slate-900">
+                Default Pages
+              </h2>
+
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Home, Products, Request Quote, and Contact are provided by
+                default. Update their information through{" "}
+                <span className="font-semibold text-slate-800">
+                  Configuration
+                </span>
+                . You may add new pages as needed, but keep a{" "}
+                <span className="font-semibold text-slate-800">
+                  Request Quote
+                </span>{" "}
+                button or section to support the{" "}
+                <span className="font-semibold text-slate-800">
+                  Quotation, Inquiry, FollowUp, and R-CAPTAIN Insights
+                </span>{" "}
+                workflow.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* =====================================================
             SEARCH & FILTERS
             ===================================================== */}
 
@@ -523,7 +557,9 @@ export default async function AllWebsitePagesPage({
                       page.status === CmsPageStatus.PUBLISHED &&
                       primaryLanguageCode &&
                       viewSlug
-                        ? `/website/${website.slug}/${primaryLanguageCode}/${viewSlug}`
+                        ? page.isHomePage
+                          ? `/website/${website.slug}/${primaryLanguageCode}`
+                          : `/website/${website.slug}/${primaryLanguageCode}/${viewSlug}`
                         : null;
 
                     return (

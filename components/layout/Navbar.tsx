@@ -41,6 +41,48 @@ const NAV_ITEMS = [
   { key: "contact", href: "/contact" },
 ];
 
+interface TenantNavigationItem {
+  id: string;
+  label: string;
+  url: string;
+  pageId?: string | null;
+  parentId?: string | null;
+  sortOrder: number;
+  openInNewTab?: boolean;
+  isVisible: boolean;
+}
+
+const DEFAULT_TENANT_NAVIGATION: TenantNavigationItem[] = [
+  {
+    id: "default-home",
+    label: "Home",
+    url: "/",
+    sortOrder: 0,
+    isVisible: true,
+  },
+  {
+    id: "default-products",
+    label: "Products",
+    url: "/products",
+    sortOrder: 1,
+    isVisible: true,
+  },
+  {
+    id: "default-request-quote",
+    label: "Request Quote",
+    url: "/request-quote",
+    sortOrder: 2,
+    isVisible: true,
+  },
+  {
+    id: "default-contact",
+    label: "Contact",
+    url: "/contact",
+    sortOrder: 3,
+    isVisible: true,
+  },
+];
+
 function classNames(
   ...classes: (string | boolean | undefined)[]
 ) {
@@ -63,6 +105,9 @@ interface NavbarProps {
 const Navbar = ({ websiteBranding }: NavbarProps) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [elevated, setElevated] = useState(false);
+  const [tenantNavigation, setTenantNavigation] = useState<TenantNavigationItem[]>(
+    DEFAULT_TENANT_NAVIGATION
+  );
 
   const { t, locale } = useTranslation();
   const pathname = usePathname();
@@ -98,23 +143,107 @@ const Navbar = ({ websiteBranding }: NavbarProps) => {
       ? pathnameSegments?.[2] ?? locale
       : locale;
 
+  /**
+   * ============================================================
+   * Tenant Website Navigation
+   * ============================================================
+   *
+   * Tenant Websites must never inherit the ROOTYM/global navigation.
+   * The public Navbar reads the Website-owned navigation. Until the
+   * public navigation endpoint is available, the four platform
+   * default items remain as a safe tenant-only fallback.
+   * ============================================================
+   */
+  useEffect(() => {
+    if (!tenantWebsiteSlug) {
+      setTenantNavigation(DEFAULT_TENANT_NAVIGATION);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadTenantNavigation = async () => {
+      try {
+        const response = await fetch(
+          `/app/api/website/navigation?websiteSlug=${encodeURIComponent(
+            tenantWebsiteSlug
+          )}&locale=${encodeURIComponent(tenantLocale)}`,
+          {
+            method: "GET",
+            credentials: "same-origin",
+            cache: "no-store",
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`Navigation request failed: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        const items = Array.isArray(result?.data?.items)
+          ? result.data.items
+          : Array.isArray(result?.items)
+            ? result.items
+            : [];
+
+        if (cancelled) return;
+
+        const normalized = items
+          .filter(
+            (item: Partial<TenantNavigationItem>) =>
+              item &&
+              typeof item.id === "string" &&
+              typeof item.label === "string" &&
+              typeof item.url === "string" &&
+              item.isVisible !== false
+          )
+          .sort(
+            (a: TenantNavigationItem, b: TenantNavigationItem) =>
+              a.sortOrder - b.sortOrder
+          );
+
+        setTenantNavigation(
+          normalized.length > 0
+            ? normalized
+            : DEFAULT_TENANT_NAVIGATION
+        );
+      } catch {
+        if (!cancelled) {
+          setTenantNavigation(DEFAULT_TENANT_NAVIGATION);
+        }
+      }
+    };
+
+    void loadTenantNavigation();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantWebsiteSlug, tenantLocale]);
+
   const getNavigationHref = (href: string) => {
     if (tenantWebsiteSlug) {
-      if (href === "/") {
+      const normalizedHref = href.trim();
+
+      if (!normalizedHref || normalizedHref === "/") {
         return `/website/${tenantWebsiteSlug}/${tenantLocale}`;
       }
 
-      if (href === "/products") {
-        return `/website/${tenantWebsiteSlug}/${tenantLocale}/products`;
+      if (
+        normalizedHref.startsWith("http://") ||
+        normalizedHref.startsWith("https://") ||
+        normalizedHref.startsWith("mailto:") ||
+        normalizedHref.startsWith("tel:")
+      ) {
+        return normalizedHref;
       }
 
-      if (href === "/contact") {
-        return `/website/${tenantWebsiteSlug}/${tenantLocale}/contact`;
-      }
+      const tenantPath = normalizedHref.startsWith("/")
+        ? normalizedHref
+        : `/${normalizedHref}`;
 
-      if (href === "/request-quote") {
-        return `/website/${tenantWebsiteSlug}/${tenantLocale}/request-quote`;
-      }
+      return `/website/${tenantWebsiteSlug}/${tenantLocale}${tenantPath}`;
     }
 
     const localizedPath =
@@ -174,6 +303,53 @@ const Navbar = ({ websiteBranding }: NavbarProps) => {
 
     return `${translatedLabel} ${resolvedCompanyName}`;
   };
+
+  const getTenantNavigationLabel = (item: TenantNavigationItem) => {
+    const normalizedUrl = item.url.trim().toLowerCase();
+
+    if (normalizedUrl === "/") {
+      return t("navbar.home");
+    }
+
+    if (normalizedUrl === "/products") {
+      return t("navbar.products");
+    }
+
+    if (normalizedUrl === "/request-quote") {
+      return t("navbar.request_quote");
+    }
+
+    if (normalizedUrl === "/contact") {
+      return t("navbar.contact");
+    }
+
+    return item.label;
+  };
+
+  const getTenantNavigationHref = (item: TenantNavigationItem) => {
+    const href = item.url.trim();
+
+    if (
+      href.startsWith("http://") ||
+      href.startsWith("https://") ||
+      href.startsWith("mailto:") ||
+      href.startsWith("tel:")
+    ) {
+      return href;
+    }
+
+    return getNavigationHref(href);
+  };
+
+  const visibleTenantNavigation = tenantNavigation.filter(
+    (item) => item.isVisible !== false && !item.parentId
+  );
+
+  const tenantRequestQuoteItem = tenantNavigation.find(
+    (item) =>
+      item.isVisible !== false &&
+      item.url.trim().toLowerCase() === "/request-quote"
+  );
 
   const handleLanguageChange = (
     e: React.ChangeEvent<HTMLSelectElement>
@@ -413,9 +589,21 @@ const Navbar = ({ websiteBranding }: NavbarProps) => {
           {/* Desktop Navigation */}
 
           <div className="hidden items-center gap-1 lg:flex xl:gap-2">
-            {NAV_ITEMS.map((item, index) => (
+            {(isTenantWebsite ? visibleTenantNavigation : NAV_ITEMS).map(
+              (item, index) => {
+                const itemKey = "key" in item ? item.key : item.id;
+                const itemHref =
+                  "href" in item
+                    ? getNavigationHref(item.href)
+                    : getTenantNavigationHref(item);
+                const itemLabel =
+                  "href" in item
+                    ? getNavLabel(item.key)
+                    : getTenantNavigationLabel(item);
+
+                return (
               <motion.div
-                key={item.href}
+                key={itemHref + itemKey}
                 initial={{
                   opacity: 0,
                   y: -10,
@@ -430,14 +618,24 @@ const Navbar = ({ websiteBranding }: NavbarProps) => {
                 }}
               >
                 <NextLink
-                  href={getNavigationHref(item.href)}
+                  href={itemHref}
+                  target={
+                    "openInNewTab" in item && item.openInNewTab
+                      ? "_blank"
+                      : undefined
+                  }
+                  rel={
+                    "openInNewTab" in item && item.openInNewTab
+                      ? "noopener noreferrer"
+                      : undefined
+                  }
                   className="relative rounded-xl px-3 py-2 text-base font-medium text-gray-700 transition-colors duration-200 hover:text-[var(--website-primary-color)] focus:outline-none focus-visible:ring-2 focus-visible:ring-green-300"
                 >
                   <motion.span
                     whileHover={{ y: -1 }}
                     className="relative z-10"
                   >
-                    {getNavLabel(item.key)}
+                    {itemLabel}
                   </motion.span>
 
                   <motion.span
@@ -456,7 +654,9 @@ const Navbar = ({ websiteBranding }: NavbarProps) => {
                   />
                 </NextLink>
               </motion.div>
-            ))}
+                );
+              }
+            )}
 
             {/* Language Switcher */}
 
@@ -504,6 +704,7 @@ const Navbar = ({ websiteBranding }: NavbarProps) => {
 
             {/* Request Quote Button */}
 
+            {(!isTenantWebsite || tenantRequestQuoteItem) && (
             <motion.div
               whileHover={{
                 scale: 1.04,
@@ -521,6 +722,7 @@ const Navbar = ({ websiteBranding }: NavbarProps) => {
                 </Button>
               </NextLink>
             </motion.div>
+            )}
           </div>
 
           {/* Mobile Toggle */}
@@ -674,9 +876,21 @@ const Navbar = ({ websiteBranding }: NavbarProps) => {
                 className="mt-2 flex flex-col gap-2"
                 aria-label="Mobile Menu"
               >
-                {NAV_ITEMS.map((item, index) => (
+                {(isTenantWebsite ? visibleTenantNavigation : NAV_ITEMS).map(
+                  (item, index) => {
+                    const itemKey = "key" in item ? item.key : item.id;
+                    const itemHref =
+                      "href" in item
+                        ? getNavigationHref(item.href)
+                        : getTenantNavigationHref(item);
+                    const itemLabel =
+                      "href" in item
+                        ? getNavLabel(item.key)
+                        : getTenantNavigationLabel(item);
+
+                    return (
                   <motion.div
-                    key={item.href}
+                    key={itemHref + itemKey}
                     initial={{
                       opacity: 0,
                       x: -25,
@@ -690,16 +904,28 @@ const Navbar = ({ websiteBranding }: NavbarProps) => {
                     }}
                   >
                     <NextLink
-                      href={getNavigationHref(item.href)}
+                      href={itemHref}
+                      target={
+                        "openInNewTab" in item && item.openInNewTab
+                          ? "_blank"
+                          : undefined
+                      }
+                      rel={
+                        "openInNewTab" in item && item.openInNewTab
+                          ? "noopener noreferrer"
+                          : undefined
+                      }
                       onClick={() =>
                         setMobileOpen(false)
                       }
                       className="block rounded-lg px-3 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-[var(--website-accent-color)] hover:text-[var(--website-primary-color)]"
                     >
-                      {getNavLabel(item.key)}
+                      {itemLabel}
                     </NextLink>
                   </motion.div>
-                ))}
+                    );
+                  }
+                )}
 
                 <motion.div
                   initial={{
@@ -748,6 +974,7 @@ const Navbar = ({ websiteBranding }: NavbarProps) => {
                   </div>
                 </motion.div>
 
+                {(!isTenantWebsite || tenantRequestQuoteItem) && (
                 <motion.div
                   initial={{
                     opacity: 0,
@@ -768,7 +995,11 @@ const Navbar = ({ websiteBranding }: NavbarProps) => {
                   }}
                 >
                   <NextLink
-                    href={getNavigationHref("/request-quote")}
+                    href={
+                      isTenantWebsite && tenantRequestQuoteItem
+                        ? getTenantNavigationHref(tenantRequestQuoteItem)
+                        : getNavigationHref("/request-quote")
+                    }
                     onClick={() =>
                       setMobileOpen(false)
                     }
@@ -781,6 +1012,7 @@ const Navbar = ({ websiteBranding }: NavbarProps) => {
                     </Button>
                   </NextLink>
                 </motion.div>
+                )}
               </nav>
             </motion.div>
           </motion.div>

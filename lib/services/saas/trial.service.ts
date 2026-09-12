@@ -12,8 +12,10 @@
  */
 
 import prisma from "@/lib/prisma";
-
-import { MembershipRole } from "@/lib/generated/prisma";
+import {
+  CmsPageStatus,
+  MembershipRole,
+} from "@/lib/generated/prisma";
 import type { Prisma } from "@/lib/generated/prisma";
 
 function createTenantSlug(
@@ -59,6 +61,138 @@ async function getUniqueTenantSlug(
   }
 
   return slug;
+}
+
+/**
+ * ============================================================
+ * Provision the four ROOTYM default Website pages.
+ * ============================================================
+ *
+ * Default pages:
+ * - Home
+ * - Products
+ * - Request Quote
+ * - Contact
+ *
+ * This is deliberately Website-scoped. The CMS schema now
+ * permits the same page slug to exist on different Websites.
+ *
+ * Existing pages are never overwritten.
+ * An existing custom homepage is never replaced.
+ * ============================================================
+ */
+async function provisionDefaultWebsitePages(
+  tx: Prisma.TransactionClient,
+  websiteId: string,
+): Promise<void> {
+  const defaultLanguage =
+    await tx.language.findFirst({
+      where: {
+        isDefault: true,
+        isActive: true,
+      },
+      orderBy: {
+        sortOrder: "asc",
+      },
+    });
+
+  if (!defaultLanguage) {
+    throw new Error(
+      "No active default language is configured. Please configure the default Language before creating a customer workspace.",
+    );
+  }
+
+  const existingHomepage =
+    await tx.cmsPage.findFirst({
+      where: {
+        websiteId,
+        isHomePage: true,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+  const defaultPages = [
+    {
+      title: "Home",
+      slug: "home",
+      isHomePage: !existingHomepage,
+      showInMenu: true,
+    },
+    {
+      title: "Products",
+      slug: "products",
+      isHomePage: false,
+      showInMenu: true,
+    },
+    {
+      title: "Request Quote",
+      slug: "request-quote",
+      isHomePage: false,
+      showInMenu: true,
+    },
+    {
+      title: "Contact",
+      slug: "contact",
+      isHomePage: false,
+      showInMenu: true,
+    },
+  ];
+
+  for (const defaultPage of defaultPages) {
+    const existingPage =
+      await tx.cmsPage.findUnique({
+        where: {
+          websiteId_slug: {
+            websiteId,
+            slug: defaultPage.slug,
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+
+    if (existingPage) {
+      continue;
+    }
+
+    const page =
+      await tx.cmsPage.create({
+        data: {
+          websiteId,
+          title: defaultPage.title,
+          slug: defaultPage.slug,
+          status: CmsPageStatus.PUBLISHED,
+          isHomePage: defaultPage.isHomePage,
+          showInMenu: defaultPage.showInMenu,
+          publishedAt: new Date(),
+          translations: {
+            create: {
+              languageId:
+                defaultLanguage.id,
+              title: defaultPage.title,
+              slug: defaultPage.slug,
+              isPublished: true,
+            },
+          },
+        },
+        select: {
+          id: true,
+          slug: true,
+        },
+      });
+
+    console.log(
+      "Provisioned default Website page:",
+      {
+        websiteId,
+        pageId: page.id,
+        slug: page.slug,
+      },
+    );
+  }
 }
 
 /**
@@ -334,14 +468,26 @@ export async function createCustomerWorkspace(
        * Website & Marketing. It must not be created
        * lazily by an individual Website module.
        */
-      await tx.website.create({
-        data: {
-          tenantId: tenant.id,
-          name: `${tenant.name} Website`,
-          slug: tenant.slug,
-          isActive: true,
-        },
-      });
+      const website =
+        await tx.website.create({
+          data: {
+            tenantId: tenant.id,
+            name: `${tenant.name} Website`,
+            slug: tenant.slug,
+            isActive: true,
+          },
+        });
+
+      /**
+       * 8. Provision the standard Website pages in the
+       *    same transaction so every newly created
+       *    customer workspace starts with the baseline
+       *    Website structure.
+       */
+      await provisionDefaultWebsitePages(
+        tx,
+        website.id,
+      );
 
       membership =
         await tx.membership.create({

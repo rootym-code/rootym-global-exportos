@@ -309,7 +309,7 @@ model Quote {
   email           String
   phone           String?
   buyerAddress    String?
-buyerGstin      String?
+  buyerGstin      String?
   country         String
   currency        String
   subtotal        Decimal          @default(0) @db.Decimal(18, 2)
@@ -379,8 +379,8 @@ model ProformaInvoice {
   contactPerson  String
   email          String
   phone          String?
-  buyerAddress    String?
-buyerGstin      String?
+  buyerAddress   String?
+  buyerGstin     String?
   country        String
   currency       String
   subtotal       Decimal               @default(0) @db.Decimal(18, 2)
@@ -498,7 +498,7 @@ model CmsPage {
   /// Internal page title
   title           String
   /// URL slug
-  slug            String               @unique
+  slug            String
   /// Page status
   status          CmsPageStatus        @default(DRAFT)
   /// Homepage flag
@@ -526,6 +526,7 @@ model CmsPage {
   translations    CmsPageTranslation[]
   menuItems       MenuItem[]
 
+  @@unique([websiteId, slug])
   @@index([websiteId])
   @@index([status])
   @@index([slug])
@@ -556,7 +557,6 @@ model CmsPageTranslation {
   page              CmsPage  @relation(fields: [pageId], references: [id], onDelete: Cascade)
 
   @@unique([pageId, languageId])
-  @@unique([languageId, slug])
   @@index([pageId])
   @@index([languageId])
   @@index([slug])
@@ -613,11 +613,22 @@ model Media {
   @@index([websiteId])
 }
 
+/**
+ * ============================================================
+ * ROOTYM Website Navigation
+ * ============================================================
+ * Author: Prem Singh
+ * Purpose: Allows a Website to own its customer-facing
+ *          navigation while preserving existing global Admin
+ *          menus for backward compatibility.
+ * ============================================================
+ */
 model Menu {
   id          String     @id @default(cuid())
   /// Internal menu name
   name        String
-  /// Unique menu identifier
+  /// Unique menu identifier. Kept globally unique so existing
+  /// Admin CMS menu functionality remains unchanged.
   code        String     @unique
   /// Description
   description String?
@@ -625,9 +636,15 @@ model Menu {
   isActive    Boolean    @default(true)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
+
+  /// Optional Website ownership. NULL means legacy/Admin menu.
+  websiteId   String?    @unique
+  website     Website?   @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+
   items       MenuItem[]
 
   @@index([isActive])
+  @@index([websiteId])
 }
 
 model MenuItem {
@@ -801,6 +818,9 @@ model Website {
   inquiries        Inquiry[]
   quotes           Quote[]
   proformaInvoices ProformaInvoice[]
+  /// Website-owned Main Navigation. Legacy/Admin menus remain
+  /// available through Menu records with websiteId = NULL.
+  navigation       Menu?
   tenant           Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
 
