@@ -331,13 +331,25 @@ export default async function CustomerWebsiteHomepagePage({
 
   const page = await cmsPageService.getHomePage(website.id);
 
-  if (!page) {
-    notFound();
-  }
+  /**
+   * ------------------------------------------------------------
+   * DEFAULT WEBSITE HOMEPAGE FALLBACK
+   * ------------------------------------------------------------
+   *
+   * A newly created Website does not need a CMS homepage just to
+   * expose the standard customer Website. CMS pages remain an
+   * optional customization layer.
+   *
+   * If a published Website-owned CMS homepage exists, it continues
+   * to control the homepage. Otherwise the reusable premium
+   * CustomerWebsiteHomepage is rendered as the default homepage.
+   * ------------------------------------------------------------
+   */
 
-  if (page.status !== CmsPageStatus.PUBLISHED) {
-    notFound();
-  }
+  const publishedHomePage =
+    page?.status === CmsPageStatus.PUBLISHED
+      ? page
+      : null;
 
   /**
    * ------------------------------------------------------------
@@ -352,28 +364,26 @@ export default async function CustomerWebsiteHomepagePage({
    *
    * Prefer the requested locale. If it is not published, use
    * English and then the first published Website translation.
-   * This keeps the tenant homepage available at every supported
-   * URL without changing the Website ownership boundary.
    * ------------------------------------------------------------
    */
 
   const translation =
-    page.translations.find(
+    publishedHomePage?.translations.find(
       (item) =>
         item.isPublished &&
         item.language.code.toLowerCase() ===
           locale.toLowerCase(),
     ) ||
-    page.translations.find(
+    publishedHomePage?.translations.find(
       (item) =>
         item.isPublished &&
         item.language.code.toLowerCase() === "en",
     ) ||
-    page.translations.find(
+    publishedHomePage?.translations.find(
       (item) => item.isPublished,
     );
 
-  if (!translation) {
+  if (publishedHomePage && !translation) {
     notFound();
   }
 
@@ -479,7 +489,10 @@ export default async function CustomerWebsiteHomepagePage({
    * ============================================================
    */
 
-  if (page.layout === CmsPageLayout.WEBSITE) {
+  if (
+    !publishedHomePage ||
+    publishedHomePage.layout === CmsPageLayout.WEBSITE
+  ) {
     return (
       <>
         <Navbar

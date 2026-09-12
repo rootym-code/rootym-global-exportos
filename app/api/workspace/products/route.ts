@@ -1,5 +1,7 @@
 /**
  * ============================================================
+ * ROOTYM Global ExportOS
+ * ============================================================
  * Author: Prem Singh
  * Purpose: Customer Workspace Product collection API.
  *          Provides Website-scoped Product listing and creation
@@ -15,9 +17,9 @@ import {
 } from "@/app/lib/workspace/products/product-workspace.service";
 
 import {
-    createProductSchema,
-    productStatusSchema,
-  } from "@/lib/validations/product";
+  createProductSchema,
+  productStatusSchema,
+} from "@/lib/validations/product";
 
 /**
  * ============================================================
@@ -40,14 +42,14 @@ export async function GET(request: NextRequest) {
 
     const search = searchParams.get("search")?.trim() || undefined;
     const category = searchParams.get("category")?.trim() || undefined;
-    
+
     const statusParam = searchParams.get("status")?.trim() || undefined;
-    
+
     let status;
-    
+
     if (statusParam) {
       const parsedStatus = productStatusSchema.safeParse(statusParam);
-    
+
       if (!parsedStatus.success) {
         return NextResponse.json(
           {
@@ -57,7 +59,7 @@ export async function GET(request: NextRequest) {
           { status: 400 },
         );
       }
-    
+
       status = parsedStatus.data;
     }
 
@@ -120,8 +122,9 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json(
         {
-          error: "Invalid product data.",
-          details: parsed.error.flatten(),
+          success: false,
+          message: "Invalid product data.",
+          errors: parsed.error.flatten(),
         },
         { status: 400 },
       );
@@ -129,7 +132,14 @@ export async function POST(request: NextRequest) {
 
     const product = await createWorkspaceProduct(parsed.data);
 
-    return NextResponse.json(product, { status: 201 });
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Product created successfully.",
+        data: product,
+      },
+      { status: 201 },
+    );
   } catch (error) {
     console.error(
       "[Workspace Products POST] Failed to create product:",
@@ -138,7 +148,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       {
-        error:
+        success: false,
+        message:
           error instanceof Error
             ? error.message
             : "Failed to create product.",
