@@ -1,0 +1,33 @@
+﻿ROOTYM Global ExportOS - R-CAPTAIN SOURCE PATH MANIFEST
+Generated: 2026-09-12 14:54:00
+
+PROJECT ROOT
+D:\Projects\rootym-global-exportos
+
+SOURCE ROOT
+D:\Projects\rootym-global-exportos\app
+
+============================================================
+KNOWN / REQUIRED FILES
+============================================================
+[FOUND] app\api\r-captain\chat\route.ts
+        D:\Projects\rootym-global-exportos\app\api\r-captain\chat\route.ts
+[MISSING] app\lib\ai\AIService.ts
+[MISSING] app\lib\r-captain\engine.ts
+
+============================================================
+ALL R-CAPTAIN SOURCE FILES
+============================================================
+app\[locale]\r-captain\page.tsx
+app\api\r-captain\chat\route.ts
+app\api\r-captain\route.ts
+
+============================================================
+ALL AI SOURCE FILES
+============================================================
+
+============================================================
+R-CAPTAIN RELATED FILES
+============================================================
+app\api\r-captain\chat\route.ts
+app\lib\workspace\rcaptain\workspace-rcaptain.service.ts

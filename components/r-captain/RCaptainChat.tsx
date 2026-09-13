@@ -63,6 +63,38 @@ export default function RCaptainChat() {
     setLoading(true);
 
     try {
+      /**
+       * =====================================================
+       * R-CAPTAIN Context Selection
+       *
+       * The same chat UI is used across ROOTYM marketing,
+       * public tenant Websites, and authenticated Workspaces.
+       * The API must receive the explicit context so the server
+       * can apply the correct authentication and data boundary.
+       * =====================================================
+       */
+      const pathname =
+        window.location.pathname;
+
+      const isWorkspace =
+        pathname === "/app/workspace" ||
+        pathname.startsWith("/app/workspace/");
+
+      const websiteMatch =
+        pathname.match(
+          /^\/website\/([^/]+)(?:\/|$)/
+        );
+
+      const websiteSlug =
+        websiteMatch?.[1] ?? null;
+
+      const mode =
+        isWorkspace
+          ? "WORKSPACE"
+          : websiteSlug
+            ? "BUYER"
+            : "MARKETING";
+
       const response = await fetch(
         "/api/r-captain/chat",
         {
@@ -74,6 +106,11 @@ export default function RCaptainChat() {
           body: JSON.stringify({
             message: messageText,
             messages: updatedMessages,
+            mode,
+            websiteSlug:
+              mode === "BUYER"
+                ? websiteSlug
+                : undefined,
           }),
         }
       );

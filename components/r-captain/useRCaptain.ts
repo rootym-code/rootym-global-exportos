@@ -56,8 +56,40 @@ export default function useRCaptain() {
       setLoading(true);
 
       try {
+        /**
+         * =====================================================
+         * R-CAPTAIN Context Selection
+         *
+         * Workspace pages explicitly identify themselves as
+         * WORKSPACE context. Public tenant Website pages use
+         * BUYER context with the Website slug. All other pages
+         * remain MARKETING context.
+         * =====================================================
+         */
+        const pathname =
+          window.location.pathname;
+
+        const isWorkspace =
+          pathname === "/app/workspace" ||
+          pathname.startsWith("/app/workspace/");
+
+        const websiteMatch =
+          pathname.match(
+            /^\/website\/([^/]+)(?:\/|$)/
+          );
+
+        const websiteSlug =
+          websiteMatch?.[1] ?? null;
+
+        const mode =
+          isWorkspace
+            ? "WORKSPACE"
+            : websiteSlug
+              ? "BUYER"
+              : "MARKETING";
+
         const response = await fetch(
-          "/api/r-captain",
+          "/api/r-captain/chat",
           {
             method: "POST",
             headers: {
@@ -67,6 +99,11 @@ export default function useRCaptain() {
             body: JSON.stringify({
               message: messageText,
               messages: updatedMessages,
+              mode,
+              websiteSlug:
+                mode === "BUYER"
+                  ? websiteSlug
+                  : undefined,
             }),
           }
         );
@@ -120,5 +157,3 @@ export default function useRCaptain() {
     messagesEndRef,
   };
 }
-
- 
