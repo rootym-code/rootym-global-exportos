@@ -76,7 +76,15 @@ export default function RCaptainChat() {
       const pathname =
         window.location.pathname;
 
+      const hostname =
+        window.location.hostname;
+
+      const isWorkspaceHost =
+        hostname === "app.export.rootym.com" ||
+        hostname === "app.export.localhost";
+
       const isWorkspace =
+        isWorkspaceHost ||
         pathname === "/app/workspace" ||
         pathname.startsWith("/app/workspace/");
 
