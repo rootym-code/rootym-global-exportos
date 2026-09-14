@@ -5,7 +5,8 @@
  * Author: Prem Singh
  * Purpose: Provides the authenticated ROOTYM SaaS Control Page
  *          for customer account, workspace, subscription,
- *          plan, billing and workspace access management.
+ *          plan, billing and workspace access management, with
+ *          subscription status prominently surfaced at the top.
  * ============================================================
  */
 
@@ -27,6 +28,7 @@ import {
 } from "lucide-react";
 
 import prisma from "@/lib/prisma";
+import { getSubscriptionAccessStatus } from "@/lib/services/billing/subscription-access.service";
 
 import {
   CUSTOMER_AUTH_COOKIE_NAME,
@@ -164,6 +166,25 @@ function getStatusDetails(
   }
 }
 
+function getTrialDaysRemaining(
+  trialEndsAt: Date | null | undefined
+) {
+  if (!trialEndsAt) {
+    return null;
+  }
+
+  const remainingMs =
+    trialEndsAt.getTime() - Date.now();
+
+  if (remainingMs <= 0) {
+    return 0;
+  }
+
+  return Math.ceil(
+    remainingMs / (1000 * 60 * 60 * 24)
+  );
+}
+
 function getBillingIntervalLabel(
   interval: BillingInterval | null | undefined
 ) {
@@ -232,8 +253,24 @@ export default async function AppPage() {
     membership.tenant.subscriptions[0] ??
     null;
 
+  /*
+   * The database status alone is not sufficient to determine whether
+   * the subscription is currently usable. A subscription can still
+   * have ACTIVE status while its effective billing period has ended.
+   *
+   * Use the central subscription-access service so the SaaS Control
+   * Center reflects the same effective access decision used by the
+   * Website and Workspace protection.
+   */
+  const subscriptionAccess =
+    await getSubscriptionAccessStatus(membership.tenant.id);
+
   const status =
-    subscription?.status ?? null;
+    subscriptionAccess.status === "NO_SUBSCRIPTION"
+      ? null
+      : subscriptionAccess.status === "EXPIRED"
+      ? SubscriptionStatus.EXPIRED
+      : subscription?.status ?? null;
 
   const statusDetails =
     getStatusDetails(status);
@@ -256,6 +293,11 @@ export default async function AppPage() {
 
   const trialEndsAt =
     subscription?.trialEndsAt ?? null;
+
+  const trialDaysRemaining =
+    isTrialing
+      ? getTrialDaysRemaining(trialEndsAt)
+      : null;
 
   const currentPeriodEnd =
     subscription?.currentPeriodEnd ?? null;
@@ -331,6 +373,126 @@ export default async function AppPage() {
             </div>
           </div>
         </header>
+
+        {/* =====================================================
+            SUBSCRIPTION STATUS
+            ===================================================== */}
+
+        <section className="mt-6">
+
+          <div
+            className={`rounded-3xl border p-7 sm:p-8 ${statusDetails.className}`}
+          >
+
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+
+              <div className="flex gap-4">
+
+                <div className="mt-1">
+                  <span
+                    className={`block h-3 w-3 rounded-full ${statusDetails.dotClassName}`}
+                  />
+                </div>
+
+                <div>
+
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] opacity-70">
+                    Subscription Status
+                  </p>
+
+                  <h2 className="mt-2 text-2xl font-bold">
+                    {statusDetails.title}
+                  </h2>
+
+                  <p className="mt-2 max-w-2xl text-sm leading-6 opacity-80">
+                    {statusDetails.description}
+                  </p>
+
+                  {isTrialing &&
+                    trialEndsAt && (
+                      <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm font-semibold">
+                        <div className="flex items-center gap-2">
+                          <Clock3 className="h-4 w-4" />
+                          Trial ends on{" "}
+                          {formatDate(trialEndsAt)}
+                        </div>
+
+                        {trialDaysRemaining !== null && (
+                          <div className="flex items-center gap-2">
+                            <Clock3 className="h-4 w-4" />
+                            {trialDaysRemaining}{" "}
+                            {trialDaysRemaining === 1
+                              ? "day"
+                              : "days"}{" "}
+                            remaining
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                  {isActive &&
+                    currentPeriodEnd && (
+                      <div className="mt-4 flex items-center gap-2 text-sm font-semibold">
+                        <Clock3 className="h-4 w-4" />
+                        Current billing period ends on{" "}
+                        {formatDate(currentPeriodEnd)}
+                      </div>
+                    )}
+
+                </div>
+              </div>
+
+              <span className="inline-flex w-fit items-center rounded-full bg-white/70 px-4 py-2 text-xs font-bold">
+                {statusDetails.label}
+              </span>
+
+            </div>
+
+            {(isPending || isPastDue) && (
+              <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-current/10 bg-white/50 p-5 sm:flex-row sm:items-center sm:justify-between">
+
+                <div className="flex gap-3">
+
+                  <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+
+                  <div>
+                    <p className="font-semibold">
+                      Billing action required
+                    </p>
+
+                    <p className="mt-1 text-sm opacity-80">
+                      Open Billing & Subscription to review or complete the payment process.
+                    </p>
+                  </div>
+
+                </div>
+
+                <Link
+                  href="/app/billing"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+                >
+                  Open Billing
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+
+              </div>
+            )}
+
+            {isInactive && (
+              <div className="mt-6">
+                <Link
+                  href="/app/billing"
+                  className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+                >
+                  Choose a Plan
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+            )}
+
+          </div>
+        </section>
+
 
         {/* =====================================================
             WORKSPACE IDENTITY + STATUS
@@ -461,112 +623,6 @@ export default async function AppPage() {
 </p>
 
           </aside>
-        </section>
-
-        {/* =====================================================
-            SUBSCRIPTION STATUS
-            ===================================================== */}
-
-        <section className="mt-6">
-
-          <div
-            className={`rounded-3xl border p-7 sm:p-8 ${statusDetails.className}`}
-          >
-
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-
-              <div className="flex gap-4">
-
-                <div className="mt-1">
-                  <span
-                    className={`block h-3 w-3 rounded-full ${statusDetails.dotClassName}`}
-                  />
-                </div>
-
-                <div>
-
-                  <p className="text-xs font-bold uppercase tracking-[0.16em] opacity-70">
-                    Subscription Status
-                  </p>
-
-                  <h2 className="mt-2 text-2xl font-bold">
-                    {statusDetails.title}
-                  </h2>
-
-                  <p className="mt-2 max-w-2xl text-sm leading-6 opacity-80">
-                    {statusDetails.description}
-                  </p>
-
-                  {isTrialing &&
-                    trialEndsAt && (
-                      <div className="mt-4 flex items-center gap-2 text-sm font-semibold">
-                        <Clock3 className="h-4 w-4" />
-                        Trial ends on{" "}
-                        {formatDate(trialEndsAt)}
-                      </div>
-                    )}
-
-                  {isActive &&
-                    currentPeriodEnd && (
-                      <div className="mt-4 flex items-center gap-2 text-sm font-semibold">
-                        <Clock3 className="h-4 w-4" />
-                        Current billing period ends on{" "}
-                        {formatDate(currentPeriodEnd)}
-                      </div>
-                    )}
-
-                </div>
-              </div>
-
-              <span className="inline-flex w-fit items-center rounded-full bg-white/70 px-4 py-2 text-xs font-bold">
-                {statusDetails.label}
-              </span>
-
-            </div>
-
-            {(isPending || isPastDue) && (
-              <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-current/10 bg-white/50 p-5 sm:flex-row sm:items-center sm:justify-between">
-
-                <div className="flex gap-3">
-
-                  <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
-
-                  <div>
-                    <p className="font-semibold">
-                      Billing action required
-                    </p>
-
-                    <p className="mt-1 text-sm opacity-80">
-                      Open Billing & Subscription to review or complete the payment process.
-                    </p>
-                  </div>
-
-                </div>
-
-                <Link
-                  href="/app/billing"
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
-                >
-                  Open Billing
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-
-              </div>
-            )}
-
-            {isInactive && (
-              <div className="mt-6">
-                <Link
-                  href="/app/billing"
-                  className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
-                >
-                  Choose a Plan
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </div>
-            )}
-
-          </div>
         </section>
 
         {/* =====================================================

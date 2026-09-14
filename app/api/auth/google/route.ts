@@ -5,8 +5,8 @@
  * Author: Prem Singh
  * Purpose: Starts the Google OAuth flow for ROOTYM SaaS
  *          customers while supporting the deterministic
- *          SaaS hostname architecture and secure workspace
- *          invitation OAuth handoff.
+ *          SaaS hostname architecture, secure workspace
+ *          invitation OAuth handoff, and explicit trial intent.
  *
  * Local OAuth:
  *   app.export.localhost
@@ -45,6 +45,9 @@ import {
 
 const STATE_COOKIE =
   "rootym_google_oauth_state";
+
+const TRIAL_INTENT =
+  "TRIAL";
 
 const LOCAL_OAUTH_HOST =
   "localhost:3000";
@@ -295,6 +298,7 @@ async function createAuthorizationResponse(
   redirectUri: string,
   returnOrigin: string,
   invitationId?: string,
+  intent?: string,
 ) {
   const clientId =
     process.env.GOOGLE_CLIENT_ID;
@@ -324,6 +328,11 @@ async function createAuthorizationResponse(
             type:
               "customer_invitation_oauth",
             invitationId,
+          }
+        : {}),
+      ...(intent === TRIAL_INTENT
+        ? {
+            intent: TRIAL_INTENT,
           }
         : {}),
     })
@@ -574,6 +583,12 @@ export async function GET(
       request.headers.get("host") ??
       "";
 
+    const intent =
+      request.nextUrl.searchParams.get("intent") ===
+      "trial"
+        ? TRIAL_INTENT
+        : undefined;
+
     /**
      * ========================================================
      * LOCAL DEVELOPMENT
@@ -615,6 +630,13 @@ export async function GET(
         appOrigin,
       );
 
+      if (intent === TRIAL_INTENT) {
+        bootstrapUrl.searchParams.set(
+          "intent",
+          "trial",
+        );
+      }
+
       return NextResponse.redirect(
         bootstrapUrl,
       );
@@ -645,6 +667,13 @@ export async function GET(
         request.nextUrl.searchParams.get(
           "return_origin",
         );
+
+      const bootstrapIntent =
+        request.nextUrl.searchParams.get(
+          "intent",
+        ) === "trial"
+          ? TRIAL_INTENT
+          : undefined;
 
       if (
         !returnOrigin ||
@@ -688,6 +717,8 @@ export async function GET(
         request,
         `${LOCAL_OAUTH_ORIGIN}/api/auth/google/callback`,
         returnOrigin,
+        undefined,
+        bootstrapIntent,
       );
     }
 
@@ -709,6 +740,8 @@ export async function GET(
       request,
       `${appOrigin}/api/auth/google/callback`,
       appOrigin,
+      undefined,
+      intent,
     );
   } catch (error) {
     console.error(

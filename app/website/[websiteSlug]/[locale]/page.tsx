@@ -6,7 +6,8 @@
  * Module      : Public Website
  * Feature     : Customer Website Homepage
  * Purpose     : Resolves a Website-owned homepage and renders
- *               the reusable premium customer Website experience.
+ *               the reusable premium customer Website experience,
+ *               with server-side subscription access enforcement.
  * ============================================================
  */
 
@@ -29,6 +30,10 @@ import {
 } from "@/lib/generated/prisma";
 
 import { listProducts } from "@/lib/services/product.service";
+
+import {
+  getSubscriptionAccessStatus,
+} from "@/lib/services/billing/subscription-access.service";
 
 type PageProps = {
   params: Promise<{
@@ -280,6 +285,7 @@ export default async function CustomerWebsiteHomepagePage({
 
       tenant: {
         select: {
+          id: true,
           businessProfile: {
             select: {
               businessName: true,
@@ -317,6 +323,59 @@ export default async function CustomerWebsiteHomepagePage({
 
   if (!website || !website.isActive) {
     notFound();
+  }
+
+  /**
+   * ------------------------------------------------------------
+   * SUBSCRIPTION ACCESS
+   * ------------------------------------------------------------
+   *
+   * Customer Websites remain available while the tenant has an
+   * active trial or active paid subscription. Once subscription
+   * access expires, the public Website is taken offline.
+   *
+   * This is enforced server-side so expired customers cannot
+   * continue serving their Website by bypassing the UI.
+   * ------------------------------------------------------------
+   */
+
+  const subscriptionAccess =
+    await getSubscriptionAccessStatus(
+      website.tenant.id,
+    );
+
+  const websiteAccessBlocked =
+    subscriptionAccess.status === "EXPIRED" ||
+    subscriptionAccess.status === "NO_SUBSCRIPTION";
+
+  if (websiteAccessBlocked) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-50 px-6 py-16 text-slate-900">
+        <div className="w-full max-w-2xl rounded-3xl bg-white p-8 text-center shadow-sm ring-1 ring-slate-200 sm:p-12">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-600">
+            <span className="text-xl font-bold">R</span>
+          </div>
+
+          <p className="mt-6 text-sm font-semibold uppercase tracking-[0.16em] text-emerald-600">
+            ROOTYM Website
+          </p>
+
+          <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
+            This Website is currently offline
+          </h1>
+
+          <p className="mx-auto mt-4 max-w-xl text-sm leading-6 text-slate-500 sm:text-base">
+            This customer Website is temporarily unavailable because
+            the ROOTYM subscription is not currently active.
+          </p>
+
+          <p className="mt-3 text-sm leading-6 text-slate-500">
+            The Website owner can restore it by activating a ROOTYM
+            subscription.
+          </p>
+        </div>
+      </main>
+    );
   }
 
   /**

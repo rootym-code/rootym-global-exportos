@@ -11,13 +11,14 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-
 import prisma from "@/lib/prisma";
 
 import {
   CUSTOMER_AUTH_COOKIE_NAME,
   verifyCustomerToken,
 } from "@/lib/auth/customer-jwt";
+
+import { getSubscriptionAccessStatus } from "@/lib/services/billing/subscription-access.service";
 
 export async function requireWorkspaceAccess() {
   const cookieStore = await cookies();
@@ -26,7 +27,7 @@ export async function requireWorkspaceAccess() {
     CUSTOMER_AUTH_COOKIE_NAME
   )?.value;
 
-  /*
+  /**
    * 1. Require a valid customer JWT.
    *
    * The JWT is cryptographically verified by
@@ -48,7 +49,7 @@ export async function requireWorkspaceAccess() {
     );
   }
 
-  /*
+  /**
    * 2. Revalidate the signed session against the
    *    database.
    *
@@ -80,7 +81,7 @@ export async function requireWorkspaceAccess() {
       },
     });
 
-  /*
+  /**
    * 3. Reject invalid or inactive customer access.
    */
   if (
@@ -93,8 +94,31 @@ export async function requireWorkspaceAccess() {
     );
   }
 
-  /*
-   * 4. Return the authenticated workspace context.
+  /**
+   * 4. Enforce subscription lifecycle access.
+   *
+   * Authentication and membership remain valid even
+   * after subscription expiry, so the customer account
+   * can be restored after payment. Workspace access,
+   * however, is blocked when there is no usable
+   * subscription.
+   */
+  const subscriptionAccess =
+    await getSubscriptionAccessStatus(
+      membership.tenant.id
+    );
+
+  if (
+    subscriptionAccess.status === "EXPIRED" ||
+    subscriptionAccess.status === "NO_SUBSCRIPTION"
+  ) {
+    redirect(
+      "/app/billing?error=subscription_required"
+    );
+  }
+
+  /**
+   * 5. Return the authenticated workspace context.
    *
    * Every Workspace module can now use this context
    * instead of independently resolving the customer.
@@ -104,5 +128,6 @@ export async function requireWorkspaceAccess() {
     membership,
     user: membership.user,
     tenant: membership.tenant,
+    subscriptionAccess,
   };
 }

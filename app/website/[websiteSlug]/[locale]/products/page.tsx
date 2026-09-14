@@ -28,6 +28,7 @@ import ProductsCTA from "@/components/products/ProductsCTA";
 import prisma from "@/lib/prisma";
 import { ProductStatus } from "@/lib/generated/prisma";
 import { listProducts } from "@/lib/services/product.service";
+import { getSubscriptionAccessStatus } from "@/lib/services/billing/subscription-access.service";
 
 type PageProps = {
   params: Promise<{
@@ -69,6 +70,7 @@ export async function generateMetadata({
 
       tenant: {
         select: {
+          id: true,
           businessProfile: {
             select: {
               businessName: true,
@@ -173,6 +175,7 @@ export default async function CustomerWebsiteProductsPage({
 
       tenant: {
         select: {
+          id: true,
           businessProfile: {
             select: {
               businessName: true,
@@ -210,6 +213,57 @@ export default async function CustomerWebsiteProductsPage({
 
   if (!website || !website.isActive) {
     notFound();
+  }
+
+  /**
+   * ------------------------------------------------------------
+   * SUBSCRIPTION ACCESS
+   * ------------------------------------------------------------
+   *
+   * Expired or unsubscribed customers must not continue serving
+   * their public Website through the Products route.
+   *
+   * This is enforced server-side so the route cannot be bypassed
+   * by directly requesting the Products URL.
+   * ------------------------------------------------------------
+   */
+
+  const subscriptionAccess = await getSubscriptionAccessStatus(
+    website.tenant.id,
+  );
+
+  const websiteAccessBlocked =
+    subscriptionAccess.status === "EXPIRED" ||
+    subscriptionAccess.status === "NO_SUBSCRIPTION";
+
+  if (websiteAccessBlocked) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-50 px-6 py-16 text-slate-900">
+        <div className="w-full max-w-2xl rounded-3xl border border-slate-200 bg-white px-8 py-12 text-center shadow-sm">
+          <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-xl font-semibold text-slate-700">
+            R
+          </div>
+
+          <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-emerald-600">
+            ROOTYM Website
+          </p>
+
+          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+            This Website is currently offline
+          </h1>
+
+          <p className="mx-auto mt-5 max-w-xl text-base leading-7 text-slate-600">
+            This customer Website is temporarily unavailable because the
+            ROOTYM subscription is not currently active.
+          </p>
+
+          <p className="mt-4 text-sm leading-6 text-slate-500">
+            The Website owner can restore it by activating a ROOTYM
+            subscription.
+          </p>
+        </div>
+      </main>
+    );
   }
 
   /**

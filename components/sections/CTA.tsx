@@ -8,7 +8,7 @@
  *
  * Primary conversion:
  *   GET STARTED
- *     → centralized SAAS_LOGIN_URL
+ *     → centralized SAAS_LOGIN_URL with explicit trial intent
  *
  * Contact:
  *   Contact Us
@@ -34,6 +34,8 @@ import { motion } from "framer-motion";
 
 import { SAAS_LOGIN_URL } from "@/lib/config/urls";
 
+const TRIAL_LOGIN_URL = `${SAAS_LOGIN_URL}?intent=trial`;
+
 export default function CTA() {
   return (
     <section
@@ -42,9 +44,7 @@ export default function CTA() {
     >
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute left-1/2 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-500/10 blur-[140px]" />
-
         <div className="absolute left-0 top-0 h-72 w-72 rounded-full bg-cyan-500/5 blur-3xl" />
-
         <div className="absolute bottom-0 right-0 h-72 w-72 rounded-full bg-blue-500/5 blur-3xl" />
       </div>
 
@@ -88,7 +88,7 @@ export default function CTA() {
 
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <a
-              href={SAAS_LOGIN_URL}
+              href={TRIAL_LOGIN_URL}
               className="group inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-500 via-green-500 to-cyan-500 px-8 py-4 font-semibold text-white transition hover:scale-[1.02]"
             >
               GET STARTED

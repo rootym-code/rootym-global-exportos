@@ -8,7 +8,7 @@
  *
  * Primary conversion:
  *   GET STARTED
- *     → centralized SAAS_LOGIN_URL
+ *     → centralized SAAS_LOGIN_URL with trial intent
  *
  * The SaaS destination is environment-aware and configured
  * through lib/config/urls.ts.
@@ -28,10 +28,10 @@ import {
 import { motion } from "framer-motion";
 
 import HeroBackground from "@/components/hero/HeroBackground";
-
 import HeroDashboard from "@/components/hero/HeroDashboard";
-
 import { SAAS_LOGIN_URL } from "@/lib/config/urls";
+
+const TRIAL_LOGIN_URL = `${SAAS_LOGIN_URL}?intent=trial`;
 
 const trustItems = [
   "AI Powered",
@@ -162,7 +162,7 @@ export default function Hero() {
             >
               {/* Primary SaaS CTA */}
               <a
-                href={SAAS_LOGIN_URL}
+                href={TRIAL_LOGIN_URL}
                 className="group relative inline-flex overflow-hidden rounded-2xl"
                 aria-label="Get started with ROOTYM ExportOS"
               >
@@ -178,7 +178,6 @@ export default function Hero() {
                 {/* Content */}
                 <span className="relative flex items-center gap-2 px-8 py-4 font-semibold text-white transition-transform duration-300 group-hover:-translate-y-0.5">
                   GET STARTED
-
                   <ArrowRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" />
                 </span>
               </a>
@@ -211,7 +210,6 @@ export default function Hero() {
                   className="flex items-center gap-2"
                 >
                   <CheckCircle2 className="h-5 w-5 text-emerald-400" />
-
                   <span className="text-sm text-slate-300">
                     {item}
                   </span>

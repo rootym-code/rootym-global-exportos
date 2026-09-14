@@ -5,7 +5,8 @@
  * Author: Prem Singh
  * Purpose: Completes Google OAuth and establishes the ROOTYM
  *          SaaS customer session on the correct SaaS hostname,
- *          including invitation-aware workspace membership.
+ *          including invitation-aware workspace membership and
+ *          explicit free-trial onboarding.
  * ============================================================
  */
 
@@ -20,6 +21,10 @@ import {
   createCustomerWorkspace,
   resolveCustomerIdentity,
 } from "@/lib/services/saas/trial.service";
+
+import {
+  startTrial,
+} from "@/lib/services/saas/trial-start.service";
 
 import {
   acceptWorkspaceInvitationById,
@@ -340,6 +345,9 @@ export async function GET(
       );
     }
 
+    const trialIntent =
+      payload.intent === "TRIAL";
+
     /**
      * ========================================================
      * Validate the expected return origin.
@@ -642,6 +650,12 @@ export async function GET(
         providerEmail:
           profile.email,
       });
+
+    if (trialIntent) {
+      await startTrial(
+        workspace.membership.tenantId,
+      );
+    }
 
     /**
      * ========================================================

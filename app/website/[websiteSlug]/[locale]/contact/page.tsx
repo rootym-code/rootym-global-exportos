@@ -13,15 +13,21 @@
  */
 
 import type { Metadata } from "next";
+
 import { notFound } from "next/navigation";
 
 import Navbar from "@/components/layout/Navbar";
+
 import Footer from "@/components/layout/Footer";
+
 import TenantContactPage from "@/components/contact/TenantContactPage";
 
 import prisma from "@/lib/prisma";
+
 import { ProductStatus } from "@/lib/generated/prisma";
+
 import { listProducts } from "@/lib/services/product.service";
+import { getSubscriptionAccessStatus } from "@/lib/services/billing/subscription-access.service";
 
 type PageProps = {
   params: Promise<{
@@ -61,6 +67,7 @@ async function getWebsite(websiteSlug: string) {
       },
       tenant: {
         select: {
+          id: true,
           businessProfile: {
             select: {
               businessName: true,
@@ -99,6 +106,7 @@ export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { websiteSlug } = await params;
+
   const website = await getWebsite(websiteSlug);
 
   if (!website || !website.isActive) {
@@ -149,8 +157,62 @@ export default async function CustomerWebsiteContactPage({
     notFound();
   }
 
+  /**
+   * ------------------------------------------------------------
+   * SUBSCRIPTION ACCESS
+   * ------------------------------------------------------------
+   *
+   * An expired or unsubscribed customer Website must not expose
+   * its public Contact page, including tenant contact details.
+   *
+   * The check is server-side and runs before tenant contact data
+   * or Website-scoped products are resolved.
+   * ------------------------------------------------------------
+   */
+
+  const subscriptionAccess =
+    await getSubscriptionAccessStatus(
+      website.tenant.id,
+    );
+
+  const websiteAccessBlocked =
+    subscriptionAccess.status === "EXPIRED" ||
+    subscriptionAccess.status === "NO_SUBSCRIPTION";
+
+  if (websiteAccessBlocked) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-50 px-6 py-16 text-slate-900">
+        <div className="w-full max-w-2xl rounded-3xl border border-slate-200 bg-white px-8 py-12 text-center shadow-sm">
+          <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-xl font-semibold text-slate-700">
+            R
+          </div>
+
+          <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-emerald-600">
+            ROOTYM Website
+          </p>
+
+          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+            This Website is currently offline
+          </h1>
+
+          <p className="mx-auto mt-5 max-w-xl text-base leading-7 text-slate-600">
+            This customer Website is temporarily unavailable because the
+            ROOTYM subscription is not currently active.
+          </p>
+
+          <p className="mt-4 text-sm leading-6 text-slate-500">
+            The Website owner can restore it by activating a ROOTYM
+            subscription.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
   const businessProfile = website.tenant.businessProfile;
+
   const businessAddress = website.tenant.businessAddress;
+
   const businessContact =
     website.tenant.businessContactCommunication;
 

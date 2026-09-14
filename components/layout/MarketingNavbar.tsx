@@ -15,17 +15,23 @@
  *     → SaaS authentication
  *
  * The primary navbar CTA intentionally sends visitors directly
- * to the production SaaS login surface.
+ * to the production SaaS login surface with explicit trial intent.
  * ============================================================
  */
 
 "use client";
 
 import { useEffect, useState } from "react";
+
 import Link from "next/link";
+
 import { AnimatePresence, motion } from "framer-motion";
+
 import { Menu, X } from "lucide-react";
+
 import { SAAS_LOGIN_URL } from "@/lib/config/urls";
+
+const TRIAL_LOGIN_URL = `${SAAS_LOGIN_URL}?intent=trial`;
 
 const NAV_ITEMS = [
   { label: "Solutions", href: "#solutions" },
@@ -35,8 +41,6 @@ const NAV_ITEMS = [
   { label: "Technologies", href: "#technologies" },
   { label: "Why ROOTYM", href: "#why-rootym" },
 ];
-
-
 
 export default function MarketingNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -175,7 +179,7 @@ export default function MarketingNavbar() {
             }}
           >
             <a
-              href={SAAS_LOGIN_URL}
+              href={TRIAL_LOGIN_URL}
               className="group relative inline-flex overflow-hidden rounded-xl"
               aria-label="Start your ROOTYM ExportOS free trial"
             >
@@ -287,7 +291,7 @@ export default function MarketingNavbar() {
               ))}
 
               <a
-                href={SAAS_LOGIN_URL}
+                href={TRIAL_LOGIN_URL}
                 onClick={handleNavigation}
                 className="mt-3 flex items-center justify-center rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 px-5 py-3.5 font-semibold text-white"
               >

@@ -8,6 +8,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 
 import prisma from "@/lib/prisma";
+import { getSubscriptionAccessStatus } from "@/lib/services/billing/subscription-access.service";
 
 import {
   BillingInterval,
@@ -217,11 +218,27 @@ export default async function BillingPage() {
       })
     : null;
 
+  /*
+   * Use the central subscription-access decision so the Billing page
+   * reflects the same effective state used by Website and Workspace
+   * access control. This prevents an ACTIVE database status from
+   * being displayed after the billing period has already ended.
+   */
+  const subscriptionAccess =
+    await getSubscriptionAccessStatus(
+      membership.tenant.id,
+    );
+
   const status =
-    subscription?.status ?? null;
+    subscriptionAccess.status === "NO_SUBSCRIPTION"
+      ? null
+      : subscriptionAccess.status === "EXPIRED"
+      ? SubscriptionStatus.EXPIRED
+      : subscription?.status ?? null;
 
   const isActive =
-    status === SubscriptionStatus.ACTIVE;
+    subscriptionAccess.status === "ACTIVE" ||
+    subscriptionAccess.status === "EXPIRING";
 
   const isTrialing =
     status === SubscriptionStatus.TRIALING;
@@ -244,10 +261,11 @@ export default async function BillingPage() {
    * prevents another purchase from being initiated.
    */
   const checkoutDisabled =
-    isActive ||
-    isPending ||
-    isPastDue ||
-    Boolean(planChange);
+    subscriptionAccess.status !== "EXPIRED" &&
+    (isActive ||
+      isPending ||
+      isPastDue ||
+      Boolean(planChange));
 
   const isCurrentMonthly =
     isActive &&
@@ -644,7 +662,11 @@ export default async function BillingPage() {
                     <span>Status</span>
 
                     <span className="font-medium text-white">
-                      {subscription.status}
+                      {subscriptionAccess.status === "EXPIRED"
+                        ? "EXPIRED"
+                        : subscriptionAccess.status === "NO_SUBSCRIPTION"
+                          ? "NO SUBSCRIPTION"
+                          : subscription.status}
                     </span>
                   </div>
 

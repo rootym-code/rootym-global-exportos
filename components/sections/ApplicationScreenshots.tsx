@@ -12,28 +12,28 @@ import Image from "next/image";
 
 const screenshots = [
   {
-    src: "/images/ai/screenshots/screenshot-01.png",
-    alt: "ROOTYM AI application dashboard",
+    src: "/images/applications/Rcaptainassistant.png",
+    alt: "ROOTYM R-CAPTAIN AI assistant",
   },
   {
-    src: "/images/ai/screenshots/screenshot-02.png",
-    alt: "ROOTYM AI application interface",
+    src: "/images/applications/RCAPTAININSIGHT.png",
+    alt: "ROOTYM R-CAPTAIN insights dashboard",
   },
   {
-    src: "/images/ai/screenshots/screenshot-03.png",
-    alt: "ROOTYM AI business application",
+    src: "/images/applications/Inquiry.png",
+    alt: "ROOTYM ExportOS inquiry management",
   },
   {
-    src: "/images/ai/screenshots/screenshot-04.png",
-    alt: "ROOTYM AI business workspace",
+    src: "/images/applications/Followup.png",
+    alt: "ROOTYM ExportOS follow-up management",
   },
   {
-    src: "/images/ai/screenshots/screenshot-05.png",
-    alt: "ROOTYM AI platform interface",
+    src: "/images/applications/Productspage.png",
+    alt: "ROOTYM ExportOS product management",
   },
   {
-    src: "/images/ai/screenshots/screenshot-06.png",
-    alt: "ROOTYM AI platform dashboard",
+    src: "/images/applications/pagecreation.png",
+    alt: "ROOTYM website page creation",
   },
 ];
 

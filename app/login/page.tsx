@@ -1,6 +1,10 @@
 /**
+ * ============================================================
+ * ROOTYM ExportOS
+ * ============================================================
  * Author: Prem Singh
  * Purpose: Provides the ROOTYM SaaS customer Google sign-in page.
+ * ============================================================
  */
 
 import Link from "next/link";
@@ -8,6 +12,7 @@ import Link from "next/link";
 type LoginPageProps = {
   searchParams?: Promise<{
     error?: string;
+    intent?: string;
   }>;
 };
 
@@ -17,16 +22,12 @@ function getErrorMessage(
   switch (error) {
     case "authentication_required":
       return "Please sign in to access your ROOTYM workspace.";
-
     case "account_inactive":
       return "Your ROOTYM customer account is inactive. Please contact support.";
-
     case "oauth_state":
       return "The sign-in request expired or was invalid. Please try again.";
-
     case "oauth_failed":
       return "Google sign-in could not be completed. Please try again.";
-
     default:
       return null;
   }
@@ -41,15 +42,20 @@ export default async function LoginPage({
   const errorMessage =
     getErrorMessage(params?.error);
 
+  const isTrialIntent =
+    params?.intent === "trial";
+
+  const googleAuthUrl = isTrialIntent
+    ? "/api/auth/google?intent=trial"
+    : "/api/auth/google";
+
   return (
     <main className="min-h-screen bg-slate-950 text-white">
       <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-6 py-12">
         {/* Background effects */}
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute left-1/2 top-1/4 h-96 w-96 -translate-x-1/2 rounded-full bg-emerald-500/10 blur-3xl" />
-
           <div className="absolute bottom-0 left-0 h-80 w-80 rounded-full bg-cyan-500/5 blur-3xl" />
-
           <div className="absolute right-0 top-0 h-80 w-80 rounded-full bg-emerald-500/5 blur-3xl" />
         </div>
 
@@ -57,7 +63,7 @@ export default async function LoginPage({
           {/* Brand */}
           <div className="mb-8 text-center">
             <Link
-    href="/"
+              href="/"
               className="inline-flex items-center gap-3"
             >
               <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-emerald-400/20 bg-emerald-400/10 text-xl font-bold text-emerald-400">
@@ -84,13 +90,15 @@ export default async function LoginPage({
               </p>
 
               <h1 className="mt-3 text-3xl font-semibold tracking-tight">
-                Welcome back
+                {isTrialIntent
+                  ? "Start Your Free Trial"
+                  : "Welcome back"}
               </h1>
 
               <p className="mt-3 text-sm leading-6 text-slate-400">
-                Sign in to manage your business,
-                website, branding, domain and
-                deployment from one workspace.
+                {isTrialIntent
+                  ? "Sign in with Google to create or access your ROOTYM workspace and start your 30-day free trial."
+                  : "Sign in to manage your business, website, branding, domain and deployment from one workspace."}
               </p>
             </div>
 
@@ -100,10 +108,26 @@ export default async function LoginPage({
               </div>
             )}
 
+            {/* Trial information */}
+            {isTrialIntent && (
+              <div className="mt-6 rounded-2xl border border-emerald-400/20 bg-emerald-400/5 p-5">
+                <p className="text-sm font-semibold text-emerald-300">
+                  30-Day Free Trial
+                </p>
+
+                <p className="mt-2 text-sm leading-6 text-slate-400">
+                  Explore ROOTYM ExportOS and build your
+                  business workspace during your trial.
+                  Your trial starts after successful
+                  authentication and eligibility verification.
+                </p>
+              </div>
+            )}
+
             {/* Google sign-in */}
             <div className="mt-8">
               <a
-                href="/api/auth/google"
+                href={googleAuthUrl}
                 className="flex w-full items-center justify-center gap-3 rounded-xl bg-white px-5 py-3.5 text-sm font-semibold text-slate-900 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-slate-950"
               >
                 <svg
@@ -204,7 +228,7 @@ export default async function LoginPage({
           {/* Footer */}
           <div className="mt-6 text-center">
             <Link
-        href="/"
+              href="/"
               className="text-sm text-slate-500 transition hover:text-slate-300"
             >
               ← Back to ROOTYM
