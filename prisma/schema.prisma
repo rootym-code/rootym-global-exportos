@@ -619,29 +619,29 @@ model Media {
  * ============================================================
  * Author: Prem Singh
  * Purpose: Allows a Website to own its customer-facing
- *          navigation while preserving existing global Admin
- *          menus for backward compatibility.
+ * navigation while preserving existing global Admin
+ * menus for backward compatibility.
  * ============================================================
  */
 model Menu {
-  id          String     @id @default(cuid())
+  id          String   @id @default(cuid())
   /// Internal menu name
   name        String
   /// Unique menu identifier. Kept globally unique so existing
   /// Admin CMS menu functionality remains unchanged.
-  code        String     @unique
+  code        String   @unique
   /// Description
   description String?
   /// Active menu
-  isActive    Boolean    @default(true)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   /// Optional Website ownership. NULL means legacy/Admin menu.
-  websiteId   String?    @unique
-  website     Website?   @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  websiteId String?  @unique
+  website   Website? @relation(fields: [websiteId], references: [id], onDelete: Cascade)
 
-  items       MenuItem[]
+  items MenuItem[]
 
   @@index([isActive])
   @@index([websiteId])
@@ -766,6 +766,7 @@ model Tenant {
   createdAt                    DateTime                      @default(now())
   updatedAt                    DateTime                      @updatedAt
   billingCustomer              BillingCustomer?
+  billingDetails               BillingCustomerDetails?
   businessAddress              BusinessAddress?
   businessContactCommunication BusinessContactCommunication?
   businessExportCredentials    BusinessExportCredentials?
@@ -775,6 +776,7 @@ model Tenant {
   businessTaxCompliance        BusinessTaxCompliance?
   memberships                  Membership[]
   payments                     Payment[]
+  invoices                     BillingInvoice[]
   subscriptions                Subscription[]
   planChanges                  SubscriptionPlanChange[]
   website                      Website?
@@ -1240,6 +1242,7 @@ model Subscription {
   plan                   Plan                     @relation(fields: [planId], references: [id])
   tenant                 Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   planChanges            SubscriptionPlanChange[]
+  billingInvoices        BillingInvoice[]
 
   @@index([tenantId])
   @@index([planId])
@@ -1269,6 +1272,7 @@ model SubscriptionPlanChange {
   razorpayEndAt          DateTime?
   razorpayStartAt        DateTime?
   payments               Payment[]
+  invoices               BillingInvoice[]
   fromPlan               Plan             @relation("PlanChangeFromPlan", fields: [fromPlanId], references: [id])
   subscription           Subscription     @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
   tenant                 Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -1297,6 +1301,33 @@ model BillingCustomer {
   @@index([provider])
 }
 
+/**
+ * Author: Prem Singh
+ * Purpose: Stores the current tenant billing details collected before SaaS payment.
+ */
+model BillingCustomerDetails {
+  id            String   @id @default(cuid())
+  tenantId      String   @unique
+  customerName  String
+  mobile        String
+  email         String
+  addressLine1  String
+  addressLine2  String?
+  city          String
+  state         String
+  postalCode    String
+  country       String
+  gstRegistered Boolean  @default(false)
+  gstin         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([state])
+  @@index([gstRegistered])
+}
+
 model Payment {
   id                     String                  @id @default(cuid())
   tenantId               String
@@ -1318,6 +1349,7 @@ model Payment {
   updatedAt              DateTime                @updatedAt
   planChangeId           String?
   planChange             SubscriptionPlanChange? @relation(fields: [planChangeId], references: [id])
+  invoice                BillingInvoice?
   subscription           Subscription?           @relation(fields: [subscriptionId], references: [id])
   tenant                 Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -1328,6 +1360,137 @@ model Payment {
   @@index([providerOrderId])
   @@index([providerInvoiceId])
   @@index([providerSubscriptionId])
+}
+
+/**
+ * Author: Prem Singh
+ * Purpose: Stores immutable ROOTYM SaaS customer GST invoice snapshots.
+ */
+model BillingInvoice {
+  id             String   @id @default(cuid())
+  tenantId       String
+  paymentId      String   @unique
+  subscriptionId String?
+  planChangeId   String?
+  invoiceNumber  String   @unique
+  invoiceDate    DateTime @default(now())
+  currency       String   @default("INR")
+
+  customerName        String
+  customerEmail       String
+  customerMobile      String
+  billingAddressLine1 String
+  billingAddressLine2 String?
+  billingCity         String?
+  billingState        String
+  billingPostalCode   String?
+  billingCountry      String
+  customerGstin       String?
+
+  taxType        BillingTaxType
+  taxRate        Decimal        @db.Decimal(5, 2)
+  taxableAmount  Decimal        @db.Decimal(18, 2)
+  cgstRate       Decimal        @default(0) @db.Decimal(5, 2)
+  cgstAmount     Decimal        @default(0) @db.Decimal(18, 2)
+  sgstRate       Decimal        @default(0) @db.Decimal(5, 2)
+  sgstAmount     Decimal        @default(0) @db.Decimal(18, 2)
+  igstRate       Decimal        @default(0) @db.Decimal(5, 2)
+  igstAmount     Decimal        @default(0) @db.Decimal(18, 2)
+  totalTaxAmount Decimal        @default(0) @db.Decimal(18, 2)
+  totalAmount    Decimal        @db.Decimal(18, 2)
+
+  status         BillingInvoiceStatus @default(PENDING)
+  pdfPath        String?
+  generatedAt    DateTime?
+  sentAt         DateTime?
+  emailAttempts  Int                  @default(0)
+  lastEmailError String?
+
+  provider               String  @default("RAZORPAY")
+  providerPaymentId      String
+  providerSubscriptionId String?
+  providerInvoiceId      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant       Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payment      Payment                 @relation(fields: [paymentId], references: [id])
+  subscription Subscription?           @relation(fields: [subscriptionId], references: [id])
+  planChange   SubscriptionPlanChange? @relation(fields: [planChangeId], references: [id])
+  items        BillingInvoiceItem[]
+
+  @@index([tenantId])
+  @@index([subscriptionId])
+  @@index([planChangeId])
+  @@index([status])
+  @@index([invoiceDate])
+  @@index([providerPaymentId])
+  @@index([providerSubscriptionId])
+}
+
+/**
+ * Author: Prem Singh
+ * Purpose: Stores immutable ROOTYM SaaS invoice line-item snapshots.
+ */
+model BillingInvoiceItem {
+  id            String   @id @default(cuid())
+  invoiceId     String
+  description   String
+  quantity      Decimal  @default(1) @db.Decimal(18, 3)
+  unit          String   @default("subscription")
+  unitPrice     Decimal  @db.Decimal(18, 2)
+  taxableAmount Decimal  @db.Decimal(18, 2)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  invoice BillingInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+}
+
+/**
+ * Author: Prem Singh
+ * Purpose: Stores Admin-controlled ROOTYM GST/tax configuration.
+ */
+model BillingTaxConfiguration {
+  id                     String    @id @default(cuid())
+  name                   String
+  effectiveFrom          DateTime
+  effectiveTo            DateTime?
+  gstEnabled             Boolean   @default(true)
+  cgstRate               Decimal   @default(9) @db.Decimal(5, 2)
+  sgstRate               Decimal   @default(9) @db.Decimal(5, 2)
+  igstRate               Decimal   @default(18) @db.Decimal(5, 2)
+  legalName              String?
+  gstin                  String?
+  registeredAddressLine1 String?
+  registeredAddressLine2 String?
+  registeredCity         String?
+  registeredState        String?
+  registeredPostalCode   String?
+  registeredCountry      String?
+  invoicePrefix          String    @default("ROOTYM")
+  isActive               Boolean   @default(true)
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  @@index([effectiveFrom])
+  @@index([effectiveTo])
+  @@index([isActive])
+}
+
+enum BillingTaxType {
+  NONE
+  CGST_SGST
+  IGST
+}
+
+enum BillingInvoiceStatus {
+  PENDING
+  GENERATED
+  SENT
+  FAILED
 }
 
 model BillingWebhookEvent {

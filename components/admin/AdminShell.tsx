@@ -17,6 +17,7 @@ import {
   ImageIcon,
   ClipboardCheck,
   CreditCard,
+  ReceiptText,
   Sparkles,
 } from "lucide-react";
 
@@ -153,6 +154,18 @@ const navigationGroups: NavigationGroup[] = [
         title: "Billing Providers",
         href: "/admin/billing/providers",
         icon: CreditCard,
+      },
+
+      {
+        title: "Tax & GST",
+        href: "/admin/billing/tax",
+        icon: ReceiptText,
+      },
+
+      {
+        title: "GST Invoices",
+        href: "/admin/billing/invoices",
+        icon: FileText,
       },
     ],
   },

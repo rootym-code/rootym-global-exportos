@@ -9,11 +9,13 @@
  *
  * The selected provider is resolved through the central billing
  * provider registry and environment configuration.
+ *
+ * Billing customer details are validated from the persisted
+ * tenant-scoped billing record before plan-change checkout.
  * ============================================================
  */
 
 import { NextResponse } from "next/server";
-
 import { cookies } from "next/headers";
 
 import {
@@ -24,6 +26,10 @@ import {
   verifyCustomerToken,
   CUSTOMER_AUTH_COOKIE_NAME,
 } from "@/lib/auth/customer-jwt";
+
+import {
+  getBillingCustomerDetails,
+} from "@/lib/services/billing/billing-customer-details.service";
 
 import {
   createPaidPlanChange,
@@ -126,6 +132,40 @@ export async function POST(
 
     /**
      * ========================================================
+     * Require persisted billing customer details.
+     * ========================================================
+     *
+     * Billing details are collected and saved during the
+     * customer's first checkout and reused for subsequent
+     * payments, including plan changes.
+     *
+     * The server checks the tenant-scoped database record
+     * rather than trusting browser state.
+     *
+     * This prevents a plan-change payment from being started
+     * without the billing information required for invoicing.
+     * ========================================================
+     */
+    const billingDetails =
+      await getBillingCustomerDetails(
+        session.tenantId,
+      );
+
+    if (!billingDetails) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Please complete your billing information before changing your plan.",
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    /**
+     * ========================================================
      * Resolve the first enabled billing provider.
      * ========================================================
      *
@@ -139,7 +179,6 @@ export async function POST(
      * selected for this plan-change request.
      * ========================================================
      */
-
     const configuredProviders =
       await getConfiguredBillingProviders();
 
@@ -171,7 +210,6 @@ export async function POST(
      * passing the provider to the plan-change domain service.
      * ========================================================
      */
-
     const createPlanChangeCheckout =
       selectedProvider.createPlanChangeCheckout;
 
@@ -199,14 +237,11 @@ export async function POST(
      * Execute provider-independent plan-change billing.
      * ========================================================
      */
-
     const result =
       await createPaidPlanChange({
         tenantId:
           session.tenantId,
-
         billingInterval,
-
         provider:
           planChangeProvider,
       });
@@ -214,80 +249,57 @@ export async function POST(
     return NextResponse.json(
       {
         success: true,
-
-
-
         message:
-        "Plan-change checkout initialized. Complete the payment to confirm your new plan.",
-
-      data: {
-        planChangeId:
-          result.planChange.id,
-
-        provider:
-          result.provider,
-
-        checkout: {
-          providerCheckoutId:
-            result.checkout
-              .providerCheckoutId,
-
-          providerSubscriptionId:
-            result.checkout
-              .providerSubscriptionId,
-
-          checkoutKey:
-            result.checkout
-              .checkoutKey,
-
-          checkoutUrl:
-            result.checkout
-              .checkoutUrl,
-
-          amount:
-            result.checkout.amount,
-
-          currency:
-            result.checkout.currency,
-
-          status:
-            result.checkout.status,
-
-          metadata:
-            result.checkout.metadata,
+          "Plan-change checkout initialized. Complete the payment to confirm your new plan.",
+        data: {
+          planChangeId:
+            result.planChange.id,
+          provider:
+            result.provider,
+          checkout: {
+            providerCheckoutId:
+              result.checkout
+                .providerCheckoutId,
+            providerSubscriptionId:
+              result.checkout
+                .providerSubscriptionId,
+            checkoutKey:
+              result.checkout
+                .checkoutKey,
+            checkoutUrl:
+              result.checkout
+                .checkoutUrl,
+            amount:
+              result.checkout.amount,
+            currency:
+              result.checkout.currency,
+            status:
+              result.checkout.status,
+            metadata:
+              result.checkout.metadata,
+          },
+          planChangeStatus:
+            result.planChange.status,
+          currentPlan: {
+            code:
+              result.planChange
+                .fromPlan.code,
+            name:
+              result.planChange
+                .fromPlan.name,
+          },
+          targetPlan: {
+            code:
+              result.planChange
+                .toPlan.code,
+            name:
+              result.planChange
+                .toPlan.name,
+          },
+          effectiveAt:
+            result.planChange
+              .effectiveAt,
         },
-
-        planChangeStatus:
-          result.planChange.status,
-
-        currentPlan: {
-          code:
-            result.planChange
-              .fromPlan.code,
-
-          name:
-            result.planChange
-              .fromPlan.name,
-        },
-
-        targetPlan: {
-          code:
-            result.planChange
-              .toPlan.code,
-
-          name:
-            result.planChange
-              .toPlan.name,
-        },
-
-        effectiveAt:
-          result.planChange
-            .effectiveAt,
-      },
-
-
-
-
       },
       {
         status: 200,
@@ -302,7 +314,6 @@ export async function POST(
     return NextResponse.json(
       {
         success: false,
-
         message:
           error instanceof Error
             ? error.message

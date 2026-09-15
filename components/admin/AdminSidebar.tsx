@@ -14,8 +14,14 @@ import {
   Image,
   FileStack,
   Search,
+  CreditCard,
+  ReceiptText,
 } from "lucide-react";
 
+/**
+ * Author: Prem Singh
+ * Purpose: Provides Admin navigation for ROOTYM, including billing and tax configuration.
+ */
 
 const NAV_SECTIONS = [
   {
@@ -45,7 +51,6 @@ const NAV_SECTIONS = [
     ],
   },
 
-
   {
     title: "CMS",
     items: [
@@ -66,7 +71,6 @@ const NAV_SECTIONS = [
       },
     ],
   },
-
 
   {
     title: "BUSINESS",
@@ -89,6 +93,26 @@ const NAV_SECTIONS = [
     ],
   },
 
+  {
+    title: "BILLING",
+    items: [
+      {
+        label: "Billing Providers",
+        href: "/admin/billing/providers",
+        icon: CreditCard,
+      },
+      {
+        label: "Tax & GST",
+        href: "/admin/billing/tax",
+        icon: ReceiptText,
+      },
+      {
+        label: "GST Invoices",
+        href: "/admin/billing/invoices",
+        icon: FileText,
+      },
+    ],
+  },
 
   {
     title: "SYSTEM",
@@ -102,17 +126,12 @@ const NAV_SECTIONS = [
   },
 ];
 
-
 export default function AdminSidebar() {
-
   const pathname = usePathname();
-
 
   return (
     <aside className="w-72 bg-green-900 text-white flex flex-col">
-
       <div className="px-8 py-10 border-b border-green-800">
-
         <h1 className="text-5xl font-bold">
           ROOTYM
         </h1>
@@ -120,33 +139,22 @@ export default function AdminSidebar() {
         <p className="mt-2 text-green-100 text-lg">
           Admin Portal
         </p>
-
       </div>
 
-
-
       <nav className="flex-1 px-4 py-8 space-y-6">
-
         {NAV_SECTIONS.map(
           (section) => (
-
             <div key={section.title}>
-
               {section.title && (
                 <p className="px-4 mb-3 text-xs font-semibold tracking-widest text-green-300">
                   {section.title}
                 </p>
               )}
 
-
-
               <div className="space-y-2">
-
                 {section.items.map(
                   (item) => {
-
                     const Icon = item.icon;
-
 
                     const active =
                       pathname === item.href ||
@@ -154,9 +162,7 @@ export default function AdminSidebar() {
                         item.href + "/"
                       );
 
-
                     return (
-
                       <Link
                         key={item.href}
                         href={item.href}
@@ -167,28 +173,20 @@ export default function AdminSidebar() {
                             : "text-white hover:bg-green-800",
                         ].join(" ")}
                       >
-
                         <Icon className="h-6 w-6" />
 
                         <span className="text-lg font-medium">
                           {item.label}
                         </span>
-
                       </Link>
-
                     );
                   }
                 )}
-
               </div>
-
             </div>
-
           )
         )}
-
       </nav>
-
     </aside>
   );
 }

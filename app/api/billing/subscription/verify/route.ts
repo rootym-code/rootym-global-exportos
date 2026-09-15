@@ -27,6 +27,10 @@ import {
   getRazorpaySubscription,
 } from "@/lib/services/billing/razorpay";
 
+import {
+  generateBillingInvoice,
+} from "@/lib/services/billing/billing-invoice.service";
+
 interface VerifyRequestBody {
   razorpayPaymentId?: string;
   razorpaySubscriptionId?: string;
@@ -135,6 +139,50 @@ function getPaymentStatus(
   }
 
   return PaymentStatus.CREATED;
+}
+
+/**
+ * Creates the ROOTYM billing invoice after a captured payment has been
+ * persisted. Invoice failures are isolated from the successful payment flow.
+ */
+async function tryGenerateBillingInvoice(
+  providerPaymentId: string,
+  tenantId: string,
+) {
+  try {
+    const payment =
+      await prisma.payment.findFirst({
+        where: {
+          providerPaymentId,
+          tenantId,
+        },
+        select: {
+          id: true,
+          status: true,
+        },
+      });
+
+    if (
+      !payment ||
+      payment.status !==
+        PaymentStatus.CAPTURED
+    ) {
+      return;
+    }
+
+    await generateBillingInvoice({
+      paymentId: payment.id,
+    });
+  } catch (error) {
+    console.error(
+      "Failed to generate ROOTYM billing invoice after captured payment:",
+      {
+        providerPaymentId,
+        tenantId,
+        error,
+      },
+    );
+  }
 }
 
 export async function POST(
@@ -842,6 +890,11 @@ export async function POST(
         }
       );
 
+      await tryGenerateBillingInvoice(
+        razorpayPaymentId,
+        session.tenant.id,
+      );
+
       return NextResponse.json(
         {
           success: true,
@@ -917,6 +970,11 @@ export async function POST(
       subscription.status ===
       SubscriptionStatus.ACTIVE
     ) {
+      await tryGenerateBillingInvoice(
+        razorpayPaymentId,
+        subscription.tenantId,
+      );
+
       return NextResponse.json(
         {
           success: true,
@@ -1179,6 +1237,11 @@ export async function POST(
           return updatedSubscription;
         }
       );
+
+    await tryGenerateBillingInvoice(
+      razorpayPaymentId,
+      subscription.tenantId,
+    );
 
     return NextResponse.json(
       {

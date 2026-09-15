@@ -387,14 +387,84 @@ export default function BillingPlanChangeButton({
 
       razorpay.on(
         "payment.failed",
-        (paymentFailedResponse) => {
-          setError(
-            paymentFailedResponse.error
-              ?.description ||
-              "The payment failed. Your current plan remains unchanged.",
-          );
+        async (paymentFailedResponse) => {
+          try {
+            setMessage(
+              "Payment failed. Updating your plan-change status...",
+            );
 
-          setIsLoading(false);
+            const failureResponse =
+              await fetch(
+                "/api/billing/plan-change/failure",
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type":
+                      "application/json",
+                  },
+                  credentials: "include",
+                  body: JSON.stringify({
+                    planChangeId:
+                      result.data?.planChangeId,
+                    razorpayPaymentId:
+                      (
+                        paymentFailedResponse as typeof paymentFailedResponse & {
+                          error?: {
+                            metadata?: {
+                              payment_id?: string;
+                              subscription_id?: string;
+                            };
+                          };
+                        }
+                      ).error?.metadata
+                        ?.payment_id,
+                    razorpaySubscriptionId:
+                      (
+                        paymentFailedResponse as typeof paymentFailedResponse & {
+                          error?: {
+                            metadata?: {
+                              payment_id?: string;
+                              subscription_id?: string;
+                            };
+                          };
+                        }
+                      ).error?.metadata
+                        ?.subscription_id ||
+                      providerSubscriptionId,
+                  }),
+                },
+              );
+
+            const failureResult =
+              (await failureResponse.json()) as {
+                success: boolean;
+                message?: string;
+              };
+
+            if (
+              !failureResponse.ok ||
+              !failureResult.success
+            ) {
+              throw new Error(
+                failureResult.message ||
+                  "The payment failed, but the plan-change status could not be reconciled.",
+              );
+            }
+
+            setError(
+              paymentFailedResponse.error
+                ?.description ||
+                "The payment failed. Your current plan remains unchanged.",
+            );
+          } catch (failureError) {
+            setError(
+              failureError instanceof Error
+                ? failureError.message
+                : "The payment failed, but the plan-change status could not be reconciled.",
+            );
+          } finally {
+            setIsLoading(false);
+          }
         },
       );
 
