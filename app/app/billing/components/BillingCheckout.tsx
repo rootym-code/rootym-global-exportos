@@ -824,7 +824,7 @@ export default function BillingCheckout({
       </button>
 
       <p className="text-center text-xs font-medium text-emerald-600">
-        Razorpay Test Mode
+      Razorpay Live Mode
       </p>
 
       <p className="text-center text-xs text-slate-500">

@@ -20,6 +20,10 @@ import {
   razorpayRequest,
 } from "./razorpay";
 
+import {
+  getConfiguredBillingProvider,
+} from "@/app/lib/billing/providers";
+
 interface RazorpaySubscriptionResponse {
   id: string;
   entity?: string;
@@ -259,6 +263,8 @@ export async function createRazorpaySubscription(
       "A valid tenant is required."
     );
   }
+
+  await getConfiguredBillingProvider("RAZORPAY");
 
   const {
     tenant,
@@ -527,6 +533,8 @@ export async function createRazorpayPlanChange(
       "A valid tenant is required."
     );
   }
+
+  await getConfiguredBillingProvider("RAZORPAY");
 
   const {
     tenant,
