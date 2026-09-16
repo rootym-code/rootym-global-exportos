@@ -30,15 +30,26 @@ type VercelDomainResponse = {
   verification?: VercelVerificationRecord[];
 };
 
+type VercelDnsRecommendation = {
+  value?: string | string[] | null;
+  rank?: number;
+};
+
 type VercelDomainConfigResponse = {
   domain?: string;
   configuredBy?: string | null;
   nameservers?: string[];
   serviceType?: string | null;
   misconfigured?: boolean;
-  recommendedCNAME?: string | null;
-  recommendedIPv4?: string[];
-  recommendedIPv6?: string[];
+  recommendedCNAME?: Array<VercelDnsRecommendation> | string | VercelDnsRecommendation | null;
+  recommendedIPv4?: Array<
+    | string
+    | VercelDnsRecommendation
+  >;
+  recommendedIPv6?: Array<
+    | string
+    | VercelDnsRecommendation
+  >;
   verification?: VercelVerificationRecord[];
 };
 
@@ -78,6 +89,17 @@ export type VercelProviderDomain = {
   verification: VercelVerificationRecord[];
   createdAt: Date | null;
   updatedAt: Date | null;
+};
+
+export type VercelProviderDnsRecordType =
+  | "A"
+  | "CNAME";
+
+export type VercelProviderDnsRecord = {
+  type: VercelProviderDnsRecordType;
+  name: string;
+  value: string;
+  purpose: "ROUTING";
 };
 
 export type VercelProviderDomainConfig = {
@@ -196,6 +218,59 @@ function toProviderDomain(
   };
 }
 
+function toDnsRecommendationValues(
+  value: string | string[] | VercelDnsRecommendation | null | undefined,
+): string[] {
+  if (typeof value === "string") {
+    const normalizedValue = value.trim();
+    return normalizedValue ? [normalizedValue] : [];
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .filter((item): item is string => typeof item === "string")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  if (value && typeof value.value === "string") {
+    const normalizedValue = value.value.trim();
+    return normalizedValue ? [normalizedValue] : [];
+  }
+
+  if (value && Array.isArray(value.value)) {
+    return value.value
+      .filter((item): item is string => typeof item === "string")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
+function toDnsRecommendationEntries(
+  value:
+    | string
+    | VercelDnsRecommendation
+    | Array<VercelDnsRecommendation>
+    | null
+    | undefined,
+): VercelDnsRecommendation[] {
+  if (typeof value === "string") {
+    const normalizedValue = value.trim();
+    return normalizedValue ? [{ value: normalizedValue, rank: 1 }] : [];
+  }
+
+  if (Array.isArray(value)) {
+    return value.filter(
+      (item): item is VercelDnsRecommendation =>
+        typeof item === "object" && item !== null,
+    );
+  }
+
+  return value ? [value] : [];
+}
+
 function toProviderDomainConfig(
   response: VercelDomainConfigResponse,
   domain: string,
@@ -206,9 +281,17 @@ function toProviderDomainConfig(
     nameservers: response.nameservers ?? [],
     serviceType: response.serviceType ?? null,
     misconfigured: response.misconfigured === true,
-    recommendedCNAME: response.recommendedCNAME ?? null,
-    recommendedIPv4: response.recommendedIPv4 ?? [],
-    recommendedIPv6: response.recommendedIPv6 ?? [],
+    recommendedCNAME:
+      toDnsRecommendationEntries(response.recommendedCNAME)
+        .sort((left, right) => (left.rank ?? 999) - (right.rank ?? 999))
+        .map((entry) => toDnsRecommendationValues(entry.value))
+        .flat()[0] ?? null,
+    recommendedIPv4: (response.recommendedIPv4 ?? [])
+      .flatMap((value) => toDnsRecommendationValues(value))
+      .filter(Boolean),
+    recommendedIPv6: (response.recommendedIPv6 ?? [])
+      .flatMap((value) => toDnsRecommendationValues(value))
+      .filter(Boolean),
     verification: response.verification ?? [],
   };
 }
@@ -418,6 +501,68 @@ export async function getVercelDomainConfig(
   );
 
   return toProviderDomainConfig(response, normalizedDomain);
+}
+
+/**
+ * Build customer-facing DNS routing records from Vercel's current
+ * domain configuration. The record values come from Vercel; ROOTYM
+ * does not hard-code provider routing values here.
+ *
+ * This operation only reads provider state. It does not change
+ * ROOTYM WebsiteDomain persistence or Vercel DNS records.
+ */
+export async function getVercelDomainDnsRecords(
+  domain: string,
+): Promise<VercelProviderDnsRecord[]> {
+  const normalizedDomain = normalizeDomain(domain);
+
+  if (!normalizedDomain) {
+    throw new VercelProviderError(
+      "A domain is required.",
+      400,
+      "DOMAIN_REQUIRED",
+    );
+  }
+
+  const [providerDomain, providerConfig] = await Promise.all([
+    getVercelProjectDomain(normalizedDomain),
+    getVercelDomainConfig(normalizedDomain),
+  ]);
+
+  const records: VercelProviderDnsRecord[] = [];
+  const apexName = providerDomain.apexName
+    ? normalizeDomain(providerDomain.apexName)
+    : null;
+  const isApexDomain = apexName === normalizedDomain;
+
+  if (isApexDomain) {
+    for (const value of providerConfig.recommendedIPv4) {
+      records.push({
+        type: "A",
+        name: "@",
+        value,
+        purpose: "ROUTING",
+      });
+    }
+  } else if (providerConfig.recommendedCNAME) {
+    const cnameTarget = providerConfig.recommendedCNAME;
+
+    if (cnameTarget) {
+      const recordName =
+        apexName && normalizedDomain.endsWith(`.${apexName}`)
+          ? normalizedDomain.slice(0, -(apexName.length + 1))
+          : normalizedDomain;
+
+      records.push({
+        type: "CNAME",
+        name: recordName || "@",
+        value: cnameTarget,
+        purpose: "ROUTING",
+      });
+    }
+  }
+
+  return records;
 }
 
 async function getVercelCertificates(): Promise<VercelCertificate[]> {

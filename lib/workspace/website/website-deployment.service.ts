@@ -20,6 +20,8 @@ import { prisma } from "@/lib/prisma";
 import {
   addVercelProjectDomain,
   checkVercelDomainSsl,
+  getVercelDomainDnsRecords,
+  type VercelProviderDnsRecord,
   type VercelProviderDomain,
 } from "@/lib/services/deployment/vercel.provider";
 
@@ -44,6 +46,11 @@ export type WebsiteDeploymentReadiness = {
 export type WebsiteDeploymentSnapshot = {
   domain: WebsiteDomainSummary;
   readiness: WebsiteDeploymentReadiness;
+};
+
+export type WebsiteDeploymentDnsConfiguration = {
+  domain: string;
+  records: VercelProviderDnsRecord[];
 };
 
 async function requireWebsiteDomain(
@@ -153,6 +160,46 @@ export async function attachWebsiteDomainToVercel(
   );
 
   return providerDomain;
+}
+
+/**
+ * Return the customer-facing DNS routing records required by the
+ * configured deployment provider for one Website domain.
+ *
+ * The domain must already be attached to Vercel because the provider
+ * configuration is resolved from the project-domain configuration.
+ * ROOTYM does not invent or persist provider routing values here.
+ */
+export async function getWebsiteDeploymentDnsConfiguration(
+  websiteId: string,
+  domainId: string,
+): Promise<WebsiteDeploymentDnsConfiguration> {
+  const domain = await requireWebsiteDomain(websiteId, domainId);
+
+  if (
+    domain.verificationStatus !==
+    WebsiteDomainVerificationStatus.VERIFIED
+  ) {
+    throw new Error(
+      "Domain DNS verification is required before retrieving website DNS configuration.",
+    );
+  }
+
+  if (
+    domain.deploymentStatus !== WebsiteDomainDeploymentStatus.READY &&
+    domain.deploymentStatus !== WebsiteDomainDeploymentStatus.LIVE
+  ) {
+    throw new Error(
+      "The domain must be connected to the deployment provider before retrieving website DNS configuration.",
+    );
+  }
+
+  const records = await getVercelDomainDnsRecords(domain.domain);
+
+  return {
+    domain: domain.domain,
+    records,
+  };
 }
 
 /**

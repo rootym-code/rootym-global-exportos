@@ -27,6 +27,7 @@ import { prisma } from "@/lib/prisma";
 
 import {
   attachWebsiteDomainToVercel,
+  getWebsiteDeploymentDnsConfiguration,
   beginWebsiteDomainDeployment,
   markWebsiteDomainDeployed,
   markWebsiteDomainReadyForDeployment,
@@ -140,6 +141,12 @@ export async function GET(
       const providerConfig =
         await getVercelDomainConfig(domain.domain);
 
+      const dnsConfiguration =
+        await getWebsiteDeploymentDnsConfiguration(
+          website.id,
+          domainId,
+        );
+
       const ssl =
         await checkVercelDomainSsl(domain.domain);
 
@@ -148,6 +155,7 @@ export async function GET(
         provider: "vercel",
         providerDomain,
         providerConfig,
+        dnsConfiguration,
         ssl,
       });
     }

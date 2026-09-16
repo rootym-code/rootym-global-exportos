@@ -4,8 +4,8 @@
  * ============================================================
  * Author: Prem Singh
  * Purpose: Provides the interactive custom-domain workflow for
- *          domain connection, DNS verification, production
- *          provider preparation, and SSL confirmation.
+ *          domain verification, website connection, routing DNS,
+ *          SSL confirmation, and website publishing.
  * ============================================================
  */
 
@@ -62,6 +62,15 @@ type ApiResponse = {
     tlsReachable: boolean;
     httpStatus: number | null;
     lastError: string | null;
+  };
+  dnsConfiguration?: {
+    domain: string;
+    records: {
+      type: "A" | "CNAME";
+      name: string;
+      value: string;
+      purpose: "ROUTING";
+    }[];
   };
 };
 
@@ -138,6 +147,23 @@ export default function DeploymentDomainWorkflow({
     () => new Set(),
   );
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [dnsConfigurations, setDnsConfigurations] = useState<
+    Record<
+      string,
+      {
+        domain: string;
+        records: {
+          type: "A" | "CNAME";
+          name: string;
+          value: string;
+          purpose: "ROUTING";
+        }[];
+      }
+    >
+  >({});
+  const [loadingDnsDomainId, setLoadingDnsDomainId] = useState<string | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [focusedDomainId, setFocusedDomainId] = useState<string | null>(null);
@@ -175,6 +201,16 @@ export default function DeploymentDomainWorkflow({
       const loadedDomains = data.domains ?? [];
 
       setDomains(loadedDomains);
+
+      const preparedDomains = loadedDomains.filter(
+        (domain) =>
+          domain.deploymentStatus === "READY" ||
+          domain.deploymentStatus === "LIVE",
+      );
+
+      for (const preparedDomain of preparedDomains) {
+        void loadDnsConfiguration(preparedDomain.id);
+      }
 
       setPreparedDomainIds(
         new Set(
@@ -323,6 +359,48 @@ export default function DeploymentDomainWorkflow({
     }
   }
 
+  async function loadDnsConfiguration(domainId: string) {
+    setLoadingDnsDomainId(domainId);
+    setError(null);
+
+    try {
+      const response = await fetch(
+        `/app/api/workspace/website/domains/${encodeURIComponent(
+          domainId,
+        )}?provider=vercel`,
+        {
+          method: "GET",
+          credentials: "same-origin",
+          cache: "no-store",
+        },
+      );
+
+      const data = (await response.json()) as ApiResponse;
+
+      if (!response.ok || !data.dnsConfiguration) {
+        throw new Error(
+          getErrorMessage(
+            data,
+            "Unable to retrieve the DNS records required for this domain.",
+          ),
+        );
+      }
+
+      setDnsConfigurations((current) => ({
+        ...current,
+        [domainId]: data.dnsConfiguration!,
+      }));
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Unable to retrieve the DNS records required for this domain.",
+      );
+    } finally {
+      setLoadingDnsDomainId(null);
+    }
+  }
+
   async function prepareProduction(domainId: string) {
     setPreparingDomainId(domainId);
     setError(null);
@@ -355,10 +433,11 @@ export default function DeploymentDomainWorkflow({
       });
 
       setSuccess(
-        "Production provider connection completed. SSL and publishing remain pending until those states are actually confirmed.",
+        "Website connection completed. Add the routing DNS records shown in Step 03. SSL and publishing remain pending until those states are confirmed.",
       );
 
       await loadDomains();
+      await loadDnsConfiguration(domainId);
     } catch (requestError) {
       setError(
         requestError instanceof Error
@@ -743,7 +822,7 @@ export default function DeploymentDomainWorkflow({
                       {showVerificationHeading ? (
                         <div className="rounded-2xl border border-amber-200 bg-amber-50/70 px-5 py-4">
                           <p className="text-xs font-bold uppercase tracking-[0.16em] text-amber-700">
-                            Domain Verification
+                            Step 02 · Verify Domain Ownership
                           </p>
                           <h5 className="mt-1 text-lg font-bold text-slate-900">
                             Verify your new domain
@@ -761,8 +840,8 @@ export default function DeploymentDomainWorkflow({
                             Connected Domains
                           </h5>
                           <p className="mt-1 text-sm leading-5 text-slate-500">
-                            Manage production, SSL, and publishing for each
-                            verified domain independently.
+                            Manage domain verification, website connection,
+                            SSL, and publishing for each domain independently.
                           </p>
                         </div>
                       ) : null}
@@ -951,7 +1030,36 @@ export default function DeploymentDomainWorkflow({
                   ) : null}
 
                   {isVerified ? (
-                    <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <>
+                      <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex items-start gap-3">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200">
+                              <CheckCircle2 className="h-5 w-5" />
+                            </div>
+                            <div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="text-sm font-bold text-slate-900">
+                                  Step 02 · Verify Domain Ownership
+                                </p>
+                                <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-200">
+                                  DNS Verified
+                                </span>
+                              </div>
+                              <p className="mt-1 text-xs leading-5 text-slate-600">
+                                ROOTYM has verified that you control this domain.
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-emerald-700 ring-1 ring-emerald-200">
+                            <CheckCircle2 className="h-4 w-4" />
+                            Verified
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
                       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                         <div className="flex items-start gap-3">
                           <div
@@ -971,24 +1079,25 @@ export default function DeploymentDomainWorkflow({
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
                               <p className="text-sm font-bold text-slate-900">
-                                Step 03 · Prepare Production
+                                Step 03 · Connect Website
                               </p>
 
                               {preparedDomainIds.has(domain.id) ? (
                                 <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-100">
-                                  Provider Connected
+                                  Website Connected
                                 </span>
                               ) : (
                                 <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700 ring-1 ring-amber-100">
-                                  Ready to prepare
+                                  Ready to connect
                                 </span>
                               )}
                             </div>
 
                             <p className="mt-1 text-xs leading-5 text-slate-500">
                               Connect this verified domain to the configured ROOTYM
-                              production provider. This does not claim SSL issuance
-                              or website publication.
+                              production provider. After connection, add the routing
+                              DNS records shown below. SSL and publishing remain
+                              separate steps.
                             </p>
                           </div>
                         </div>
@@ -996,7 +1105,7 @@ export default function DeploymentDomainWorkflow({
                         {preparedDomainIds.has(domain.id) ? (
                           <div className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 ring-1 ring-emerald-100">
                             <CheckCircle2 className="h-4 w-4" />
-                            Production Prepared
+                            Website Connected
                           </div>
                         ) : (
                           <button
@@ -1012,12 +1121,144 @@ export default function DeploymentDomainWorkflow({
                             )}
 
                             {preparingDomainId === domain.id
-                              ? "Preparing..."
-                              : "Prepare Production"}
+                              ? "Connecting..."
+                              : "Connect Website"}
                           </button>
                         )}
                       </div>
+
+                      {preparedDomainIds.has(domain.id) ? (
+                        <div className="mt-5 rounded-xl border border-blue-200 bg-blue-50/70 p-4">
+                          <div className="flex items-start gap-3">
+                            <ServerCog className="mt-0.5 h-5 w-5 shrink-0 text-blue-700" />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-bold text-blue-900">
+                                DNS records required to connect your website
+                              </p>
+                              <p className="mt-1 text-xs leading-5 text-blue-800">
+                                Add these routing records at the DNS provider that
+                                manages your domain. These records are supplied by
+                                the production provider for this domain.
+                              </p>
+
+                              <div className="mt-4 space-y-3">
+                                {dnsConfigurations[domain.id]?.records?.length ? (
+                                  dnsConfigurations[domain.id].records.map(
+                                    (record, recordIndex) => {
+                                      const recordKey = `${domain.id}-dns-${recordIndex}`;
+
+                                      return (
+                                        <div
+                                          key={recordKey}
+                                          className="rounded-xl border border-blue-200 bg-white p-3"
+                                        >
+                                          <div className="grid gap-3 sm:grid-cols-[90px_1fr]">
+                                            <div>
+                                              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">
+                                                Type
+                                              </p>
+                                              <div className="mt-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs font-semibold text-slate-800">
+                                                {record.type}
+                                              </div>
+                                            </div>
+
+                                            <div>
+                                              <div className="flex items-center justify-between gap-3">
+                                                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">
+                                                  Name
+                                                </p>
+                                                <button
+                                                  type="button"
+                                                  onClick={() =>
+                                                    void copyValue(
+                                                      record.name,
+                                                      `${recordKey}-name`,
+                                                    )
+                                                  }
+                                                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 hover:text-blue-900"
+                                                >
+                                                  <Clipboard className="h-3.5 w-3.5" />
+                                                  {copiedField ===
+                                                  `${recordKey}-name`
+                                                    ? "Copied"
+                                                    : "Copy"}
+                                                </button>
+                                              </div>
+                                              <div className="mt-1 break-all rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs text-slate-800">
+                                                {record.name}
+                                              </div>
+                                            </div>
+                                          </div>
+
+                                          <div className="mt-3">
+                                            <div className="flex items-center justify-between gap-3">
+                                              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">
+                                                Value
+                                              </p>
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  void copyValue(
+                                                    record.value,
+                                                    `${recordKey}-value`,
+                                                  )
+                                                }
+                                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 hover:text-blue-900"
+                                              >
+                                                <Clipboard className="h-3.5 w-3.5" />
+                                                {copiedField ===
+                                                `${recordKey}-value`
+                                                  ? "Copied"
+                                                  : "Copy"}
+                                              </button>
+                                            </div>
+                                            <div className="mt-1 break-all rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs text-slate-800">
+                                              {record.value}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      );
+                                    },
+                                  )
+                                ) : loadingDnsDomainId === domain.id ? (
+                                  <div className="inline-flex items-center gap-2 text-xs font-semibold text-blue-700">
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    Loading DNS records...
+                                  </div>
+                                ) : (
+                                  <p className="text-xs text-blue-800">
+                                    DNS routing records have not been loaded yet.
+                                  </p>
+                                )}
+                              </div>
+
+                              <div className="mt-4 flex flex-wrap gap-3">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    void loadDnsConfiguration(domain.id)
+                                  }
+                                  disabled={loadingDnsDomainId === domain.id}
+                                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                  {loadingDnsDomainId === domain.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <ServerCog className="h-4 w-4" />
+                                  )}
+                                  {loadingDnsDomainId === domain.id
+                                    ? "Loading..."
+                                    : dnsConfigurations[domain.id]
+                                      ? "Refresh DNS Records"
+                                      : "Show DNS Records"}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
+                    </>
                   ) : null}
 
                   {preparedDomainIds.has(domain.id) ? (
