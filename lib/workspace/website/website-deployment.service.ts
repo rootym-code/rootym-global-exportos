@@ -4,8 +4,8 @@
  * ============================================================
  * Author: Prem Singh
  * Purpose: Orchestrates Website domain deployment readiness,
- *          lifecycle state, and verified-domain integration
- *          with the configured Vercel deployment provider.
+ *          lifecycle state, verified-domain integration,
+ *          and real Vercel SSL status synchronization.
  * ============================================================
  */
 
@@ -19,6 +19,7 @@ import { prisma } from "@/lib/prisma";
 
 import {
   addVercelProjectDomain,
+  checkVercelDomainSsl,
   type VercelProviderDomain,
 } from "@/lib/services/deployment/vercel.provider";
 
@@ -137,7 +138,21 @@ export async function attachWebsiteDomainToVercel(
     );
   }
 
-  return addVercelProjectDomain(domain.domain);
+  const providerDomain = await addVercelProjectDomain(
+    domain.domain,
+  );
+
+  /**
+   * The provider operation has now succeeded. Persist the local
+   * deployment lifecycle state so the UI can reconstruct Step 03
+   * after refresh instead of relying on client-only state.
+   */
+  await markWebsiteDomainReadyForDeployment(
+    websiteId,
+    domainId,
+  );
+
+  return providerDomain;
 }
 
 /**
@@ -199,6 +214,59 @@ export async function beginWebsiteDomainSslProvisioning(
     expiresAt: null,
     error: null,
   });
+}
+
+/**
+ * Synchronize the persisted WebsiteDomain SSL state with the
+ * real Vercel provider state.
+ *
+ * Vercel automatically manages certificates for configured domains.
+ * The provider check combines Vercel domain verification/configuration
+ * with a real HTTPS/TLS request before this function persists ACTIVE.
+ *
+ * This function never changes deploymentStatus or claims deployment LIVE.
+ */
+export async function syncWebsiteDomainSslWithVercel(
+  websiteId: string,
+  domainId: string,
+): Promise<WebsiteDomainSummary> {
+  const domain = await requireWebsiteDomain(websiteId, domainId);
+
+  if (
+    domain.verificationStatus !==
+    WebsiteDomainVerificationStatus.VERIFIED
+  ) {
+    throw new Error(
+      "Domain DNS verification is required before checking SSL.",
+    );
+  }
+
+  const sslCheck = await checkVercelDomainSsl(
+    domain.domain,
+  );
+
+  if (sslCheck.status === "ACTIVE") {
+    return markWebsiteDomainSslActive(
+      websiteId,
+      domainId,
+      {
+        issuedAt: new Date(),
+      },
+    );
+  }
+
+  if (sslCheck.status === "PENDING") {
+    return updateWebsiteDomainSsl(websiteId, domainId, {
+      status: WebsiteDomainSslStatus.PENDING,
+      error: sslCheck.lastError,
+    });
+  }
+
+  return markWebsiteDomainSslFailed(
+    websiteId,
+    domainId,
+    sslCheck.lastError ?? "Vercel SSL/TLS check failed.",
+  );
 }
 
 /**

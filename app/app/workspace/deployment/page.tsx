@@ -19,13 +19,11 @@ import {
   LockKeyhole,
   ServerCog,
   Settings,
-  ShieldCheck,
-  CloudCog,
-  Workflow,
-} from "lucide-react";
+ } from "lucide-react";
 
 import { requireWorkspaceAccess } from "@/app/lib/workspace/require-workspace-access";
 import { getSubscriptionAccessStatus } from "@/lib/services/billing/subscription-access.service";
+import DeploymentDomainWorkflow from "@/app/app/workspace/deployment/components/DeploymentDomainWorkflow";
 
 function formatDate(value: Date | null) {
   if (!value) return null;
@@ -69,44 +67,6 @@ export default async function DomainDeploymentPage() {
       : subscriptionAccess.status === "NO_SUBSCRIPTION"
         ? "No Subscription"
         : "Subscription Required";
-
-  const steps = [
-    {
-      number: "01",
-      title: "Connect Domain",
-      description:
-        "Enter the custom domain you want to use for this ROOTYM website.",
-      icon: Globe2,
-    },
-    {
-      number: "02",
-      title: "Verify DNS",
-      description:
-        "ROOTYM will show the DNS records required to connect the domain and verify ownership.",
-      icon: ShieldCheck,
-    },
-    {
-      number: "03",
-      title: "Prepare Production",
-      description:
-        "ROOTYM checks the website and prepares its production deployment target.",
-      icon: CloudCog,
-    },
-    {
-      number: "04",
-      title: "Secure Domain",
-      description:
-        "Complete SSL and secure-domain readiness before the website is published.",
-      icon: LockKeyhole,
-    },
-    {
-      number: "05",
-      title: "Publish Website",
-      description:
-        "Publish the approved website to the verified custom domain.",
-      icon: Workflow,
-    },
-  ];
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
@@ -259,131 +219,29 @@ export default async function DomainDeploymentPage() {
             </div>
           ) : null}
 
-          {/* Domain workflow */}
+          {/* =====================================================
+              DOMAIN DEPLOYMENT WORKFLOW
+              The connected-domain component is the single source of
+              deployment stages. Each domain owns its own lifecycle.
+              ===================================================== */}
           <div className="px-6 py-7 sm:px-8 sm:py-8">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-600">
-                  Deployment Steps
-                </p>
+            <div className="max-w-3xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-600">
+                Connected Domains
+              </p>
 
-                <h3 className="mt-2 text-2xl font-bold">
-                  One place to get your website live
-                </h3>
-              </div>
+              <h3 className="mt-2 text-2xl font-bold">
+                One place to get your website live
+              </h3>
 
-              <div
-                className={`inline-flex items-center gap-2 self-start rounded-full px-3 py-1.5 text-xs font-semibold ${
-                  isPaid
-                    ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100"
-                    : "bg-slate-100 text-slate-400 ring-1 ring-slate-200"
-                }`}
-              >
-                {isPaid ? (
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                ) : (
-                  <LockKeyhole className="h-3.5 w-3.5" />
-                )}
-                {isPaid ? "Deployment enabled" : "Upgrade required"}
-              </div>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Connect and manage each custom domain independently. ROOTYM
+                reveals the next deployment action only after the required
+                readiness check for that domain is complete.
+              </p>
             </div>
 
-            <div className="mt-7 divide-y divide-slate-200 rounded-2xl border border-slate-200">
-              {steps.map((step, index) => {
-                const Icon = step.icon;
-                const isFirst = index === 0;
-
-                return (
-                  <div
-                    key={step.number}
-                    className={`flex flex-col gap-5 px-5 py-6 sm:flex-row sm:items-center sm:px-6 ${
-                      isPaid ? "bg-white" : "bg-slate-50/70"
-                    }`}
-                  >
-                    <div className="flex shrink-0 items-center gap-4 sm:w-52">
-                      <div
-                        className={`flex h-11 w-11 items-center justify-center rounded-xl ring-1 ${
-                          isPaid
-                            ? "bg-emerald-50 text-emerald-600 ring-emerald-100"
-                            : "bg-white text-slate-400 ring-slate-200"
-                        }`}
-                      >
-                        {isPaid ? (
-                          <Icon className="h-5 w-5" />
-                        ) : (
-                          <LockKeyhole className="h-5 w-5" />
-                        )}
-                      </div>
-
-                      <div>
-                        <p className="text-xs font-bold text-slate-400">
-                          STEP {step.number}
-                        </p>
-                        <p className="mt-1 font-bold text-slate-900">
-                          {step.title}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm leading-6 text-slate-600">
-                        {step.description}
-                      </p>
-                    </div>
-
-                    <div className="shrink-0 sm:w-44 sm:text-right">
-                      <span
-                        className={`inline-flex items-center gap-1.5 text-xs font-semibold ${
-                          isPaid
-                            ? "text-emerald-700"
-                            : "text-slate-400"
-                        }`}
-                      >
-                        {isPaid ? (
-                          isFirst ? (
-                            <>
-                              Start here
-                              <ChevronRight className="h-3.5 w-3.5" />
-                            </>
-                          ) : (
-                            "Available after previous step"
-                          )
-                        ) : (
-                          "Locked until upgrade"
-                        )}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Paid customer entry point */}
-            {isPaid ? (
-              <div className="mt-7 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 sm:p-6">
-                <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">
-                      Ready to begin
-                    </p>
-                    <h4 className="mt-2 text-lg font-bold text-slate-900">
-                      Connect your custom domain
-                    </h4>
-                    <p className="mt-1 text-sm leading-6 text-slate-600">
-                      The domain connection, DNS instructions, verification,
-                      production readiness, SSL and publishing controls will
-                      stay in this same workflow.
-                    </p>
-                  </div>
-
-                  <div className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-emerald-700 ring-1 ring-emerald-200">
-                    <Globe2 className="h-4 w-4" />
-                    Domain setup
-                    <ChevronRight className="h-4 w-4" />
-                  </div>
-                </div>
-              </div>
-            ) : null}
+            <DeploymentDomainWorkflow enabled={isPaid} />
           </div>
 
           {/* Bottom context bar */}

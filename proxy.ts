@@ -48,6 +48,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyAdminToken } from "@/lib/jwt";
 
 import {
+  WebsiteDomainDeploymentStatus,
   WebsiteDomainVerificationStatus,
 } from "@/lib/generated/prisma";
 
@@ -150,8 +151,8 @@ async function protectAdminRoute(
  * A custom domain is considered routable only when:
  *
  *   1. WebsiteDomain exists for the incoming hostname
- *   2. The domain is the Website's primary domain
- *   3. DNS verification has completed successfully
+ *   2. DNS verification has completed successfully
+ *   3. The domain has been published and is LIVE
  *
  * The Website is resolved through the WebsiteDomain relation.
  * No tenantId, websiteId or slug is accepted from the request.
@@ -175,9 +176,10 @@ async function resolveCustomDomainWebsite(
   const domain = await prisma.websiteDomain.findFirst({
     where: {
       domain: hostname,
-      isPrimary: true,
       verificationStatus:
         WebsiteDomainVerificationStatus.VERIFIED,
+      deploymentStatus:
+        WebsiteDomainDeploymentStatus.LIVE,
     },
     select: {
       website: {
