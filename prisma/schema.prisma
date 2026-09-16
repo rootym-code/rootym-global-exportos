@@ -820,6 +820,7 @@ model Website {
   inquiries        Inquiry[]
   quotes           Quote[]
   proformaInvoices ProformaInvoice[]
+  domains          WebsiteDomain[]
   /// Website-owned Main Navigation. Legacy/Admin menus remain
   /// available through Menu records with websiteId = NULL.
   navigation       Menu?
@@ -1480,6 +1481,72 @@ model BillingTaxConfiguration {
   @@index([isActive])
 }
 
+/**
+ * ============================================================
+ * ROOTYM Customer Website Domain & Deployment
+ * ============================================================
+ * Author: Prem Singh
+ * Purpose: Stores Website-owned custom domain verification,
+ * SSL readiness and publication/deployment state.
+ * Domain lifecycle is intentionally provider-neutral. Provider-
+ * specific deployment integration will be implemented in the
+ * service layer without coupling the database to one host.
+ * ============================================================
+ */
+model WebsiteDomain {
+  id        String @id @default(cuid())
+  websiteId String
+
+  /// Normalized hostname/domain used for routing and uniqueness.
+  domain String @unique
+
+  /// Optional display label shown in the Workspace.
+  label String?
+
+  /// Whether this is the primary public domain for the Website.
+  isPrimary Boolean @default(false)
+
+  /// Domain verification lifecycle.
+  verificationStatus WebsiteDomainVerificationStatus @default(PENDING)
+
+  /// Verification method currently supported by the deployment flow.
+  verificationMethod WebsiteDomainVerificationMethod @default(DNS)
+
+  /// Server-generated value used when issuing DNS verification instructions.
+  verificationToken String?
+
+  /// DNS record details required to verify ownership.
+  verificationRecordType  String?
+  verificationRecordName  String?
+  verificationRecordValue String?
+
+  verifiedAt DateTime?
+
+  /// SSL certificate lifecycle.
+  sslStatus    WebsiteDomainSslStatus @default(NOT_CONFIGURED)
+  sslIssuedAt  DateTime?
+  sslExpiresAt DateTime?
+
+  /// Website publication/deployment lifecycle for this domain.
+  deploymentStatus WebsiteDomainDeploymentStatus @default(NOT_DEPLOYED)
+
+  lastDeploymentAt DateTime?
+  lastCheckedAt    DateTime?
+  lastError        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  website Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+
+  @@index([websiteId])
+  @@index([websiteId, isPrimary])
+  @@index([verificationStatus])
+  @@index([sslStatus])
+  @@index([deploymentStatus])
+  @@index([verifiedAt])
+}
+
 enum BillingTaxType {
   NONE
   CGST_SGST
@@ -1509,6 +1576,34 @@ model BillingWebhookEvent {
   @@index([eventType])
   @@index([status])
   @@index([createdAt])
+}
+
+enum WebsiteDomainVerificationStatus {
+  PENDING
+  VERIFYING
+  VERIFIED
+  FAILED
+}
+
+enum WebsiteDomainVerificationMethod {
+  DNS
+}
+
+enum WebsiteDomainSslStatus {
+  NOT_CONFIGURED
+  PENDING
+  ACTIVE
+  EXPIRED
+  FAILED
+}
+
+enum WebsiteDomainDeploymentStatus {
+  NOT_DEPLOYED
+  READY
+  DEPLOYING
+  LIVE
+  FAILED
+  DISABLED
 }
 
 enum BillingEnvironment {

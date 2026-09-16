@@ -5,7 +5,8 @@
  * Author: Prem Singh
  * Purpose: Provides deterministic hostname-based separation,
  *          cryptographic admin JWT route protection, and
- *          application routing.
+ *          application routing including verified customer
+ *          Website custom-domain routing.
  *
  * Production:
  *   export.rootym.com
@@ -13,6 +14,10 @@
  *
  *   app.export.rootym.com
  *     → /saas
+ *
+ *   Customer custom domains:
+ *   verified primary domain
+ *     → /website/{websiteSlug}/en
  *
  * Local development:
  *   export.localhost
@@ -41,6 +46,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { verifyAdminToken } from "@/lib/jwt";
+
+import {
+  WebsiteDomainVerificationStatus,
+} from "@/lib/generated/prisma";
+
+import prisma from "@/lib/prisma";
 
 const MARKETING_HOSTS = new Set([
   "export.rootym.com",
@@ -96,21 +107,27 @@ async function protectAdminRoute(
 
   try {
     /**
+     * ========================================================
      * Proxy-level protection intentionally performs
      * cryptographic JWT verification only.
      *
      * Database-level admin validation, including
      * existence, active status and current role,
      * remains the responsibility of authenticateAdmin().
+     * ========================================================
      */
+
     await verifyAdminToken(token);
 
     return null;
   } catch {
     /**
+     * ========================================================
      * Invalid or expired admin tokens must not be
      * allowed to reach protected Admin pages.
+     * ========================================================
      */
+
     const loginUrl = new URL(
       "/admin/login",
       request.url
@@ -123,6 +140,107 @@ async function protectAdminRoute(
 
     return NextResponse.redirect(loginUrl);
   }
+}
+
+/**
+ * ============================================================
+ * CUSTOMER WEBSITE CUSTOM-DOMAIN ROUTING
+ * ============================================================
+ *
+ * A custom domain is considered routable only when:
+ *
+ *   1. WebsiteDomain exists for the incoming hostname
+ *   2. The domain is the Website's primary domain
+ *   3. DNS verification has completed successfully
+ *
+ * The Website is resolved through the WebsiteDomain relation.
+ * No tenantId, websiteId or slug is accepted from the request.
+ *
+ * The existing public Website pages remain responsible for:
+ *
+ *   - Website active status
+ *   - subscription access
+ *   - CMS homepage resolution
+ *   - locale fallback
+ *   - Website rendering
+ *
+ * The browser URL remains the customer's custom domain because
+ * this operation uses an internal rewrite rather than redirect.
+ * ============================================================
+ */
+
+async function resolveCustomDomainWebsite(
+  hostname: string
+) {
+  const domain = await prisma.websiteDomain.findFirst({
+    where: {
+      domain: hostname,
+      isPrimary: true,
+      verificationStatus:
+        WebsiteDomainVerificationStatus.VERIFIED,
+    },
+    select: {
+      website: {
+        select: {
+          slug: true,
+        },
+      },
+    },
+  });
+
+  return domain?.website ?? null;
+}
+
+/**
+ * ============================================================
+ * CUSTOMER WEBSITE PATH RESOLUTION
+ * ============================================================
+ *
+ * The incoming custom-domain pathname is preserved after the
+ * internal Website prefix.
+ *
+ * Examples:
+ *
+ *   /
+ *     → /website/{websiteSlug}/en
+ *
+ *   /en
+ *     → /website/{websiteSlug}/en
+ *
+ *   /en/products
+ *     → /website/{websiteSlug}/en/products
+ *
+ *   /en/products/example
+ *     → /website/{websiteSlug}/en/products/example
+ *
+ *   /en/contact
+ *     → /website/{websiteSlug}/en/contact
+ *
+ *   /en/request-quote
+ *     → /website/{websiteSlug}/en/request-quote
+ *
+ *   /en/about
+ *     → /website/{websiteSlug}/en/about
+ *
+ * The final route determines whether the path is a product,
+ * CMS page, contact page, quote page, or another existing
+ * Website route. No individual CMS slug is hard-coded here.
+ * ============================================================
+ */
+
+function getCustomDomainWebsitePath(
+  websiteSlug: string,
+  pathname: string
+) {
+  if (pathname === "/" || pathname === "") {
+    return `/website/${encodeURIComponent(
+      websiteSlug
+    )}/en`;
+  }
+
+  return `/website/${encodeURIComponent(
+    websiteSlug
+  )}${pathname}`;
 }
 
 export async function proxy(request: NextRequest) {
@@ -322,10 +440,75 @@ export async function proxy(request: NextRequest) {
 
   /**
    * ==========================================================
-   * 5. UNKNOWN HOST
+   * 5. CUSTOMER WEBSITE CUSTOM DOMAIN
    * ==========================================================
    *
-   * No application-specific hostname routing.
+   * Unknown hosts are checked against the verified primary
+   * WebsiteDomain records.
+   *
+   * Example:
+   *
+   *   https://rootym.in/
+   *
+   * resolves to:
+   *
+   *   WebsiteDomain(rootym.in)
+   *        ↓
+   *   Website
+   *        ↓
+   *   Website.slug
+   *        ↓
+   *   /website/{websiteSlug}/en
+   *
+   * For non-root paths, the public pathname is preserved:
+   *
+   *   /en/products
+   *        ↓
+   *   /website/{websiteSlug}/en/products
+   *
+   * This is an internal rewrite. The browser continues to
+   * display the customer's custom domain.
+   * ==========================================================
+   */
+
+  try {
+    const website =
+      await resolveCustomDomainWebsite(hostname);
+
+    if (website?.slug) {
+      return NextResponse.rewrite(
+        new URL(
+          getCustomDomainWebsitePath(
+            website.slug,
+            pathname
+          ),
+          request.url
+        )
+      );
+    }
+  } catch (error) {
+    /**
+     * ========================================================
+     * A custom-domain lookup failure must not break
+     * ROOTYM's standard marketing or SaaS hosts.
+     *
+     * Unknown hosts continue through the normal Next.js
+     * routing path.
+     * ========================================================
+     */
+
+    console.error(
+      "[Custom Domain Routing]",
+      error
+    );
+  }
+
+  /**
+   * ==========================================================
+   * 6. UNKNOWN HOST
+   * ==========================================================
+   *
+   * No verified customer Website was resolved.
    * ==========================================================
    */
 
