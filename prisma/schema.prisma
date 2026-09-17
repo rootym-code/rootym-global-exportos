@@ -158,22 +158,27 @@ model WhatsAppAttachment {
 }
 
 model Admin {
-  id                 String                 @id @default(cuid())
-  name               String
-  email              String                 @unique
-  password           String
-  createdAt          DateTime               @default(now())
-  updatedAt          DateTime               @updatedAt
-  isActive           Boolean                @default(true)
-  lastLogin          DateTime?
-  role               AdminRole              @default(SUPER_ADMIN)
-  activities         Activity[]             @relation("ActivityPerformedBy")
-  assignedFollowUps  FollowUp[]             @relation("AssignedFollowUps")
-  completedFollowUps FollowUp[]             @relation("CompletedFollowUps")
-  inquiryNotes       InquiryNote[]
-  statusChanges      InquiryStatusHistory[]
-  createdQuotes      Quote[]                @relation("QuoteCreatedBy")
-  updatedQuotes      Quote[]                @relation("QuoteUpdatedBy")
+  id                     String                       @id @default(cuid())
+  name                   String
+  email                  String                       @unique
+  password               String
+  createdAt              DateTime                     @default(now())
+  updatedAt              DateTime                     @updatedAt
+  isActive               Boolean                      @default(true)
+  lastLogin              DateTime?
+  role                   AdminRole                    @default(SUPER_ADMIN)
+  activities             Activity[]                   @relation("ActivityPerformedBy")
+  assignedFollowUps      FollowUp[]                   @relation("AssignedFollowUps")
+  completedFollowUps     FollowUp[]                   @relation("CompletedFollowUps")
+  inquiryNotes           InquiryNote[]
+  statusChanges          InquiryStatusHistory[]
+  createdQuotes          Quote[]                      @relation("QuoteCreatedBy")
+  updatedQuotes          Quote[]                      @relation("QuoteUpdatedBy")
+  assignedSupportTickets SupportTicket[]              @relation("SupportTicketAssignedTo")
+  resolvedSupportTickets SupportTicket[]              @relation("SupportTicketResolvedBy")
+  closedSupportTickets   SupportTicket[]              @relation("SupportTicketClosedBy")
+  supportMessages        SupportMessage[]
+  supportStatusChanges   SupportTicketStatusHistory[]
 }
 
 model FollowUp {
@@ -424,6 +429,120 @@ model ProformaInvoiceItem {
   @@index([productId])
 }
 
+/**
+ * ============================================================
+ * ROOTYM Customer Support
+ * ============================================================
+ * Author: Prem Singh
+ * Purpose: Stores tenant-scoped customer support tickets,
+ * customer/Admin conversation, attachments and the
+ * immutable status history used for support operations.
+ * ============================================================
+ */
+model SupportTicket {
+  id           String                @id @default(cuid())
+  tenantId     String
+  websiteId    String?
+  ticketNumber String                @unique
+  subject      String
+  description  String
+  category     SupportTicketCategory
+  priority     SupportTicketPriority @default(MEDIUM)
+  status       SupportTicketStatus   @default(OPEN)
+
+  assignedToId String?
+  resolvedById String?
+  closedById   String?
+
+  resolvedAt DateTime?
+  closedAt   DateTime?
+
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant        Tenant                       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  website       Website?                     @relation(fields: [websiteId], references: [id], onDelete: SetNull)
+  createdBy     User                         @relation(fields: [createdById], references: [id])
+  assignedTo    Admin?                       @relation("SupportTicketAssignedTo", fields: [assignedToId], references: [id], onDelete: SetNull)
+  resolvedBy    Admin?                       @relation("SupportTicketResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
+  closedBy      Admin?                       @relation("SupportTicketClosedBy", fields: [closedById], references: [id], onDelete: SetNull)
+  messages      SupportMessage[]
+  attachments   SupportTicketAttachment[]
+  statusHistory SupportTicketStatusHistory[]
+
+  @@index([tenantId])
+  @@index([websiteId])
+  @@index([status])
+  @@index([priority])
+  @@index([category])
+  @@index([assignedToId])
+  @@index([createdById])
+  @@index([createdAt])
+  @@index([updatedAt])
+}
+
+model SupportMessage {
+  id            String                   @id @default(cuid())
+  ticketId      String
+  authorUserId  String?
+  authorAdminId String?
+  message       String
+  messageType   SupportMessageType       @default(REPLY)
+  visibility    SupportMessageVisibility @default(CUSTOMER)
+  sequence      Int
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+
+  ticket      SupportTicket             @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorUser  User?                     @relation(fields: [authorUserId], references: [id], onDelete: SetNull)
+  authorAdmin Admin?                    @relation(fields: [authorAdminId], references: [id], onDelete: SetNull)
+  attachments SupportTicketAttachment[]
+
+  @@unique([ticketId, sequence])
+  @@index([ticketId])
+  @@index([authorUserId])
+  @@index([authorAdminId])
+  @@index([createdAt])
+  @@index([visibility])
+}
+
+model SupportTicketAttachment {
+  id        String   @id @default(cuid())
+  ticketId  String
+  messageId String?
+  mediaId   String
+  createdAt DateTime @default(now())
+
+  ticket  SupportTicket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  message SupportMessage? @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  media   Media           @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@index([messageId])
+  @@index([mediaId])
+}
+
+model SupportTicketStatusHistory {
+  id               String               @id @default(cuid())
+  ticketId         String
+  oldStatus        SupportTicketStatus?
+  newStatus        SupportTicketStatus
+  changedByUserId  String?
+  changedByAdminId String?
+  note             String?
+  createdAt        DateTime             @default(now())
+
+  ticket         SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  changedByUser  User?         @relation(fields: [changedByUserId], references: [id], onDelete: SetNull)
+  changedByAdmin Admin?        @relation(fields: [changedByAdminId], references: [id], onDelete: SetNull)
+
+  @@index([ticketId])
+  @@index([createdAt])
+  @@index([changedByUserId])
+  @@index([changedByAdminId])
+}
+
 model Activity {
   id            String             @id @default(cuid())
   /// Business entity type
@@ -599,12 +718,13 @@ model Media {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  featuredInProducts       Product[]            @relation("ProductFeaturedImage")
-  specificationForProducts Product[]            @relation("ProductSpecificationDocument")
+  featuredInProducts       Product[]                 @relation("ProductFeaturedImage")
+  specificationForProducts Product[]                 @relation("ProductSpecificationDocument")
   whatsAppAttachments      WhatsAppAttachment[]
-  websiteBrandingLogos     WebsiteBranding[]    @relation("WebsiteBrandingLogo")
-  websiteBrandingFavicons  WebsiteBranding[]    @relation("WebsiteBrandingFavicon")
-  websiteBrandingOgImages  WebsiteBranding[]    @relation("WebsiteBrandingOgImage")
+  supportAttachments       SupportTicketAttachment[]
+  websiteBrandingLogos     WebsiteBranding[]         @relation("WebsiteBrandingLogo")
+  websiteBrandingFavicons  WebsiteBranding[]         @relation("WebsiteBrandingFavicon")
+  websiteBrandingOgImages  WebsiteBranding[]         @relation("WebsiteBrandingOgImage")
 
   @@index([mediaType])
   @@index([folder])
@@ -720,17 +840,20 @@ model Redirect {
 }
 
 model User {
-  id                       String                @id @default(cuid())
-  email                    String                @unique
+  id                       String                       @id @default(cuid())
+  email                    String                       @unique
   name                     String
   avatarUrl                String?
   emailVerifiedAt          DateTime?
-  isActive                 Boolean               @default(true)
-  createdAt                DateTime              @default(now())
-  updatedAt                DateTime              @updatedAt
+  isActive                 Boolean                      @default(true)
+  createdAt                DateTime                     @default(now())
+  updatedAt                DateTime                     @updatedAt
   identities               AuthIdentity[]
   memberships              Membership[]
-  sentWorkspaceInvitations WorkspaceInvitation[] @relation("WorkspaceInvitationInviter")
+  supportTicketsCreated    SupportTicket[]
+  supportMessages          SupportMessage[]
+  supportStatusChanges     SupportTicketStatusHistory[]
+  sentWorkspaceInvitations WorkspaceInvitation[]        @relation("WorkspaceInvitationInviter")
 
   @@index([isActive])
 }
@@ -777,6 +900,7 @@ model Tenant {
   memberships                  Membership[]
   payments                     Payment[]
   invoices                     BillingInvoice[]
+  supportTickets               SupportTicket[]
   subscriptions                Subscription[]
   planChanges                  SubscriptionPlanChange[]
   website                      Website?
@@ -820,6 +944,7 @@ model Website {
   inquiries        Inquiry[]
   quotes           Quote[]
   proformaInvoices ProformaInvoice[]
+  supportTickets   SupportTicket[]
   domains          WebsiteDomain[]
   /// Website-owned Main Navigation. Legacy/Admin menus remain
   /// available through Menu records with websiteId = NULL.
@@ -1729,7 +1854,48 @@ enum QuoteStatus {
   APPROVED
 }
 
+enum SupportTicketStatus {
+  OPEN
+  ASSIGNED
+  IN_PROGRESS
+  WAITING_FOR_CUSTOMER
+  RESOLVED
+  CLOSED
+}
+
+enum SupportTicketCategory {
+  ACCOUNT
+  BILLING
+  WEBSITE
+  DOMAIN_DEPLOYMENT
+  PRODUCTS
+  INQUIRIES
+  EXPORT
+  R_CAPTAIN
+  TECHNICAL
+  OTHER
+}
+
+enum SupportTicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum SupportMessageType {
+  REPLY
+  INTERNAL_NOTE
+  SYSTEM
+}
+
+enum SupportMessageVisibility {
+  CUSTOMER
+  INTERNAL
+}
+
 enum ActivityEntityType {
+  SUPPORT_TICKET
   INQUIRY
   QUOTE
   ORDER
@@ -1748,6 +1914,7 @@ enum ActivityActorType {
 }
 
 enum NumberSequenceType {
+  SUPPORT_TICKET
   INQUIRY
   QUOTE
   ORDER

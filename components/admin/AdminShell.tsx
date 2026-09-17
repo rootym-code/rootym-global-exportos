@@ -171,6 +171,19 @@ const navigationGroups: NavigationGroup[] = [
   },
 
   {
+    title: "SUPPORT",
+
+    items: [
+      {
+        title: "Support Center",
+        href: "/admin/support/tickets",
+        icon: MessageSquare,
+
+        mobileVisible: true,
+      },
+    ],
+  },
+  {
     title: "SYSTEM",
 
     items: [

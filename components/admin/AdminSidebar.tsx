@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+
 import { usePathname } from "next/navigation";
 
 import {
@@ -20,7 +21,8 @@ import {
 
 /**
  * Author: Prem Singh
- * Purpose: Provides Admin navigation for ROOTYM, including billing and tax configuration.
+ * Purpose: Provides Admin navigation for ROOTYM, including billing, tax,
+ *          and Support Center navigation.
  */
 
 const NAV_SECTIONS = [
@@ -34,7 +36,6 @@ const NAV_SECTIONS = [
       },
     ],
   },
-
   {
     title: "CONTENT",
     items: [
@@ -50,7 +51,6 @@ const NAV_SECTIONS = [
       },
     ],
   },
-
   {
     title: "CMS",
     items: [
@@ -71,7 +71,6 @@ const NAV_SECTIONS = [
       },
     ],
   },
-
   {
     title: "BUSINESS",
     items: [
@@ -92,7 +91,6 @@ const NAV_SECTIONS = [
       },
     ],
   },
-
   {
     title: "BILLING",
     items: [
@@ -113,7 +111,16 @@ const NAV_SECTIONS = [
       },
     ],
   },
-
+  {
+    title: "SUPPORT",
+    items: [
+      {
+        label: "Support Center",
+        href: "/admin/support/tickets",
+        icon: MessageSquare,
+      },
+    ],
+  },
   {
     title: "SYSTEM",
     items: [
@@ -142,50 +149,44 @@ export default function AdminSidebar() {
       </div>
 
       <nav className="flex-1 px-4 py-8 space-y-6">
-        {NAV_SECTIONS.map(
-          (section) => (
-            <div key={section.title}>
-              {section.title && (
-                <p className="px-4 mb-3 text-xs font-semibold tracking-widest text-green-300">
-                  {section.title}
-                </p>
-              )}
+        {NAV_SECTIONS.map((section) => (
+          <div key={section.title}>
+            {section.title && (
+              <p className="px-4 mb-3 text-xs font-semibold tracking-widest text-green-300">
+                {section.title}
+              </p>
+            )}
 
-              <div className="space-y-2">
-                {section.items.map(
-                  (item) => {
-                    const Icon = item.icon;
+            <div className="space-y-2">
+              {section.items.map((item) => {
+                const Icon = item.icon;
 
-                    const active =
-                      pathname === item.href ||
-                      pathname.startsWith(
-                        item.href + "/"
-                      );
+                const active =
+                  pathname === item.href ||
+                  pathname.startsWith(item.href + "/");
 
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        className={[
-                          "flex items-center gap-4 rounded-xl px-5 py-4 transition-all",
-                          active
-                            ? "bg-white text-green-900 shadow-md"
-                            : "text-white hover:bg-green-800",
-                        ].join(" ")}
-                      >
-                        <Icon className="h-6 w-6" />
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={[
+                      "flex items-center gap-4 rounded-xl px-5 py-4 transition-all",
+                      active
+                        ? "bg-white text-green-900 shadow-md"
+                        : "text-white hover:bg-green-800",
+                    ].join(" ")}
+                  >
+                    <Icon className="h-6 w-6" />
 
-                        <span className="text-lg font-medium">
-                          {item.label}
-                        </span>
-                      </Link>
-                    );
-                  }
-                )}
-              </div>
+                    <span className="text-lg font-medium">
+                      {item.label}
+                    </span>
+                  </Link>
+                );
+              })}
             </div>
-          )
-        )}
+          </div>
+        ))}
       </nav>
     </aside>
   );

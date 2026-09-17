@@ -22,6 +22,7 @@
  * • Invoice
  * • Customer
  * • Supplier
+ * • Support Ticket
  *
  * Number Format
  * -------------
@@ -58,7 +59,6 @@ import { prisma } from "@/lib/prisma";
  */
 
 export enum NumberSequenceType {
-
     INQUIRY = "INQUIRY",
 
     QUOTE = "QUOTE",
@@ -73,6 +73,7 @@ export enum NumberSequenceType {
 
     SUPPLIER = "SUPPLIER",
 
+    SUPPORT_TICKET = "SUPPORT_TICKET",
 }
 
 /* ============================================================================
@@ -81,7 +82,6 @@ export enum NumberSequenceType {
  */
 
 export const NumberPrefix = {
-
     [NumberSequenceType.INQUIRY]: "INQ",
 
     [NumberSequenceType.QUOTE]: "QT",
@@ -96,6 +96,7 @@ export const NumberPrefix = {
 
     [NumberSequenceType.SUPPLIER]: "SUP",
 
+    [NumberSequenceType.SUPPORT_TICKET]: "TKT",
 } as const;
 
 /* ============================================================================
@@ -104,7 +105,6 @@ export const NumberPrefix = {
  */
 
 export interface GenerateNumberOptions {
-
     /**
      * Sequence Type
      */
@@ -115,7 +115,6 @@ export interface GenerateNumberOptions {
      * Default: current year.
      */
     year?: number;
-
 }
 
 /* ============================================================================
@@ -124,7 +123,6 @@ export interface GenerateNumberOptions {
  */
 
 export interface GeneratedNumber {
-
     /**
      * Complete formatted number.
      *
@@ -147,7 +145,6 @@ export interface GeneratedNumber {
      * Business year.
      */
     year: number;
-
 }
 
 /* ============================================================================
@@ -156,7 +153,6 @@ export interface GeneratedNumber {
  */
 
 export class NumberFormatter {
-
     /**
      * Pads numeric value.
      *
@@ -164,11 +160,9 @@ export class NumberFormatter {
      */
 
     static pad(sequence: number): string {
-
         return sequence
             .toString()
             .padStart(6, "0");
-
     }
 
     /**
@@ -176,19 +170,12 @@ export class NumberFormatter {
      */
 
     static format(
-
         prefix: string,
-
         year: number,
-
         sequence: number,
-
     ): string {
-
         return `${prefix}-${year}-${this.pad(sequence)}`;
-
     }
-
 }
 
 /* ============================================================================
@@ -197,19 +184,14 @@ export class NumberFormatter {
  */
 
 export class NumberGeneratorService {
-
     /**
      * Returns current year.
      */
 
     private static getYear(
-
         year?: number,
-
     ): number {
-
         return year ?? new Date().getFullYear();
-
     }
 
     /**
@@ -217,21 +199,16 @@ export class NumberGeneratorService {
      */
 
     private static getPrefix(
-
         type: NumberSequenceType,
-
     ): string {
-
         return NumberPrefix[type];
-
     }
 
     /**
      * Returns Prisma client.
      */
 
-
-        /* =========================================================================
+    /* =========================================================================
      * CORE GENERATOR
      * =========================================================================
      *
@@ -242,169 +219,183 @@ export class NumberGeneratorService {
      * =========================================================================
      */
 
-        static async generate(
-            options: GenerateNumberOptions,
-            tx?: Prisma.TransactionClient,
-        ): Promise<GeneratedNumber> {
-        
-            const year = this.getYear(options.year);
-            const prefix = this.getPrefix(options.type);
-        
-            const execute = async (trx: Prisma.TransactionClient) => {
-        
-                const existing = await trx.numberSequence.findUnique({
+    static async generate(
+        options: GenerateNumberOptions,
+        tx?: Prisma.TransactionClient,
+    ): Promise<GeneratedNumber> {
+
+        const year = this.getYear(options.year);
+        const prefix = this.getPrefix(options.type);
+
+        const execute = async (trx: Prisma.TransactionClient) => {
+
+            const existing = await trx.numberSequence.findUnique({
+                where: {
+                    type_year: {
+                        type: options.type,
+                        year,
+                    },
+                },
+            });
+
+            let sequence: number;
+
+            if (!existing) {
+
+                const created = await trx.numberSequence.create({
+                    data: {
+                        type: options.type,
+                        year,
+                        lastValue: 1,
+                    },
+                });
+
+                sequence = created.lastValue;
+
+            } else {
+
+                const updated = await trx.numberSequence.update({
                     where: {
-                        type_year: {
-                            type: options.type,
-                            year,
+                        id: existing.id,
+                    },
+                    data: {
+                        lastValue: {
+                            increment: 1,
                         },
                     },
                 });
-        
-                let sequence: number;
-        
-                if (!existing) {
-        
-                    const created = await trx.numberSequence.create({
-                        data: {
-                            type: options.type,
-                            year,
-                            lastValue: 1,
-                        },
-                    });
-        
-                    sequence = created.lastValue;
-        
-                } else {
-        
-                    const updated = await trx.numberSequence.update({
-                        where: {
-                            id: existing.id,
-                        },
-                        data: {
-                            lastValue: {
-                                increment: 1,
-                            },
-                        },
-                    });
-        
-                    sequence = updated.lastValue;
-                }
-        
-                return {
-                    number: NumberFormatter.format(
-                        prefix,
-                        year,
-                        sequence,
-                    ),
+
+                sequence = updated.lastValue;
+            }
+
+            return {
+                number: NumberFormatter.format(
                     prefix,
                     year,
                     sequence,
-                };
+                ),
+                prefix,
+                year,
+                sequence,
             };
-        
-            if (tx) {
-                return execute(tx);
-            }
-        
-            return prisma.$transaction(execute);
+        };
+
+        if (tx) {
+            return execute(tx);
         }
-    
-        /* =========================================================================
-         * CONVENIENCE METHODS
-         * ========================================================================= */
-    
-        static async getNextInquiryNumber(
-            tx?: Prisma.TransactionClient,
-        ) {
-    
-            return this.generate(
-                {
-                    type: NumberSequenceType.INQUIRY,
-                },
-                tx,
-            );
-    
-        }
-    
-        static async getNextQuoteNumber(
-            tx?: Prisma.TransactionClient,
-        ) {
-    
-            return this.generate(
-                {
-                    type: NumberSequenceType.QUOTE,
-                },
-                tx,
-            );
-    
-        }
-    
-        static async getNextOrderNumber(
-            tx?: Prisma.TransactionClient,
-        ) {
-    
-            return this.generate(
-                {
-                    type: NumberSequenceType.ORDER,
-                },
-                tx,
-            );
-    
-        }
-    
-        static async getNextShipmentNumber(
-            tx?: Prisma.TransactionClient,
-        ) {
-    
-            return this.generate(
-                {
-                    type: NumberSequenceType.SHIPMENT,
-                },
-                tx,
-            );
-    
-        }
-    
-        static async getNextInvoiceNumber(
-            tx?: Prisma.TransactionClient,
-        ) {
-    
-            return this.generate(
-                {
-                    type: NumberSequenceType.INVOICE,
-                },
-                tx,
-            );
-    
-        }
-    
-        static async getNextCustomerNumber(
-            tx?: Prisma.TransactionClient,
-        ) {
-    
-            return this.generate(
-                {
-                    type: NumberSequenceType.CUSTOMER,
-                },
-                tx,
-            );
-    
-        }
-    
-        static async getNextSupplierNumber(
-            tx?: Prisma.TransactionClient,
-        ) {
-    
-            return this.generate(
-                {
-                    type: NumberSequenceType.SUPPLIER,
-                },
-                tx,
-            );
-    
-        }
-            /* =========================================================================
+
+        return prisma.$transaction(execute);
+    }
+
+    /* =========================================================================
+     * CONVENIENCE METHODS
+     * ========================================================================= */
+
+    static async getNextInquiryNumber(
+        tx?: Prisma.TransactionClient,
+    ) {
+
+        return this.generate(
+            {
+                type: NumberSequenceType.INQUIRY,
+            },
+            tx,
+        );
+
+    }
+
+    static async getNextQuoteNumber(
+        tx?: Prisma.TransactionClient,
+    ) {
+
+        return this.generate(
+            {
+                type: NumberSequenceType.QUOTE,
+            },
+            tx,
+        );
+
+    }
+
+    static async getNextOrderNumber(
+        tx?: Prisma.TransactionClient,
+    ) {
+
+        return this.generate(
+            {
+                type: NumberSequenceType.ORDER,
+            },
+            tx,
+        );
+
+    }
+
+    static async getNextShipmentNumber(
+        tx?: Prisma.TransactionClient,
+    ) {
+
+        return this.generate(
+            {
+                type: NumberSequenceType.SHIPMENT,
+            },
+            tx,
+        );
+
+    }
+
+    static async getNextInvoiceNumber(
+        tx?: Prisma.TransactionClient,
+    ) {
+
+        return this.generate(
+            {
+                type: NumberSequenceType.INVOICE,
+            },
+            tx,
+        );
+
+    }
+
+    static async getNextCustomerNumber(
+        tx?: Prisma.TransactionClient,
+    ) {
+
+        return this.generate(
+            {
+                type: NumberSequenceType.CUSTOMER,
+            },
+            tx,
+        );
+
+    }
+
+    static async getNextSupportTicketNumber(
+        tx?: Prisma.TransactionClient,
+    ) {
+
+        return this.generate(
+            {
+                type: NumberSequenceType.SUPPORT_TICKET,
+            },
+            tx,
+        );
+
+    }
+
+    static async getNextSupplierNumber(
+        tx?: Prisma.TransactionClient,
+    ) {
+
+        return this.generate(
+            {
+                type: NumberSequenceType.SUPPLIER,
+            },
+            tx,
+        );
+
+    }
+
+    /* =========================================================================
      * VALIDATION
      * ========================================================================= */
 
@@ -431,7 +422,6 @@ export class NumberGeneratorService {
             );
 
         return regex.test(number);
-
     }
 
     /* =========================================================================
@@ -466,7 +456,6 @@ export class NumberGeneratorService {
             sequence: Number(parts[2]),
 
         };
-
     }
 
     /* =========================================================================
@@ -493,7 +482,6 @@ export class NumberGeneratorService {
             },
             tx,
         );
-
     }
 
     /* =========================================================================
@@ -517,23 +505,23 @@ export class NumberGeneratorService {
     ) {
 
         return NumberFormatter.format(
-
             prefix,
-
             year,
-
             sequence,
-
         );
-
     }
-
 }
 
-/* ============================================================================
- * EXPORTS
- * ============================================================================
+/**
+ * Returns the next formatted Support Ticket number for customer-facing services.
+ * This named export preserves compatibility with service-layer imports.
  */
+export async function getNextSupportTicketNumber(
+    tx?: Prisma.TransactionClient,
+): Promise<string> {
+    const result = await NumberGeneratorService.getNextSupportTicketNumber(tx);
+    return result.number;
+}
 
 export default NumberGeneratorService;
 
@@ -577,8 +565,8 @@ export default NumberGeneratorService;
  * For production deployment on PostgreSQL, the generate() method should use
  * row-level locking (SELECT ... FOR UPDATE) or an equivalent atomic sequence
  * strategy to eliminate race conditions under high concurrency. The public API
- * of this service is already designed so that the internal implementation can
- * be upgraded without changing any calling code.
+ * of this service is already designed so that the internal implementation
+ * can be upgraded without changing any calling code.
  *
  * ============================================================================
  */
