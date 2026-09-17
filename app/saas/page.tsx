@@ -29,6 +29,7 @@ import {
 
 import prisma from "@/lib/prisma";
 import { getSubscriptionAccessStatus } from "@/lib/services/billing/subscription-access.service";
+import { startTrial } from "@/lib/services/saas/trial-start.service";
 
 import {
   CUSTOMER_AUTH_COOKIE_NAME,
@@ -155,13 +156,13 @@ function getStatusDetails(
 
     default:
       return {
-        label: "Not Started",
-        title: "Choose how you want to start",
+        label: "Free Trial Available",
+        title: "Start your free 30-day trial",
         description:
-          "Start the available free trial or select a paid ROOTYM SaaS plan.",
+          "Your ROOTYM workspace is ready. Start your free 30-day trial to enter the workspace and begin using ROOTYM.",
         className:
-          "border-amber-200 bg-amber-50 text-amber-900",
-        dotClassName: "bg-amber-500",
+          "border-emerald-200 bg-emerald-50 text-emerald-900",
+        dotClassName: "bg-emerald-500",
       };
   }
 }
@@ -249,6 +250,14 @@ export default async function AppPage() {
     );
   }
 
+  /*
+   * Capture the authenticated tenant id after the membership
+   * guard. Server actions are separately type-checked, so using
+   * the narrowed membership object directly inside the action can
+   * still produce a nullable-reference error.
+   */
+  const tenantId = membership.tenant.id;
+
   const subscription =
     membership.tenant.subscriptions[0] ??
     null;
@@ -308,6 +317,21 @@ export default async function AppPage() {
   const planName =
     subscription?.plan?.name ??
     "No paid plan selected";
+
+  /*
+   * Server-side free-trial action.
+   *
+   * A new authenticated customer starts the 30-day
+   * free trial only when they choose to enter the
+   * free-trial workspace.
+   */
+  async function startFreeTrial() {
+    "use server";
+
+    await startTrial(tenantId);
+
+    redirect("/app/workspace");
+  }
 
   /*
    * Server-side logout action.
@@ -610,17 +634,31 @@ export default async function AppPage() {
 
             </div>
 
-            <Link
-  href="/app/workspace"
-  className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-emerald-700"
->
-  Go to Workspace
-  <ArrowRight className="h-4 w-4" />
-</Link>
+            {status === null ? (
+              <form action={startFreeTrial}>
+                <button
+                  type="submit"
+                  className="mt-7 inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-4 text-center text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 sm:text-base"
+                >
+                  GO TO YOUR FREE TRIAL WORKSPACE
+                  <ArrowRight className="h-5 w-5 shrink-0" />
+                </button>
+              </form>
+            ) : (
+              <Link
+                href="/app/workspace"
+                className="mt-7 inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-4 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 sm:text-base"
+              >
+                YOUR WORKSPACE
+                <ArrowRight className="h-5 w-5" />
+              </Link>
+            )}
 
-<p className="mt-3 text-center text-xs text-slate-500">
-  Open your ROOTYM customer workspace.
-</p>
+            <p className="mt-3 text-center text-xs text-slate-500">
+              {status === null
+                ? "Start your 30-day free trial to enter your ROOTYM customer workspace."
+                : "Open your ROOTYM customer workspace."}
+            </p>
 
           </aside>
         </section>
