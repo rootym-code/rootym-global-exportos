@@ -518,6 +518,95 @@ export async function createRazorpaySubscription(
   };
 }
 
+
+/**
+ * Author: Prem Singh
+ * Purpose: Cancels the authenticated tenant's active ROOTYM Razorpay subscription, either immediately or at the end of the current billing cycle.
+ */
+export async function cancelRazorpaySubscription(
+  input: {
+    tenantId: string;
+    cancelAtCycleEnd: boolean;
+  }
+) {
+  if (!input.tenantId) {
+    throw new Error(
+      "A valid tenant is required."
+    );
+  }
+
+  await getConfiguredBillingProvider("RAZORPAY");
+
+  await getTenantWithOwner(
+    input.tenantId
+  );
+
+  const currentSubscription =
+    await prisma.subscription.findFirst({
+      where: {
+        tenantId: input.tenantId,
+        status: {
+          in: [
+            SubscriptionStatus.ACTIVE,
+            SubscriptionStatus.PAST_DUE,
+          ],
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+  if (!currentSubscription) {
+    throw new Error(
+      "An active subscription is required to cancel the ROOTYM subscription."
+    );
+  }
+
+  if (!currentSubscription.razorpaySubscriptionId) {
+    throw new Error(
+      "The current ROOTYM subscription is not connected to a Razorpay subscription."
+    );
+  }
+
+  const razorpaySubscription =
+    await razorpayRequest<RazorpaySubscriptionResponse>(
+      `/subscriptions/${currentSubscription.razorpaySubscriptionId}/cancel`,
+      {
+        method: "POST",
+        body: {
+          cancel_at_cycle_end:
+            input.cancelAtCycleEnd,
+        },
+      }
+    );
+
+  if (!razorpaySubscription.id) {
+    throw new Error(
+      "Razorpay did not return the cancelled subscription."
+    );
+  }
+
+  return {
+    subscription: currentSubscription,
+    razorpay: {
+      subscriptionId:
+        razorpaySubscription.id,
+      status:
+        razorpaySubscription.status ??
+        "cancelled",
+      currentPeriodEnd:
+        razorpaySubscription.current_end ??
+        null,
+      endAt:
+        razorpaySubscription.end_at ??
+        null,
+    },
+    cancelAtCycleEnd:
+      input.cancelAtCycleEnd,
+  };
+}
+
 /**
  * Author: Prem Singh
  * Purpose: Creates a paid future plan change while keeping the current subscription effective until its existing billing period ends.

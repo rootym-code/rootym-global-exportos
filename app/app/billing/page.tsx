@@ -23,6 +23,7 @@ import {
 
 import BillingCheckout from "./components/BillingCheckout";
 import BillingPlanChangeButton from "./components/BillingPlanChangeButton";
+import BillingSubscriptionManager from "./components/BillingSubscriptionManager";
 
 const MONTHLY_PRICE = 15999;
 const ANNUAL_PRICE = 189999;
@@ -715,6 +716,26 @@ export default async function BillingPage() {
                 </div>
               )}
             </div>
+
+            {isActive &&
+              subscription && (
+                <BillingSubscriptionManager
+                  currentPeriodEnd={
+                    currentPeriodEnd
+                      ? currentPeriodEnd.toISOString()
+                      : null
+                  }
+                  billingInterval={
+                    subscription.billingInterval ===
+                    BillingInterval.ANNUAL
+                      ? "ANNUAL"
+                      : subscription.billingInterval ===
+                          BillingInterval.MONTHLY
+                        ? "MONTHLY"
+                        : null
+                  }
+                />
+              )}
 
             {planChange &&
               planChangeEffectiveAt && (
