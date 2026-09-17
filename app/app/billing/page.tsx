@@ -261,6 +261,7 @@ export default async function BillingPage() {
    * prevents another purchase from being initiated.
    */
   const checkoutDisabled =
+    !isTrialing &&
     subscriptionAccess.status !== "EXPIRED" &&
     (isActive ||
       isPending ||
@@ -485,10 +486,11 @@ export default async function BillingPage() {
                     billingInterval="MONTHLY"
                   />
                 ) : (
-                  !isActive &&
-                  !isPending &&
-                  !isPastDue &&
-                  !planChange && (
+                  (isTrialing ||
+                    (!isActive &&
+                      !isPending &&
+                      !isPastDue &&
+                      !planChange)) && (
                     <BillingCheckout
                       billingInterval="MONTHLY"
                       price={MONTHLY_PRICE}
@@ -580,10 +582,11 @@ export default async function BillingPage() {
                     billingInterval="ANNUAL"
                   />
                 ) : (
-                  !isActive &&
-                  !isPending &&
-                  !isPastDue &&
-                  !planChange && (
+                  (isTrialing ||
+                    (!isActive &&
+                      !isPending &&
+                      !isPastDue &&
+                      !planChange)) && (
                     <BillingCheckout
                       billingInterval="ANNUAL"
                       price={ANNUAL_PRICE}
