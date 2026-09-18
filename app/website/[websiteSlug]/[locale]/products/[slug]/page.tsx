@@ -332,10 +332,16 @@ export default async function CustomerWebsiteProductPage({
    * ------------------------------------------------------------
    * Customer Website Navigation
    * ------------------------------------------------------------
+   *
+   * Custom-domain Websites use clean public URLs.
+   *
+   * The proxy internally rewrites these URLs to the
+   * Website Engine route containing websiteSlug and locale.
+   * ------------------------------------------------------------
    */
 
   const productsHref =
-    `/website/${websiteSlug}/${locale}/products`;
+    `/products`;
 
   /**
    * ------------------------------------------------------------
@@ -345,11 +351,14 @@ export default async function CustomerWebsiteProductPage({
    * Keep the buyer inside the current Website and carry the
    * Product ID so the Request Quote page can preselect the
    * Product that the buyer is enquiring about.
+   *
+   * The public custom-domain URL remains clean while the
+   * proxy internally resolves it to the tenant Website route.
    * ------------------------------------------------------------
    */
 
   const requestQuoteHref =
-    `/website/${websiteSlug}/${locale}/request-quote?productId=${encodeURIComponent(product.id)}`;
+    `/request-quote?productId=${encodeURIComponent(product.id)}`;
 
   return (
     <main className="min-h-screen bg-gray-50">

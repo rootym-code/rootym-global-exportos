@@ -129,18 +129,25 @@ export default function ProductPortfolio({
                * --------------------------------------------------
                *
                * Customer Website:
-               * /website/{websiteSlug}/{locale}/products/{slug}
+               * /products/{slug}
+               *
+               * The custom-domain proxy internally rewrites this
+               * clean public URL to:
+               *
+               * /website/{websiteSlug}/en/products/{slug}
                *
                * Global Website:
                * /{locale}/products/{slug}
                *
-               * The fallback preserves the existing global
-               * Products experience.
+               * Keeping the customer Website URL clean is
+               * important because /website/... is an internal
+               * Website Engine route and must not be exposed
+               * through a custom domain.
                * --------------------------------------------------
                */
 
               const productHref = websiteSlug
-                ? `/website/${websiteSlug}/${locale}/products/${product.slug}`
+                ? `/products/${product.slug}`
                 : `/${locale}/products/${product.slug}`;
 
               return (
