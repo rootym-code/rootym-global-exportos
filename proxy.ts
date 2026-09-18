@@ -45,6 +45,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
+import { isLocale } from "@/lib/i18n/config";
+
 import { verifyAdminToken } from "@/lib/jwt";
 
 import {
@@ -181,6 +183,7 @@ async function resolveCustomDomainWebsite(
       deploymentStatus:
         WebsiteDomainDeploymentStatus.LIVE,
     },
+
     select: {
       website: {
         select: {
@@ -240,9 +243,46 @@ function getCustomDomainWebsitePath(
     )}/en`;
   }
 
+  /**
+   * ----------------------------------------------------------
+   * Clean custom-domain paths
+   * ----------------------------------------------------------
+   *
+   * Customer Websites are exposed on clean URLs:
+   *
+   *   /products
+   *   /contact
+   *   /request-quote
+   *
+   * The internal Website route always requires a locale:
+   *
+   *   /website/{websiteSlug}/en/products
+   *   /website/{websiteSlug}/en/contact
+   *   /website/{websiteSlug}/en/request-quote
+   *
+   * If a supported locale is explicitly present in the public
+   * URL, preserve it:
+   *
+   *   /ar/products
+   *   /si/contact
+   * ----------------------------------------------------------
+   */
+
+  const segments = pathname
+    .split("/")
+    .filter(Boolean);
+
+  const firstSegment = segments[0];
+
+  if (firstSegment && isLocale(firstSegment)) {
+    return `/website/${encodeURIComponent(
+      websiteSlug
+    )}${pathname}`;
+  }
+
   return `/website/${encodeURIComponent(
     websiteSlug
-  )}${pathname}`;
+  )}/en${pathname}`;
 }
 
 export async function proxy(request: NextRequest) {

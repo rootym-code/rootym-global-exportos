@@ -239,10 +239,6 @@ const Navbar = ({
     if (tenantWebsiteSlug) {
       const normalizedHref = href.trim();
 
-      if (!normalizedHref || normalizedHref === "/") {
-        return `/website/${tenantWebsiteSlug}/${tenantLocale}`;
-      }
-
       if (
         normalizedHref.startsWith("http://") ||
         normalizedHref.startsWith("https://") ||
@@ -252,10 +248,33 @@ const Navbar = ({
         return normalizedHref;
       }
 
-      const tenantPath = normalizedHref.startsWith("/")
-        ? normalizedHref
-        : `/${normalizedHref}`;
+      const tenantPath =
+        !normalizedHref || normalizedHref === "/"
+          ? ""
+          : normalizedHref.startsWith("/")
+            ? normalizedHref
+            : `/${normalizedHref}`;
 
+      /*
+       * Custom-domain requests are internally rewritten by proxy.ts.
+       * Keep the browser URL clean when the Navbar is rendered for
+       * a custom-domain tenant.
+       *
+       * Example:
+       *   Browser URL:  https://rootym.com/products
+       *   Internal:     /website/rootym-agro/en/products
+       */
+      if (
+        providedWebsiteSlug &&
+        pathnameSegments?.[0] !== "website"
+      ) {
+        return tenantPath || "/";
+      }
+
+      /*
+       * Internal Website Engine routes continue using the existing
+       * tenant route structure.
+       */
       return `/website/${tenantWebsiteSlug}/${tenantLocale}${tenantPath}`;
     }
 
@@ -709,7 +728,7 @@ const Navbar = ({
                     className="h-3 w-3 fill-current"
                     viewBox="0 0 20 20"
                   >
-                    <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                    <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414 1 1 0 11-1.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
                   </svg>
                 </div>
               </div>
@@ -981,7 +1000,7 @@ const Navbar = ({
                         className="h-4 w-4 fill-current"
                         viewBox="0 0 20 20"
                       >
-                        <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414 1 1 0 011.414 1.414l-4 4a1 1 0 01-1.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                        <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 01-1.414 1.414L10 10.586 6.707 7.293a1 1 0 01-1.414 1.414L10 14.586l4.707-4.707a1 1 0 010-1.414l-4-4a1 1 0 01-1.414 0l-4 4a1 1 0 010 1.414z" />
                       </svg>
                     </div>
                   </div>
