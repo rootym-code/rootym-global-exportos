@@ -380,6 +380,7 @@ export default async function CustomerWebsiteProductsPage({
   return (
     <>
       <Navbar
+        websiteSlug={websiteSlug}
         websiteBranding={websiteBranding}
       />
 

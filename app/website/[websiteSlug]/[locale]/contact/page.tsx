@@ -27,6 +27,7 @@ import prisma from "@/lib/prisma";
 import { ProductStatus } from "@/lib/generated/prisma";
 
 import { listProducts } from "@/lib/services/product.service";
+
 import { getSubscriptionAccessStatus } from "@/lib/services/billing/subscription-access.service";
 
 type PageProps = {
@@ -41,10 +42,12 @@ async function getWebsite(websiteSlug: string) {
     where: {
       slug: websiteSlug,
     },
+
     select: {
       id: true,
       name: true,
       isActive: true,
+
       branding: {
         select: {
           logoMedia: {
@@ -52,12 +55,14 @@ async function getWebsite(websiteSlug: string) {
               fileUrl: true,
             },
           },
+
           primaryColor: true,
           secondaryColor: true,
           accentColor: true,
           fontFamily: true,
         },
       },
+
       configuration: {
         select: {
           websiteTitle: true,
@@ -65,9 +70,11 @@ async function getWebsite(websiteSlug: string) {
           websiteDescription: true,
         },
       },
+
       tenant: {
         select: {
           id: true,
+
           businessProfile: {
             select: {
               businessName: true,
@@ -75,6 +82,7 @@ async function getWebsite(websiteSlug: string) {
               description: true,
             },
           },
+
           businessAddress: {
             select: {
               addressLine1: true,
@@ -85,6 +93,7 @@ async function getWebsite(websiteSlug: string) {
               country: true,
             },
           },
+
           businessContactCommunication: {
             select: {
               primaryEmail: true,
@@ -132,7 +141,9 @@ export async function generateMetadata({
 
   return {
     title: `Contact Us | ${title}`,
+
     description,
+
     keywords: [
       `Contact ${businessName}`,
       `${businessName} enquiries`,
@@ -239,7 +250,12 @@ export default async function CustomerWebsiteContactPage({
   });
 
   const serializedProducts = products
-    .filter((product) => product.id && product.name && product.slug)
+    .filter(
+      (product) =>
+        product.id &&
+        product.name &&
+        product.slug
+    )
     .map((product) => ({
       id: product.id,
       name: product.name,
@@ -248,14 +264,19 @@ export default async function CustomerWebsiteContactPage({
 
   const websiteBranding = {
     companyName,
+
     logoMediaUrl:
       website.branding?.logoMedia?.fileUrl ?? null,
+
     primaryColor:
       website.branding?.primaryColor ?? null,
+
     secondaryColor:
       website.branding?.secondaryColor ?? null,
+
     accentColor:
       website.branding?.accentColor ?? null,
+
     fontFamily:
       website.branding?.fontFamily ?? null,
   };
@@ -268,15 +289,24 @@ export default async function CustomerWebsiteContactPage({
 
   return (
     <>
-      <Navbar websiteBranding={websiteBranding} />
+      <Navbar
+        websiteSlug={websiteSlug}
+        websiteBranding={websiteBranding}
+      />
 
       <TenantContactPage
         companyName={companyName}
         products={serializedProducts}
         address={address}
-        email={businessContact?.primaryEmail?.trim() || ""}
-        phone={businessContact?.primaryPhone?.trim() || ""}
-        whatsapp={businessContact?.whatsapp?.trim() || ""}
+        email={
+          businessContact?.primaryEmail?.trim() || ""
+        }
+        phone={
+          businessContact?.primaryPhone?.trim() || ""
+        }
+        whatsapp={
+          businessContact?.whatsapp?.trim() || ""
+        }
         quoteHref={requestQuoteHref}
         productsHref={websiteProductsHref}
         primaryColor={website.branding?.primaryColor}
@@ -290,6 +320,7 @@ export default async function CustomerWebsiteContactPage({
         businessIdentity={{
           businessName:
             businessProfile?.businessName ?? null,
+
           legalName:
             businessProfile?.legalName ?? null,
         }}

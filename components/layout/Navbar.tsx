@@ -99,10 +99,14 @@ export interface NavbarWebsiteBranding {
 }
 
 interface NavbarProps {
+  websiteSlug?: string | null;
   websiteBranding?: NavbarWebsiteBranding | null;
 }
 
-const Navbar = ({ websiteBranding }: NavbarProps) => {
+const Navbar = ({
+  websiteSlug: providedWebsiteSlug,
+  websiteBranding,
+}: NavbarProps) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [elevated, setElevated] = useState(false);
   const [tenantNavigation, setTenantNavigation] = useState<TenantNavigationItem[]>(
@@ -121,6 +125,11 @@ const Navbar = ({ websiteBranding }: NavbarProps) => {
    * Tenant customer pages use:
    * /website/{websiteSlug}/{locale}/...
    *
+   * Custom domains are internally rewritten to the same tenant
+   * Website route while the browser pathname remains the custom
+   * domain path. Therefore an explicitly supplied websiteSlug
+   * takes precedence over pathname-based detection.
+   *
    * Home, Products, Contact and Request Quote stay inside the tenant Website.
    * Other navigation items continue using their existing
    * global localized routes until tenant-specific routes exist.
@@ -131,17 +140,21 @@ const Navbar = ({ websiteBranding }: NavbarProps) => {
     .filter(Boolean);
 
   const isTenantWebsite =
+    Boolean(providedWebsiteSlug) ||
     pathnameSegments?.[0] === "website";
 
   const tenantWebsiteSlug =
-    isTenantWebsite
+    providedWebsiteSlug ??
+    (pathnameSegments?.[0] === "website"
       ? pathnameSegments?.[1] ?? null
-      : null;
+      : null);
 
   const tenantLocale =
-    isTenantWebsite
-      ? pathnameSegments?.[2] ?? locale
-      : locale;
+    providedWebsiteSlug
+      ? locale
+      : pathnameSegments?.[0] === "website"
+        ? pathnameSegments?.[2] ?? locale
+        : locale;
 
   /**
    * ============================================================
@@ -602,58 +615,58 @@ const Navbar = ({ websiteBranding }: NavbarProps) => {
                     : getTenantNavigationLabel(item);
 
                 return (
-              <motion.div
-                key={itemHref + itemKey}
-                initial={{
-                  opacity: 0,
-                  y: -10,
-                }}
-                animate={{
-                  opacity: 1,
-                  y: 0,
-                }}
-                transition={{
-                  delay: index * 0.05,
-                  duration: 0.35,
-                }}
-              >
-                <NextLink
-                  href={itemHref}
-                  target={
-                    "openInNewTab" in item && item.openInNewTab
-                      ? "_blank"
-                      : undefined
-                  }
-                  rel={
-                    "openInNewTab" in item && item.openInNewTab
-                      ? "noopener noreferrer"
-                      : undefined
-                  }
-                  className="relative rounded-xl px-3 py-2 text-base font-medium text-gray-700 transition-colors duration-200 hover:text-[var(--website-primary-color)] focus:outline-none focus-visible:ring-2 focus-visible:ring-green-300"
-                >
-                  <motion.span
-                    whileHover={{ y: -1 }}
-                    className="relative z-10"
-                  >
-                    {itemLabel}
-                  </motion.span>
-
-                  <motion.span
-                    className="absolute inset-0 rounded-xl bg-[var(--website-accent-color)]"
+                  <motion.div
+                    key={itemHref + itemKey}
                     initial={{
-                      scale: 0.85,
                       opacity: 0,
+                      y: -10,
                     }}
-                    whileHover={{
-                      scale: 1,
+                    animate={{
                       opacity: 1,
+                      y: 0,
                     }}
                     transition={{
-                      duration: 0.18,
+                      delay: index * 0.05,
+                      duration: 0.35,
                     }}
-                  />
-                </NextLink>
-              </motion.div>
+                  >
+                    <NextLink
+                      href={itemHref}
+                      target={
+                        "openInNewTab" in item && item.openInNewTab
+                          ? "_blank"
+                          : undefined
+                      }
+                      rel={
+                        "openInNewTab" in item && item.openInNewTab
+                          ? "noopener noreferrer"
+                          : undefined
+                      }
+                      className="relative rounded-xl px-3 py-2 text-base font-medium text-gray-700 transition-colors duration-200 hover:text-[var(--website-primary-color)] focus:outline-none focus-visible:ring-2 focus-visible:ring-green-300"
+                    >
+                      <motion.span
+                        whileHover={{ y: -1 }}
+                        className="relative z-10"
+                      >
+                        {itemLabel}
+                      </motion.span>
+
+                      <motion.span
+                        className="absolute inset-0 rounded-xl bg-[var(--website-accent-color)]"
+                        initial={{
+                          scale: 0.85,
+                          opacity: 0,
+                        }}
+                        whileHover={{
+                          scale: 1,
+                          opacity: 1,
+                        }}
+                        transition={{
+                          duration: 0.18,
+                        }}
+                      />
+                    </NextLink>
+                  </motion.div>
                 );
               }
             )}
@@ -705,23 +718,23 @@ const Navbar = ({ websiteBranding }: NavbarProps) => {
             {/* Request Quote Button */}
 
             {(!isTenantWebsite || tenantRequestQuoteItem) && (
-            <motion.div
-              whileHover={{
-                scale: 1.04,
-              }}
-              whileTap={{
-                scale: 0.97,
-              }}
-            >
-              <NextLink href={getNavigationHref("/request-quote")}>
-                <Button
-                  variant="primary"
-                  className="ml-3 px-6 py-2 text-base shadow-sm"
-                >
-                  {t("navbar.request_quote")}
-                </Button>
-              </NextLink>
-            </motion.div>
+              <motion.div
+                whileHover={{
+                  scale: 1.04,
+                }}
+                whileTap={{
+                  scale: 0.97,
+                }}
+              >
+                <NextLink href={getNavigationHref("/request-quote")}>
+                  <Button
+                    variant="primary"
+                    className="ml-3 px-6 py-2 text-base shadow-sm"
+                  >
+                    {t("navbar.request_quote")}
+                  </Button>
+                </NextLink>
+              </motion.div>
             )}
           </div>
 
@@ -889,40 +902,40 @@ const Navbar = ({ websiteBranding }: NavbarProps) => {
                         : getTenantNavigationLabel(item);
 
                     return (
-                  <motion.div
-                    key={itemHref + itemKey}
-                    initial={{
-                      opacity: 0,
-                      x: -25,
-                    }}
-                    animate={{
-                      opacity: 1,
-                      x: 0,
-                    }}
-                    transition={{
-                      delay: index * 0.05,
-                    }}
-                  >
-                    <NextLink
-                      href={itemHref}
-                      target={
-                        "openInNewTab" in item && item.openInNewTab
-                          ? "_blank"
-                          : undefined
-                      }
-                      rel={
-                        "openInNewTab" in item && item.openInNewTab
-                          ? "noopener noreferrer"
-                          : undefined
-                      }
-                      onClick={() =>
-                        setMobileOpen(false)
-                      }
-                      className="block rounded-lg px-3 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-[var(--website-accent-color)] hover:text-[var(--website-primary-color)]"
-                    >
-                      {itemLabel}
-                    </NextLink>
-                  </motion.div>
+                      <motion.div
+                        key={itemHref + itemKey}
+                        initial={{
+                          opacity: 0,
+                          x: -25,
+                        }}
+                        animate={{
+                          opacity: 1,
+                          x: 0,
+                        }}
+                        transition={{
+                          delay: index * 0.05,
+                        }}
+                      >
+                        <NextLink
+                          href={itemHref}
+                          target={
+                            "openInNewTab" in item && item.openInNewTab
+                              ? "_blank"
+                              : undefined
+                          }
+                          rel={
+                            "openInNewTab" in item && item.openInNewTab
+                              ? "noopener noreferrer"
+                              : undefined
+                          }
+                          onClick={() =>
+                            setMobileOpen(false)
+                          }
+                          className="block rounded-lg px-3 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-[var(--website-accent-color)] hover:text-[var(--website-primary-color)]"
+                        >
+                          {itemLabel}
+                        </NextLink>
+                      </motion.div>
                     );
                   }
                 )}
@@ -968,50 +981,50 @@ const Navbar = ({ websiteBranding }: NavbarProps) => {
                         className="h-4 w-4 fill-current"
                         viewBox="0 0 20 20"
                       >
-                        <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l-3.293-3.293a1 1 0 111.414 1.414 1 1 0 011.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                        <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414 1 1 0 011.414 1.414l-4 4a1 1 0 01-1.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
                       </svg>
                     </div>
                   </div>
                 </motion.div>
 
                 {(!isTenantWebsite || tenantRequestQuoteItem) && (
-                <motion.div
-                  initial={{
-                    opacity: 0,
-                    y: 15,
-                  }}
-                  animate={{
-                    opacity: 1,
-                    y: 0,
-                  }}
-                  transition={{
-                    delay: 0.35,
-                  }}
-                  whileHover={{
-                    scale: 1.02,
-                  }}
-                  whileTap={{
-                    scale: 0.98,
-                  }}
-                >
-                  <NextLink
-                    href={
-                      isTenantWebsite && tenantRequestQuoteItem
-                        ? getTenantNavigationHref(tenantRequestQuoteItem)
-                        : getNavigationHref("/request-quote")
-                    }
-                    onClick={() =>
-                      setMobileOpen(false)
-                    }
+                  <motion.div
+                    initial={{
+                      opacity: 0,
+                      y: 15,
+                    }}
+                    animate={{
+                      opacity: 1,
+                      y: 0,
+                    }}
+                    transition={{
+                      delay: 0.35,
+                    }}
+                    whileHover={{
+                      scale: 1.02,
+                    }}
+                    whileTap={{
+                      scale: 0.98,
+                    }}
                   >
-                    <Button
-                      variant="primary"
-                      className="mt-5 w-full px-6 py-2 text-base"
+                    <NextLink
+                      href={
+                        isTenantWebsite && tenantRequestQuoteItem
+                          ? getTenantNavigationHref(tenantRequestQuoteItem)
+                          : getNavigationHref("/request-quote")
+                      }
+                      onClick={() =>
+                        setMobileOpen(false)
+                      }
                     >
-                      {t("navbar.request_quote")}
-                    </Button>
-                  </NextLink>
-                </motion.div>
+                      <Button
+                        variant="primary"
+                        className="mt-5 w-full px-6 py-2 text-base"
+                      >
+                        {t("navbar.request_quote")}
+                      </Button>
+                    </NextLink>
+                  </motion.div>
                 )}
               </nav>
             </motion.div>

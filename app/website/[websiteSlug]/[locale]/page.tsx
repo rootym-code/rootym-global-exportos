@@ -555,6 +555,7 @@ export default async function CustomerWebsiteHomepagePage({
     return (
       <>
         <Navbar
+          websiteSlug={websiteSlug}
           websiteBranding={websiteBranding}
         />
 

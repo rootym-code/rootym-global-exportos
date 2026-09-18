@@ -290,6 +290,7 @@ export default async function TenantRequestQuotePage({
   return (
     <>
       <Navbar
+        websiteSlug={websiteSlug}
         websiteBranding={websiteBranding}
       />
 
