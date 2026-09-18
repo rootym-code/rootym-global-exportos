@@ -96,6 +96,14 @@ type SectionWithElements = LandingPageSection & {
   elements?: SectionElement[];
 };
 
+type CmsSectionWithTitle = LandingPageSection & {
+  sectionTitle?: string;
+};
+
+function getSectionTitle(section: LandingPageSection): string | undefined {
+  return (section as CmsSectionWithTitle).sectionTitle?.trim() || undefined;
+}
+
 function getSectionElements(section: LandingPageSection): SectionElement[] {
   const candidate = section as SectionWithElements;
   return Array.isArray(candidate.elements)
@@ -459,7 +467,7 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
             {pointsCount === 1 ? (
               <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-center">
                 <SectionHeader
-                  eyebrow="Why Us"
+                  eyebrow={getSectionTitle(section)}
                   heading={section.heading}
                   description={section.description}
                 />
@@ -480,7 +488,7 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
             ) : (
               <>
                 <SectionHeader
-                  eyebrow="Why Us"
+                  eyebrow={getSectionTitle(section)}
                   heading={section.heading}
                   description={section.description}
                 />
@@ -527,7 +535,7 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
         >
           <div className="mx-auto max-w-7xl">
             <SectionHeader
-              eyebrow="Product"
+              eyebrow={getSectionTitle(section)}
               heading={section.heading}
               description={section.description}
             />
@@ -629,7 +637,7 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
             {itemsCount === 1 ? (
               <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-center">
                 <SectionHeader
-                  eyebrow="Applications"
+                  eyebrow={getSectionTitle(section)}
                   heading={section.heading}
                   description={section.description}
                 />
@@ -654,7 +662,7 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
             ) : (
               <>
                 <SectionHeader
-                  eyebrow="Applications"
+                  eyebrow={getSectionTitle(section)}
                   heading={section.heading}
                   description={section.description}
                 />
@@ -710,7 +718,7 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
           <div className="mx-auto max-w-7xl">
             {pointsCount === 1 ? (
               <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-center">
-                <SectionHeader eyebrow="Why Us" heading={section.heading} />
+                <SectionHeader eyebrow={getSectionTitle(section)} heading={section.heading} />
                 <div className="rounded-3xl border border-green-200 bg-green-50/10 p-8 shadow-md md:p-10 transition hover:shadow-lg">
                   <span className="text-base font-bold text-green-700">01</span>
                   <h3 className="mt-4 text-2xl font-bold text-gray-950">
@@ -725,7 +733,7 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
               </div>
             ) : (
               <>
-                <SectionHeader eyebrow="Why Us" heading={section.heading} />
+                <SectionHeader eyebrow={getSectionTitle(section)} heading={section.heading} />
 
                 {pointsCount > 0 && (
                   <div
@@ -775,7 +783,7 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
             {buyerCount === 1 ? (
               <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-center">
                 <SectionHeader
-                  eyebrow="Buyer Focus"
+                  eyebrow={getSectionTitle(section)}
                   heading={section.heading}
                   description={section.description}
                 />
@@ -794,7 +802,7 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
             ) : (
               <>
                 <SectionHeader
-                  eyebrow="Buyer Focus"
+                  eyebrow={getSectionTitle(section)}
                   heading={section.heading}
                   description={section.description}
                 />
@@ -837,7 +845,7 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
             {pkgCount === 1 ? (
               <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-center">
                 <SectionHeader
-                  eyebrow="Packaging"
+                  eyebrow={getSectionTitle(section)}
                   heading={section.heading}
                   description={section.description}
                 />
@@ -853,7 +861,7 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
             ) : (
               <>
                 <SectionHeader
-                  eyebrow="Packaging"
+                  eyebrow={getSectionTitle(section)}
                   heading={section.heading}
                   description={section.description}
                 />
@@ -901,7 +909,7 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
             {docCount === 1 ? (
               <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-center">
                 <SectionHeader
-                  eyebrow="Export Support"
+                  eyebrow={getSectionTitle(section)}
                   heading={section.heading}
                   description={section.description}
                 />
@@ -918,7 +926,7 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
             ) : (
               <>
                 <SectionHeader
-                  eyebrow="Export Support"
+                  eyebrow={getSectionTitle(section)}
                   heading={section.heading}
                   description={section.description}
                 />
@@ -1001,7 +1009,7 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
           className="bg-white px-6 py-16 md:py-20"
         >
           <div className="mx-auto max-w-5xl">
-            <SectionHeader eyebrow="FAQ" heading={section.heading} />
+            <SectionHeader eyebrow={getSectionTitle(section)} heading={section.heading} />
 
             {section.items.length > 0 && (
               <div className="mt-12 space-y-4">
