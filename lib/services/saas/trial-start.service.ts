@@ -1,6 +1,7 @@
 /**
  * Author: Prem Singh
- * Purpose: Starts the optional 30-day SaaS trial for an existing customer tenant.
+ * Purpose: Starts the optional 30-day SaaS trial for an existing customer tenant
+ *          without failing repeated login attempts for an already-active subscription.
  */
 
 import prisma from "@/lib/prisma";
@@ -37,8 +38,13 @@ export async function startTrial(tenantId: string) {
     }
 
     /*
-     * 2. Prevent starting a trial when the tenant
-     *    already has an active subscription.
+     * 2. Check whether the tenant already has an
+     *    active subscription.
+     *
+     *    An existing active subscription means the
+     *    customer is already entitled to access the
+     *    workspace. Repeated login attempts must not
+     *    fail or create another subscription.
      */
     const activeSubscription =
       await tx.subscription.findFirst({
@@ -49,12 +55,14 @@ export async function startTrial(tenantId: string) {
         orderBy: {
           createdAt: "desc",
         },
+        include: {
+          plan: true,
+          tenant: true,
+        },
       });
 
     if (activeSubscription) {
-      throw new Error(
-        "This workspace already has an active subscription."
-      );
+      return activeSubscription;
     }
 
     /*
@@ -81,6 +89,10 @@ export async function startTrial(tenantId: string) {
         orderBy: {
           createdAt: "desc",
         },
+        include: {
+          plan: true,
+          tenant: true,
+        },
       });
 
     if (existingTrial) {
@@ -88,9 +100,7 @@ export async function startTrial(tenantId: string) {
         existingTrial.status ===
         SubscriptionStatus.TRIALING
       ) {
-        throw new Error(
-          "This workspace already has an active free trial."
-        );
+        return existingTrial;
       }
 
       throw new Error(
