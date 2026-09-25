@@ -16,6 +16,7 @@
 import { motion } from "framer-motion";
 
 import AnimatedCard from "@/components/ui/animated-card";
+
 import GlobalExportPanel from "@/components/animations/GlobalExportPanel";
 
 export type PremiumHeroVisualProps = {
@@ -30,15 +31,26 @@ export type PremiumHeroVisualProps = {
   websiteTagline?: string | null;
 
   /**
-   * Website-specific description.
+   * Website-specific Website Description.
+   *
+   * This remains separate from the Company Description and
+   * continues to represent the Website-level description.
    */
   websiteDescription?: string | null;
+
+  /**
+   * Website-specific Company Description.
+   *
+   * This is used specifically by the 3D/company panel.
+   */
+  companyDescription?: string | null;
 };
 
 function PremiumHeroVisual({
   websiteCompanyName,
   websiteTagline,
   websiteDescription,
+  companyDescription,
 }: PremiumHeroVisualProps) {
   return (
     <motion.div
@@ -57,6 +69,7 @@ function PremiumHeroVisual({
           websiteCompanyName={websiteCompanyName}
           websiteTagline={websiteTagline}
           websiteDescription={websiteDescription}
+          companyDescription={companyDescription}
         />
       </AnimatedCard>
     </motion.div>

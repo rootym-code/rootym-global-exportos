@@ -27,6 +27,7 @@ interface WebsiteConfigurationData {
   websiteTitle: string | null;
   tagline: string | null;
   websiteDescription: string | null;
+  companyDescription: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -57,6 +58,8 @@ export default function WebsiteConfigurationForm({
   const [websiteTitle, setWebsiteTitle] = useState("");
   const [tagline, setTagline] = useState("");
   const [websiteDescription, setWebsiteDescription] =
+    useState("");
+  const [companyDescription, setCompanyDescription] =
     useState("");
 
   const [loading, setLoading] = useState(true);
@@ -102,6 +105,10 @@ export default function WebsiteConfigurationForm({
       setWebsiteDescription(
         currentConfiguration?.websiteDescription ?? "",
       );
+
+      setCompanyDescription(
+        currentConfiguration?.companyDescription ?? "",
+      );
     } catch (err) {
       setError(
         err instanceof Error
@@ -140,6 +147,8 @@ export default function WebsiteConfigurationForm({
             tagline: tagline.trim() || null,
             websiteDescription:
               websiteDescription.trim() || null,
+            companyDescription:
+              companyDescription.trim() || null,
           }),
         },
       );
@@ -167,6 +176,10 @@ export default function WebsiteConfigurationForm({
 
       setWebsiteDescription(
         savedConfiguration?.websiteDescription ?? "",
+      );
+
+      setCompanyDescription(
+        savedConfiguration?.companyDescription ?? "",
       );
 
       setSuccessMessage(
@@ -220,9 +233,10 @@ export default function WebsiteConfigurationForm({
 
             <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-500">
               Configure the customer-facing Website title,
-              tagline and description. These values belong to
-              this Website and are independent from ROOTYM global
-              Company Settings.
+              tagline, website description and company
+              description. These values belong to this Website
+              and are independent from ROOTYM global Company
+              Settings.
             </p>
           </div>
 
@@ -321,12 +335,40 @@ export default function WebsiteConfigurationForm({
               disabled={!canEdit || saving}
               maxLength={2000}
               rows={5}
-              placeholder="Describe the business and what customers can expect from this Website."
+              placeholder="Describe the purpose of this Website and what customers can expect."
               className="mt-2 w-full resize-y rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-800 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:bg-slate-50"
             />
 
             <p className="mt-1.5 text-xs text-slate-400">
               Maximum 2000 characters.
+            </p>
+          </div>
+
+          <div>
+            <label
+              htmlFor="company-description"
+              className="text-sm font-semibold text-slate-800"
+            >
+              Company Description
+            </label>
+
+            <textarea
+              id="company-description"
+              value={companyDescription}
+              onChange={(event) =>
+                setCompanyDescription(event.target.value)
+              }
+              disabled={!canEdit || saving}
+              maxLength={2000}
+              rows={5}
+              placeholder="Describe the company, its business, capabilities and what it offers."
+              className="mt-2 w-full resize-y rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-800 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:bg-slate-50"
+            />
+
+            <p className="mt-1.5 text-xs text-slate-400">
+              Maximum 2000 characters. This description can be
+              reused across the Website, including the company
+              panel and footer.
             </p>
           </div>
         </div>

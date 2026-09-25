@@ -82,6 +82,7 @@ export interface FooterWebsiteConfiguration {
   websiteTitle?: string | null;
   tagline?: string | null;
   websiteDescription?: string | null;
+  companyDescription?: string | null;
 }
 
 /* ============================================================
@@ -188,7 +189,7 @@ export default function Footer({
     "";
 
   const resolvedDescription = isTenantWebsite
-    ? websiteConfiguration?.websiteDescription?.trim() || ""
+    ? websiteConfiguration?.companyDescription?.trim() || ""
     : t("footer.company.description").replace(
         /ROOTYM\b/gi,
         resolvedCompanyName,

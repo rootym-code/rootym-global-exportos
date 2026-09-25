@@ -48,23 +48,30 @@ type CustomerWebsiteHomepageProps = {
   }[];
 
   /**
+   * ============================================================
    * Website-level configuration.
+   * ============================================================
    *
    * These values belong to the Website and therefore override
    * the reusable homepage component's global fallbacks.
+   * ============================================================
    */
   websiteConfiguration?: {
     websiteTitle?: string | null;
     tagline?: string | null;
     websiteDescription?: string | null;
+    companyDescription?: string | null;
   } | null;
 
   /**
+   * ============================================================
    * Website tenant's Business Profile name.
+   * ============================================================
    *
    * This is passed separately because business identity belongs
-   * to the tenant Business Profile, while tagline and description
-   * belong to Website Configuration.
+   * to the tenant Business Profile, while tagline and
+   * descriptions belong to Website Configuration.
+   * ============================================================
    */
   websiteCompanyName?: string | null;
 
@@ -99,11 +106,12 @@ export default function CustomerWebsiteHomepage({
     <main className="overflow-x-hidden bg-white">
       <PremiumHero
         websiteCompanyName={websiteCompanyName}
-        websiteTagline={
-          websiteConfiguration?.tagline
-        }
+        websiteTagline={websiteConfiguration?.tagline}
         websiteDescription={
           websiteConfiguration?.websiteDescription
+        }
+        companyDescription={
+          websiteConfiguration?.companyDescription
         }
       />
 
@@ -142,10 +150,11 @@ export default function CustomerWebsiteHomepage({
         websitePhone={websitePhone}
       />
 
-      {/* 
+      {/**
        * ProductPortfolio is intentionally not rendered here.
        *
        * The homepage continues to use ProductShowcase.
+       *
        * ProductPortfolio is used by the dedicated customer
        * Website Products page and receives websiteSlug there.
        */}

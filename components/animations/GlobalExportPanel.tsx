@@ -23,9 +23,13 @@ import { useTranslation } from "@/lib/i18n/context";
 import { useCompanySettings } from "@/lib/cms/company-settings";
 
 import AnimatedGlobe from "./AnimatedGlobe";
+
 import CargoPlane from "./CargoPlane";
+
 import CargoShip from "./CargoShip";
+
 import FloatingParticles from "./FloatingParticles";
+
 import TradeRoutes from "./TradeRoutes";
 
 import { EXPORT_HUBS } from "./globe.constants";
@@ -37,31 +41,51 @@ import {
 
 export type GlobalExportPanelProps = {
   /**
+   * ============================================================
    * Website-specific business identity.
    *
    * This should come from the Website's tenant Business Profile.
+   * ============================================================
    */
   websiteCompanyName?: string | null;
 
   /**
+   * ============================================================
    * Website-specific tagline.
    *
    * This should come from Website Configuration.
+   * ============================================================
    */
   websiteTagline?: string | null;
 
   /**
-   * Website-specific description.
+   * ============================================================
+   * Website-specific Website Description.
    *
-   * This should come from Website Configuration.
+   * This remains separate from Company Description.
+   * ============================================================
    */
   websiteDescription?: string | null;
+
+  /**
+   * ============================================================
+   * Website-specific Company Description.
+   *
+   * This is the reusable company description configured in
+   * Website Configuration.
+   *
+   * It is intended for the 3D Company / Global Export panel
+   * and other company-focused Website locations.
+   * ============================================================
+   */
+  companyDescription?: string | null;
 };
 
 function GlobalExportPanel({
   websiteCompanyName,
   websiteTagline,
   websiteDescription,
+  companyDescription,
 }: GlobalExportPanelProps) {
   const { t } = useTranslation();
 
@@ -97,14 +121,18 @@ function GlobalExportPanel({
    * Export Panel Description
    * ============================================================
    *
-   * Website Configuration description takes priority for a
-   * customer Website. The existing translated description
-   * remains the fallback.
+   * Company Description takes priority for the customer Website.
+   *
+   * Website Description remains a separate CMS field and is
+   * intentionally NOT used here.
+   *
+   * The translated global description remains only as a
+   * fallback when no Company Description has been configured.
    * ============================================================
    */
 
   const resolvedDescription =
-    websiteDescription?.trim() ||
+    companyDescription?.trim() ||
     t("globalPanel.description");
 
   /**

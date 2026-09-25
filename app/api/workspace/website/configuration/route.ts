@@ -13,6 +13,7 @@ import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 
 import ApiResponse from "@/lib/api/api-response";
+
 import handleApiError from "@/lib/api/handle-api-error";
 
 import { requireWorkspaceAccess } from "@/app/lib/workspace/require-workspace-access";
@@ -21,6 +22,7 @@ interface ConfigurationPayload {
   websiteTitle?: string | null;
   tagline?: string | null;
   websiteDescription?: string | null;
+  companyDescription?: string | null;
 }
 
 function normalizeOptionalString(value: unknown): string | null {
@@ -89,6 +91,7 @@ export async function GET() {
           websiteTitle: true,
           tagline: true,
           websiteDescription: true,
+          companyDescription: true,
           createdAt: true,
           updatedAt: true,
         },
@@ -144,6 +147,10 @@ export async function PATCH(request: NextRequest) {
       body.websiteDescription,
     );
 
+    const companyDescription = normalizeOptionalString(
+      body.companyDescription,
+    );
+
     if (websiteTitle && websiteTitle.length > 200) {
       return ApiResponse.error({
         message: "Website title must be 200 characters or fewer.",
@@ -169,31 +176,40 @@ export async function PATCH(request: NextRequest) {
       });
     }
 
+    if (companyDescription && companyDescription.length > 2000) {
+      return ApiResponse.error({
+        message:
+          "Company description must be 2000 characters or fewer.",
+        code: "COMPANY_DESCRIPTION_TOO_LONG",
+        status: 400,
+      });
+    }
+
     const configuration =
       await prisma.websiteConfiguration.upsert({
         where: {
           websiteId: website.id,
         },
-
         create: {
           websiteId: website.id,
           websiteTitle,
           tagline,
           websiteDescription,
+          companyDescription,
         },
-
         update: {
           websiteTitle,
           tagline,
           websiteDescription,
+          companyDescription,
         },
-
         select: {
           id: true,
           websiteId: true,
           websiteTitle: true,
           tagline: true,
           websiteDescription: true,
+          companyDescription: true,
           createdAt: true,
           updatedAt: true,
         },

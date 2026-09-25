@@ -1049,6 +1049,10 @@ model WebsiteConfiguration {
   /// Customer-facing website description.
   websiteDescription String?
 
+    /// Company description used in the public 3D company panel and footer.
+  companyDescription String?
+
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

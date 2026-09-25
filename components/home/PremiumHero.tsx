@@ -33,38 +33,61 @@ import PremiumStats from "./PremiumStats";
 
 export type PremiumHeroProps = {
   /**
+   * ============================================================
    * Website-specific Hero tagline.
    *
    * Falls back to the existing CMS company tagline,
    * then to the translated Hero badge.
+   * ============================================================
    */
   websiteTagline?: string | null;
 
   /**
+   * ============================================================
    * Website-specific Hero title line 1.
    *
    * Falls back to the existing translated Hero title.
+   * ============================================================
    */
   websiteTitleLine1?: string | null;
 
   /**
+   * ============================================================
    * Website-specific Hero title line 2.
    *
    * Falls back to the existing translated Hero title.
+   * ============================================================
    */
   websiteTitleLine2?: string | null;
 
   /**
+   * ============================================================
    * Website-specific Hero description.
    *
    * Falls back to the existing translated Hero description.
+   *
+   * This remains separate from Company Description.
+   * ============================================================
    */
   websiteDescription?: string | null;
 
   /**
+   * ============================================================
+   * Website-specific Company Description.
+   *
+   * This is passed to the right-side Global Export Panel.
+   *
+   * It is intentionally separate from websiteDescription.
+   * ============================================================
+   */
+  companyDescription?: string | null;
+
+  /**
+   * ============================================================
    * Website-specific business name.
    *
    * Used by the right-side Global Export Panel.
+   * ============================================================
    */
   websiteCompanyName?: string | null;
 };
@@ -74,6 +97,7 @@ export default function PremiumHero({
   websiteTitleLine1,
   websiteTitleLine2,
   websiteDescription,
+  companyDescription,
   websiteCompanyName,
 }: PremiumHeroProps) {
   const { t } = useTranslation();
@@ -146,7 +170,6 @@ export default function PremiumHero({
             }}
             className="space-y-8"
           >
-
             {/* Website / CMS Tagline */}
 
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-5 py-2 text-sm font-semibold text-primary">
@@ -158,21 +181,15 @@ export default function PremiumHero({
             <div className="space-y-6">
 
               <h1 className="text-5xl font-extrabold leading-tight tracking-tight lg:text-7xl">
-
                 {resolvedTitleLine1}
 
                 <span className="block bg-gradient-to-r from-primary to-emerald-600 bg-clip-text text-transparent">
-
                   {resolvedTitleLine2}
-
                 </span>
-
               </h1>
 
               <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
-
                 {resolvedDescription}
-
               </p>
 
             </div>
@@ -220,7 +237,6 @@ export default function PremiumHero({
               </div>
 
             </div>
-
           </motion.div>
 
           {/* Right */}
@@ -229,6 +245,7 @@ export default function PremiumHero({
             websiteCompanyName={websiteCompanyName}
             websiteTagline={websiteTagline}
             websiteDescription={websiteDescription}
+            companyDescription={companyDescription}
           />
 
         </div>

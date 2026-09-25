@@ -274,6 +274,7 @@ export default async function CustomerWebsiteHomepagePage({
           websiteTitle: true,
           tagline: true,
           websiteDescription: true,
+          companyDescription: true,
         },
       },
 
@@ -578,6 +579,8 @@ export default async function CustomerWebsiteHomepagePage({
 />
 
         <Footer
+          websiteSlug={websiteSlug}
+          locale={locale}
           websiteBranding={websiteBranding}
           websiteConfiguration={
             website.configuration
