@@ -239,6 +239,20 @@ export default function StructuredLandingPageEditor({
     });
   }
 
+  function copySection(index: number) {
+    const copiedSection = JSON.parse(
+      JSON.stringify(value.sections[index])
+    ) as LandingPageSection;
+
+    const sections = [...value.sections];
+    sections.splice(index + 1, 0, copiedSection);
+
+    onChange({
+      ...value,
+      sections,
+    });
+  }
+
   function addSection() {
     onChange({
       ...value,
@@ -337,6 +351,9 @@ export default function StructuredLandingPageEditor({
             onMoveDown={() =>
               moveSection(index, "down")
             }
+            onCopy={() =>
+              copySection(index)
+            }
           />
         )
       )}
@@ -354,6 +371,7 @@ type SectionEditorProps = {
   onRemove: () => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
+  onCopy: () => void;
 };
 
 function SectionEditor({
@@ -364,6 +382,7 @@ function SectionEditor({
   onRemove,
   onMoveUp,
   onMoveDown,
+  onCopy,
 }: SectionEditorProps) {
   return (
     <Card
@@ -398,6 +417,14 @@ function SectionEditor({
             onClick={onMoveDown}
           >
             ↓
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCopy}
+          >
+            Copy
           </Button>
 
           <Button

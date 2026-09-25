@@ -25,6 +25,7 @@ import {
   LayoutDashboard,
   Link2,
   Menu,
+  MessageCircle,
   Package,
   Search,
   Settings,
@@ -124,7 +125,7 @@ const navGroups: NavGroup[] = [
     defaultOpen: true,
     items: [
       { label: "Google", disabled: true },
-      { label: "WhatsApp", disabled: true },
+      { label: "WhatsApp", href: "/app/workspace/integrations/whatsapp", icon: MessageCircle },
     ],
   },
   {

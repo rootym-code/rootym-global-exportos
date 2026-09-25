@@ -24,6 +24,7 @@ import {
   ArrowLeft,
   ChevronDown,
   ChevronUp,
+  Copy as CopyIcon,
   Loader2,
   Plus,
   Save,
@@ -680,16 +681,7 @@ export default function EditCmsPage() {
 
   const [openSections, setOpenSections] =
     useState<Record<string, boolean>>({
-      hero: true,
-      valueProposition: false,
-      product: false,
-      applications: false,
-      whyRootym: false,
-      buyerFocus: false,
-      packaging: false,
-      exportDocuments: false,
-      cta: false,
-      faq: false,
+      0: true,
     });
 
   useEffect(() => {
@@ -838,76 +830,186 @@ export default function EditCmsPage() {
   }
 
   function updateSection(
-    type: LandingPageSection["type"],
+    sectionIndex: number,
     patch: Record<string, unknown>
   ) {
     setForm((current) => ({
       ...current,
       structuredContent: {
         ...current.structuredContent,
-        sections:
-          current.structuredContent.sections.map(
-            (section) =>
-              section.type === type
-                ? ({
-                    ...section,
-                    ...patch,
-                  } as LandingPageSection)
-                : section
-          ),
+        sections: current.structuredContent.sections.map(
+          (section, index) =>
+            index === sectionIndex
+              ? ({
+                  ...section,
+                  ...patch,
+                } as LandingPageSection)
+              : section
+        ),
       },
     }));
   }
 
-  function getSection<T extends LandingPageSection["type"]>(
-    type: T
-  ): Extract<LandingPageSection, { type: T }> {
-    const existingSection = form.structuredContent.sections.find(
-      (section) => section.type === type
-    );
+  function getSectionAtIndex<T>(
+    sectionIndex: number
+  ): T {
+    return form.structuredContent.sections[
+      sectionIndex
+    ] as T;
+  }
 
-    if (existingSection) {
-      return existingSection as Extract<
-        LandingPageSection,
-        { type: T }
-      >;
+  function copySection(sectionIndex: number) {
+    setForm((current) => {
+      const source = current.structuredContent.sections[
+        sectionIndex
+      ];
+
+      if (!source) {
+        return current;
+      }
+
+      const copy = JSON.parse(
+        JSON.stringify(source)
+      ) as LandingPageSection;
+
+      const sections = [
+        ...current.structuredContent.sections,
+      ];
+      sections.splice(sectionIndex + 1, 0, copy);
+
+      return {
+        ...current,
+        structuredContent: {
+          ...current.structuredContent,
+          sections,
+        },
+      };
+    });
+
+    setOpenSections((current) => {
+      const next: Record<string, boolean> = {};
+
+      (Object.entries(current) as Array<[string, boolean]>).forEach(
+        ([key, value]) => {
+          const index = Number(key);
+          next[index >= sectionIndex + 1 ? index + 1 : index] = value;
+        }
+      );
+
+      next[sectionIndex + 1] = true;
+      return next;
+    });
+  }
+
+  function moveSection(
+    sectionIndex: number,
+    direction: -1 | 1
+  ) {
+    setForm((current) => {
+      const targetIndex = sectionIndex + direction;
+
+      if (
+        sectionIndex < 0 ||
+        sectionIndex >= current.structuredContent.sections.length ||
+        targetIndex < 0 ||
+        targetIndex >= current.structuredContent.sections.length
+      ) {
+        return current;
+      }
+
+      const sections = [
+        ...current.structuredContent.sections,
+      ];
+      const [movedSection] = sections.splice(
+        sectionIndex,
+        1
+      );
+
+      if (!movedSection) {
+        return current;
+      }
+
+      sections.splice(targetIndex, 0, movedSection);
+
+      return {
+        ...current,
+        structuredContent: {
+          ...current.structuredContent,
+          sections,
+        },
+      };
+    });
+
+    setOpenSections((current) => {
+      const next = { ...current };
+      const currentValue = next[sectionIndex];
+      next[sectionIndex] = next[sectionIndex + direction] ?? false;
+      next[sectionIndex + direction] = currentValue ?? false;
+      return next;
+    });
+  }
+
+  function removeSection(sectionIndex: number) {
+    setForm((current) => {
+      if (current.structuredContent.sections.length <= 1) {
+        return current;
+      }
+
+      return {
+        ...current,
+        structuredContent: {
+          ...current.structuredContent,
+          sections: current.structuredContent.sections.filter(
+            (_, index) => index !== sectionIndex
+          ),
+        },
+      };
+    });
+
+    if (form.structuredContent.sections.length <= 1) {
+      return;
     }
 
-    const fallbackSection = createDefaultStructuredContent(
-      form.template
-    ).sections.find((section) => section.type === type);
-
-    return fallbackSection as Extract<
-      LandingPageSection,
-      { type: T }
-    >;
+    setOpenSections((current) => {
+      const next: Record<string, boolean> = {};
+      (Object.entries(current) as Array<[string, boolean]>).forEach(
+        ([key, value]) => {
+          const index = Number(key);
+          if (index < sectionIndex) {
+            next[index] = value;
+          } else if (index > sectionIndex) {
+            next[index - 1] = value;
+          }
+        }
+      );
+      return next;
+    });
   }
 
   function updateStringArrayItem(
-    type: LandingPageSection["type"],
+    sectionIndex: number,
     key:
       | "points"
       | "applications"
       | "buyerTypes"
       | "options"
       | "documents",
-    index: number,
+    itemIndex: number,
     value: string
   ) {
-    const section = form.structuredContent.sections.find(
-      (item) => item.type === type
-    ) as unknown as Record<string, unknown>;
-
+    const section = getSectionAtIndex<Record<string, unknown>>(
+      sectionIndex
+    );
     const values = Array.isArray(section?.[key])
       ? [...(section[key] as string[])]
       : [];
 
-    values[index] = value;
-    updateSection(type, { [key]: values });
+    values[itemIndex] = value;
+    updateSection(sectionIndex, { [key]: values });
   }
 
   function addStringArrayItem(
-    type: LandingPageSection["type"],
+    sectionIndex: number,
     key:
       | "points"
       | "applications"
@@ -915,156 +1017,190 @@ export default function EditCmsPage() {
       | "options"
       | "documents"
   ) {
-    const section = form.structuredContent.sections.find(
-      (item) => item.type === type
-    ) as unknown as Record<string, unknown>;
-
+    const section = getSectionAtIndex<Record<string, unknown>>(
+      sectionIndex
+    );
     const values = Array.isArray(section?.[key])
       ? [...(section[key] as string[])]
       : [];
 
     values.push("");
-    updateSection(type, { [key]: values });
+    updateSection(sectionIndex, { [key]: values });
   }
 
   function removeStringArrayItem(
-    type: LandingPageSection["type"],
+    sectionIndex: number,
     key:
       | "points"
       | "applications"
       | "buyerTypes"
       | "options"
       | "documents",
-    index: number
+    itemIndex: number
   ) {
-    const section = form.structuredContent.sections.find(
-      (item) => item.type === type
-    ) as unknown as Record<string, unknown>;
-
+    const section = getSectionAtIndex<Record<string, unknown>>(
+      sectionIndex
+    );
     const values = Array.isArray(section?.[key])
       ? [...(section[key] as string[])]
       : [];
 
-    values.splice(index, 1);
-    updateSection(type, { [key]: values });
+    values.splice(itemIndex, 1);
+    updateSection(sectionIndex, { [key]: values });
   }
 
   function updateObjectArrayItem(
-    type: "applications" | "whyRootym" | "faq",
+    sectionIndex: number,
     key: "items" | "points",
-    index: number,
+    itemIndex: number,
     field: "title" | "description" | "question" | "answer",
     value: string
   ) {
-    const section = form.structuredContent.sections.find(
-      (item) => item.type === type
-    ) as unknown as Record<string, unknown>;
-
+    const section = getSectionAtIndex<Record<string, unknown>>(
+      sectionIndex
+    );
     const values = Array.isArray(section?.[key])
       ? [...(section[key] as Array<Record<string, string>>)]
       : [];
 
-    values[index] = {
-      ...values[index],
+    values[itemIndex] = {
+      ...values[itemIndex],
       [field]: value,
     };
 
-    updateSection(type, { [key]: values });
+    updateSection(sectionIndex, { [key]: values });
   }
 
   function addObjectArrayItem(
-    type: "applications" | "whyRootym" | "faq",
+    sectionIndex: number,
     key: "items" | "points"
   ) {
-    const section = form.structuredContent.sections.find(
-      (item) => item.type === type
-    ) as unknown as Record<string, unknown>;
-
+    const section = getSectionAtIndex<Record<string, unknown>>(
+      sectionIndex
+    );
     const values = Array.isArray(section?.[key])
       ? [...(section[key] as Array<Record<string, string>>)]
       : [];
 
+    const type = section?.type;
     values.push(
       type === "faq"
         ? { question: "", answer: "" }
         : { title: "", description: "" }
     );
 
-    updateSection(type, { [key]: values });
+    updateSection(sectionIndex, { [key]: values });
   }
 
   function removeObjectArrayItem(
-    type: "applications" | "whyRootym" | "faq",
+    sectionIndex: number,
     key: "items" | "points",
-    index: number
+    itemIndex: number
   ) {
-    const section = form.structuredContent.sections.find(
-      (item) => item.type === type
-    ) as unknown as Record<string, unknown>;
-
+    const section = getSectionAtIndex<Record<string, unknown>>(
+      sectionIndex
+    );
     const values = Array.isArray(section?.[key])
       ? [...(section[key] as Array<Record<string, string>>)]
       : [];
 
-    values.splice(index, 1);
-    updateSection(type, { [key]: values });
+    values.splice(itemIndex, 1);
+    updateSection(sectionIndex, { [key]: values });
   }
 
-  function toggleSection(type: LandingPageSection["type"]) {
+  function toggleSection(sectionIndex: number) {
     setOpenSections((current) => ({
       ...current,
-      [type]: !current[type],
+      [sectionIndex]: !current[sectionIndex],
     }));
   }
 
   function renderSectionCard(
-    type: LandingPageSection["type"],
-    number: number,
+    sectionIndex: number,
     title: string,
     description: string,
+    section: LandingPageSection,
     children: ReactNode
   ) {
-    const existingSection = form.structuredContent.sections.find(
-      (item) => item.type === type
-    );
-
-    if (!existingSection) {
-      return null;
-    }
-
-    const section = getSection(type) as LandingPageSection & {
-      sectionTitle?: string;
-      sectionDescription?: string;
-    };
-
     const displayTitle =
       section.sectionTitle?.trim() || title;
     const displayDescription =
       section.sectionDescription?.trim() || description;
+    const isFirst = sectionIndex === 0;
+    const isLast =
+      sectionIndex ===
+      form.structuredContent.sections.length - 1;
 
     return (
       <Card
         hover={false}
         className="overflow-hidden p-0"
       >
-        <button
-          type="button"
-          className="flex w-full items-center justify-between gap-4 p-6 text-left"
-          onClick={() => toggleSection(type)}
-        >
-          <SectionHeader
-            number={number}
-            title={displayTitle}
-            description={displayDescription}
-          />
-          {openSections[type] ? (
-            <ChevronUp className="h-5 w-5 shrink-0 text-gray-400" />
-          ) : (
-            <ChevronDown className="h-5 w-5 shrink-0 text-gray-400" />
-          )}
-        </button>
+        <div className="flex items-start gap-4 p-6">
+          <button
+            type="button"
+            className="flex min-w-0 flex-1 items-start gap-4 text-left"
+            onClick={() => toggleSection(sectionIndex)}
+          >
+            <SectionHeader
+              number={sectionIndex + 1}
+              title={displayTitle}
+              description={displayDescription}
+            />
+            {openSections[sectionIndex] ? (
+              <ChevronUp className="h-5 w-5 shrink-0 text-gray-400" />
+            ) : (
+              <ChevronDown className="h-5 w-5 shrink-0 text-gray-400" />
+            )}
+          </button>
 
-        {openSections[type] && (
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 px-3"
+              onClick={() => moveSection(sectionIndex, -1)}
+              disabled={isFirst}
+              aria-label={`Move ${displayTitle} up`}
+            >
+              <ChevronUp className="h-4 w-4" />
+              Up
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 px-3"
+              onClick={() => moveSection(sectionIndex, 1)}
+              disabled={isLast}
+              aria-label={`Move ${displayTitle} down`}
+            >
+              <ChevronDown className="h-4 w-4" />
+              Down
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 px-3"
+              onClick={() => copySection(sectionIndex)}
+            >
+              <CopyIcon className="h-4 w-4" />
+              Copy
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 px-3"
+              onClick={() => removeSection(sectionIndex)}
+              disabled={form.structuredContent.sections.length <= 1}
+              aria-label={`Remove ${displayTitle}`}
+            >
+              <Trash2 className="h-4 w-4 text-red-500" />
+              Remove
+            </Button>
+          </div>
+        </div>
+
+        {openSections[sectionIndex] && (
           <div className="border-t border-gray-100 p-6">
             <div className="mb-6 grid gap-5 rounded-2xl border border-emerald-100 bg-emerald-50/40 p-5 md:grid-cols-2">
               <div className="space-y-2">
@@ -1073,7 +1209,7 @@ export default function EditCmsPage() {
                   value={section.sectionTitle ?? title}
                   placeholder={title}
                   onChange={(event) =>
-                    updateSection(type, {
+                    updateSection(sectionIndex, {
                       sectionTitle: event.target.value,
                     })
                   }
@@ -1090,7 +1226,7 @@ export default function EditCmsPage() {
                   placeholder={description}
                   rows={3}
                   onChange={(event) =>
-                    updateSection(type, {
+                    updateSection(sectionIndex, {
                       sectionDescription: event.target.value,
                     })
                   }
@@ -1106,7 +1242,7 @@ export default function EditCmsPage() {
             <SectionElementsEditor
               value={section.elements ?? []}
               onChange={(elements) =>
-                updateSection(type, {
+                updateSection(sectionIndex, {
                   elements,
                 })
               }
@@ -1117,33 +1253,21 @@ export default function EditCmsPage() {
     );
   }
 
-  function renderStructuredSections() {
-    const hero = getSection("hero");
-    const valueProposition = getSection("valueProposition");
-    const product = getSection("product");
-    const applications = getSection("applications");
-    const whyRootym = getSection("whyRootym");
-    const buyerFocus = getSection("buyerFocus");
-    const packaging = getSection("packaging");
-    const exportDocuments = getSection("exportDocuments");
-    const cta = getSection("cta");
-    const faq = getSection("faq");
-
-    return (
-      <div className="space-y-4">
-        {renderSectionCard(
-          "hero",
-          1,
-          "Hero",
-          "Primary headline, supporting message and calls to action.",
-          <div className="grid gap-5 md:grid-cols-2">
+  function renderSectionContent(
+    sectionIndex: number,
+    section: LandingPageSection
+  ) {
+    switch (section.type) {      case "hero": {
+        const hero = section as HeroSection;
+        return (
+<div className="grid gap-5 md:grid-cols-2">
             <div className="space-y-2 md:col-span-2">
               <Label>Heading</Label>
               <Input
                 value={hero.heading}
                 placeholder="Dehydrated Onion Flakes from India"
                 onChange={(event) =>
-                  updateSection("hero", {
+                  updateSection(sectionIndex, {
                     heading: event.target.value,
                   })
                 }
@@ -1156,7 +1280,7 @@ export default function EditCmsPage() {
                 placeholder="Premium Indian dehydrated onion flakes for importers, distributors and food manufacturers."
                 rows={4}
                 onChange={(event) =>
-                  updateSection("hero", {
+                  updateSection(sectionIndex, {
                     subheading: event.target.value,
                   })
                 }
@@ -1168,7 +1292,7 @@ export default function EditCmsPage() {
                 value={hero.primaryCtaText}
                 placeholder="Request a Quote"
                 onChange={(event) =>
-                  updateSection("hero", {
+                  updateSection(sectionIndex, {
                     primaryCtaText:
                       event.target.value,
                   })
@@ -1181,7 +1305,7 @@ export default function EditCmsPage() {
                 value={hero.secondaryCtaText}
                 placeholder="View Product Details"
                 onChange={(event) =>
-                  updateSection("hero", {
+                  updateSection(sectionIndex, {
                     secondaryCtaText:
                       event.target.value,
                   })
@@ -1189,21 +1313,18 @@ export default function EditCmsPage() {
               />
             </div>
           </div>
-        )}
-
-        {renderSectionCard(
-          "valueProposition",
-          2,
-          "Value Proposition",
-          "Explain why the product is relevant to the target market.",
-          <div className="space-y-5">
+        );
+      }      case "valueProposition": {
+        const valueProposition = section as ValuePropositionSection;
+        return (
+<div className="space-y-5">
             <div className="space-y-2">
               <Label>Heading</Label>
               <Input
                 value={valueProposition.heading}
                 placeholder="Consistent Indian supply for global buyers"
                 onChange={(event) =>
-                  updateSection("valueProposition", {
+                  updateSection(sectionIndex, {
                     heading: event.target.value,
                   })
                 }
@@ -1215,7 +1336,7 @@ export default function EditCmsPage() {
                 value={valueProposition.description}
                 rows={4}
                 onChange={(event) =>
-                  updateSection("valueProposition", {
+                  updateSection(sectionIndex, {
                     description:
                       event.target.value,
                   })
@@ -1228,7 +1349,7 @@ export default function EditCmsPage() {
               placeholder="Reliable sourcing and export-ready supply"
               onChange={(index, value) =>
                 updateStringArrayItem(
-                  "valueProposition",
+                  sectionIndex,
                   "points",
                   index,
                   value
@@ -1236,27 +1357,24 @@ export default function EditCmsPage() {
               }
               onAdd={() =>
                 addStringArrayItem(
-                  "valueProposition",
+                  sectionIndex,
                   "points"
                 )
               }
               onRemove={(index) =>
                 removeStringArrayItem(
-                  "valueProposition",
+                  sectionIndex,
                   "points",
                   index
                 )
               }
             />
           </div>
-        )}
-
-        {renderSectionCard(
-          "product",
-          3,
-          "Product",
-          "Capture the core product specifications buyers need before making an enquiry.",
-          <div className="space-y-5">
+        );
+      }      case "product": {
+        const product = section as ProductSection;
+        return (
+<div className="space-y-5">
             <div className="grid gap-5 md:grid-cols-2">
               <div className="space-y-2 md:col-span-2">
                 <Label>Heading</Label>
@@ -1264,7 +1382,7 @@ export default function EditCmsPage() {
                   value={product.heading}
                   placeholder="Premium Dehydrated Onion Flakes"
                   onChange={(event) =>
-                    updateSection("product", {
+                    updateSection(sectionIndex, {
                       heading: event.target.value,
                     })
                   }
@@ -1276,7 +1394,7 @@ export default function EditCmsPage() {
                   value={product.description}
                   rows={4}
                   onChange={(event) =>
-                    updateSection("product", {
+                    updateSection(sectionIndex, {
                       description:
                         event.target.value,
                     })
@@ -1288,7 +1406,7 @@ export default function EditCmsPage() {
                 <Input
                   value={product.productName}
                   onChange={(event) =>
-                    updateSection("product", {
+                    updateSection(sectionIndex, {
                       productName:
                         event.target.value,
                     })
@@ -1301,7 +1419,7 @@ export default function EditCmsPage() {
                   value={product.origin}
                   placeholder="Nashik, Maharashtra, India"
                   onChange={(event) =>
-                    updateSection("product", {
+                    updateSection(sectionIndex, {
                       origin: event.target.value,
                     })
                   }
@@ -1313,7 +1431,7 @@ export default function EditCmsPage() {
                   value={product.form}
                   placeholder="Flakes"
                   onChange={(event) =>
-                    updateSection("product", {
+                    updateSection(sectionIndex, {
                       form: event.target.value,
                     })
                   }
@@ -1325,7 +1443,7 @@ export default function EditCmsPage() {
                   value={product.packaging}
                   placeholder="Bulk export cartons / food-grade bags"
                   onChange={(event) =>
-                    updateSection("product", {
+                    updateSection(sectionIndex, {
                       packaging:
                         event.target.value,
                     })
@@ -1338,7 +1456,7 @@ export default function EditCmsPage() {
                   value={product.moq}
                   placeholder="1 MT or buyer requirement"
                   onChange={(event) =>
-                    updateSection("product", {
+                    updateSection(sectionIndex, {
                       moq: event.target.value,
                     })
                   }
@@ -1352,7 +1470,7 @@ export default function EditCmsPage() {
               placeholder="Food manufacturing"
               onChange={(index, value) =>
                 updateStringArrayItem(
-                  "product",
+                  sectionIndex,
                   "applications",
                   index,
                   value
@@ -1360,33 +1478,30 @@ export default function EditCmsPage() {
               }
               onAdd={() =>
                 addStringArrayItem(
-                  "product",
+                  sectionIndex,
                   "applications"
                 )
               }
               onRemove={(index) =>
                 removeStringArrayItem(
-                  "product",
+                  sectionIndex,
                   "applications",
                   index
                 )
               }
             />
           </div>
-        )}
-
-        {renderSectionCard(
-          "applications",
-          4,
-          "Applications",
-          "Show where and how the product is used by commercial buyers.",
-          <div className="space-y-5">
+        );
+      }      case "applications": {
+        const applications = section as ApplicationsSection;
+        return (
+<div className="space-y-5">
             <div className="space-y-2">
               <Label>Heading</Label>
               <Input
                 value={applications.heading}
                 onChange={(event) =>
-                  updateSection("applications", {
+                  updateSection(sectionIndex, {
                     heading: event.target.value,
                   })
                 }
@@ -1398,7 +1513,7 @@ export default function EditCmsPage() {
                 value={applications.description}
                 rows={4}
                 onChange={(event) =>
-                  updateSection("applications", {
+                  updateSection(sectionIndex, {
                     description:
                       event.target.value,
                   })
@@ -1412,7 +1527,7 @@ export default function EditCmsPage() {
               secondPlaceholder="Describe the application and buyer use case."
               onChange={(index, field, value) =>
                 updateObjectArrayItem(
-                  "applications",
+                  sectionIndex,
                   "items",
                   index,
                   field,
@@ -1421,33 +1536,30 @@ export default function EditCmsPage() {
               }
               onAdd={() =>
                 addObjectArrayItem(
-                  "applications",
+                  sectionIndex,
                   "items"
                 )
               }
               onRemove={(index) =>
                 removeObjectArrayItem(
-                  "applications",
+                  sectionIndex,
                   "items",
                   index
                 )
               }
             />
           </div>
-        )}
-
-        {renderSectionCard(
-          "whyRootym",
-          5,
-          "Why Us",
-          "Build buyer confidence around sourcing, quality and export execution.",
-          <div className="space-y-5">
+        );
+      }      case "whyRootym": {
+        const whyRootym = section as WhyRootymSection;
+        return (
+<div className="space-y-5">
             <div className="space-y-2">
               <Label>Heading</Label>
               <Input
                 value={whyRootym.heading}
                 onChange={(event) =>
-                  updateSection("whyRootym", {
+                  updateSection(sectionIndex, {
                     heading: event.target.value,
                   })
                 }
@@ -1460,7 +1572,7 @@ export default function EditCmsPage() {
               secondPlaceholder="Explain the buyer benefit."
               onChange={(index, field, value) =>
                 updateObjectArrayItem(
-                  "whyRootym",
+                  sectionIndex,
                   "points",
                   index,
                   field,
@@ -1469,33 +1581,30 @@ export default function EditCmsPage() {
               }
               onAdd={() =>
                 addObjectArrayItem(
-                  "whyRootym",
+                  sectionIndex,
                   "points"
                 )
               }
               onRemove={(index) =>
                 removeObjectArrayItem(
-                  "whyRootym",
+                  sectionIndex,
                   "points",
                   index
                 )
               }
             />
           </div>
-        )}
-
-        {renderSectionCard(
-          "buyerFocus",
-          6,
-          "Buyer Focus",
-          "Define the buyer profiles and commercial audiences this page targets.",
-          <div className="space-y-5">
+        );
+      }      case "buyerFocus": {
+        const buyerFocus = section as BuyerFocusSection;
+        return (
+<div className="space-y-5">
             <div className="space-y-2">
               <Label>Heading</Label>
               <Input
                 value={buyerFocus.heading}
                 onChange={(event) =>
-                  updateSection("buyerFocus", {
+                  updateSection(sectionIndex, {
                     heading: event.target.value,
                   })
                 }
@@ -1507,7 +1616,7 @@ export default function EditCmsPage() {
                 value={buyerFocus.description}
                 rows={4}
                 onChange={(event) =>
-                  updateSection("buyerFocus", {
+                  updateSection(sectionIndex, {
                     description:
                       event.target.value,
                   })
@@ -1520,7 +1629,7 @@ export default function EditCmsPage() {
               placeholder="Food ingredient importer"
               onChange={(index, value) =>
                 updateStringArrayItem(
-                  "buyerFocus",
+                  sectionIndex,
                   "buyerTypes",
                   index,
                   value
@@ -1528,33 +1637,30 @@ export default function EditCmsPage() {
               }
               onAdd={() =>
                 addStringArrayItem(
-                  "buyerFocus",
+                  sectionIndex,
                   "buyerTypes"
                 )
               }
               onRemove={(index) =>
                 removeStringArrayItem(
-                  "buyerFocus",
+                  sectionIndex,
                   "buyerTypes",
                   index
                 )
               }
             />
           </div>
-        )}
-
-        {renderSectionCard(
-          "packaging",
-          7,
-          "Packaging",
-          "Present practical packaging choices for export buyers.",
-          <div className="space-y-5">
+        );
+      }      case "packaging": {
+        const packaging = section as PackagingSection;
+        return (
+<div className="space-y-5">
             <div className="space-y-2">
               <Label>Heading</Label>
               <Input
                 value={packaging.heading}
                 onChange={(event) =>
-                  updateSection("packaging", {
+                  updateSection(sectionIndex, {
                     heading: event.target.value,
                   })
                 }
@@ -1566,7 +1672,7 @@ export default function EditCmsPage() {
                 value={packaging.description}
                 rows={4}
                 onChange={(event) =>
-                  updateSection("packaging", {
+                  updateSection(sectionIndex, {
                     description:
                       event.target.value,
                   })
@@ -1579,7 +1685,7 @@ export default function EditCmsPage() {
               placeholder="25 kg food-grade export bag"
               onChange={(index, value) =>
                 updateStringArrayItem(
-                  "packaging",
+                  sectionIndex,
                   "options",
                   index,
                   value
@@ -1587,33 +1693,30 @@ export default function EditCmsPage() {
               }
               onAdd={() =>
                 addStringArrayItem(
-                  "packaging",
+                  sectionIndex,
                   "options"
                 )
               }
               onRemove={(index) =>
                 removeStringArrayItem(
-                  "packaging",
+                  sectionIndex,
                   "options",
                   index
                 )
               }
             />
           </div>
-        )}
-
-        {renderSectionCard(
-          "exportDocuments",
-          8,
-          "Export Documents",
-          "List the standard export documentation buyers can provide to buyers.",
-          <div className="space-y-5">
+        );
+      }      case "exportDocuments": {
+        const exportDocuments = section as ExportDocumentsSection;
+        return (
+<div className="space-y-5">
             <div className="space-y-2">
               <Label>Heading</Label>
               <Input
                 value={exportDocuments.heading}
                 onChange={(event) =>
-                  updateSection("exportDocuments", {
+                  updateSection(sectionIndex, {
                     heading: event.target.value,
                   })
                 }
@@ -1625,7 +1728,7 @@ export default function EditCmsPage() {
                 value={exportDocuments.description}
                 rows={4}
                 onChange={(event) =>
-                  updateSection("exportDocuments", {
+                  updateSection(sectionIndex, {
                     description:
                       event.target.value,
                   })
@@ -1638,7 +1741,7 @@ export default function EditCmsPage() {
               placeholder="Commercial Invoice"
               onChange={(index, value) =>
                 updateStringArrayItem(
-                  "exportDocuments",
+                  sectionIndex,
                   "documents",
                   index,
                   value
@@ -1646,33 +1749,30 @@ export default function EditCmsPage() {
               }
               onAdd={() =>
                 addStringArrayItem(
-                  "exportDocuments",
+                  sectionIndex,
                   "documents"
                 )
               }
               onRemove={(index) =>
                 removeStringArrayItem(
-                  "exportDocuments",
+                  sectionIndex,
                   "documents",
                   index
                 )
               }
             />
           </div>
-        )}
-
-        {renderSectionCard(
-          "cta",
-          9,
-          "CTA",
-          "Close the page with a clear commercial action for the buyer.",
-          <div className="grid gap-5 md:grid-cols-2">
+        );
+      }      case "cta": {
+        const cta = section as CtaSection;
+        return (
+<div className="grid gap-5 md:grid-cols-2">
             <div className="space-y-2 md:col-span-2">
               <Label>Heading</Label>
               <Input
                 value={cta.heading}
                 onChange={(event) =>
-                  updateSection("cta", {
+                  updateSection(sectionIndex, {
                     heading: event.target.value,
                   })
                 }
@@ -1684,7 +1784,7 @@ export default function EditCmsPage() {
                 value={cta.description}
                 rows={4}
                 onChange={(event) =>
-                  updateSection("cta", {
+                  updateSection(sectionIndex, {
                     description: event.target.value,
                   })
                 }
@@ -1696,7 +1796,7 @@ export default function EditCmsPage() {
                 value={cta.primaryCtaText}
                 placeholder="Request a Quote"
                 onChange={(event) =>
-                  updateSection("cta", {
+                  updateSection(sectionIndex, {
                     primaryCtaText:
                       event.target.value,
                   })
@@ -1709,7 +1809,7 @@ export default function EditCmsPage() {
                 value={cta.secondaryCtaText}
                 placeholder="Contact Us"
                 onChange={(event) =>
-                  updateSection("cta", {
+                  updateSection(sectionIndex, {
                     secondaryCtaText:
                       event.target.value,
                   })
@@ -1717,20 +1817,17 @@ export default function EditCmsPage() {
               />
             </div>
           </div>
-        )}
-
-        {renderSectionCard(
-          "faq",
-          10,
-          "FAQ",
-          "Answer the most common buyer questions before they get in touch.",
-          <div className="space-y-5">
+        );
+      }      case "faq": {
+        const faq = section as FaqSection;
+        return (
+<div className="space-y-5">
             <div className="space-y-2">
               <Label>Heading</Label>
               <Input
                 value={faq.heading}
                 onChange={(event) =>
-                  updateSection("faq", {
+                  updateSection(sectionIndex, {
                     heading: event.target.value,
                   })
                 }
@@ -1744,7 +1841,7 @@ export default function EditCmsPage() {
                   variant="outline"
                   onClick={() =>
                     addObjectArrayItem(
-                      "faq",
+                      sectionIndex,
                       "items"
                     )
                   }
@@ -1775,7 +1872,7 @@ export default function EditCmsPage() {
                         className="h-8 w-8 px-0"
                         onClick={() =>
                           removeObjectArrayItem(
-                            "faq",
+                            sectionIndex,
                             "items",
                             index
                           )
@@ -1791,7 +1888,7 @@ export default function EditCmsPage() {
                           value={item.question}
                           onChange={(event) =>
                             updateObjectArrayItem(
-                              "faq",
+                              sectionIndex,
                               "items",
                               index,
                               "question",
@@ -1807,7 +1904,7 @@ export default function EditCmsPage() {
                           rows={4}
                           onChange={(event) =>
                             updateObjectArrayItem(
-                              "faq",
+                              sectionIndex,
                               "items",
                               index,
                               "answer",
@@ -1822,7 +1919,77 @@ export default function EditCmsPage() {
               )}
             </div>
           </div>
-        )}
+        );
+      }      default:
+        return null;
+    }
+  }
+
+  function renderStructuredSections() {
+    return (
+      <div className="space-y-4">
+        {form.structuredContent.sections.map((section, index) => {
+          const metadata = {
+            hero: {
+              title: "Hero",
+              description:
+                "Primary headline, supporting message and calls to action.",
+            },
+            valueProposition: {
+              title: "Value Proposition",
+              description:
+                "Explain why the product is relevant to the target market.",
+            },
+            product: {
+              title: "Product",
+              description:
+                "Capture the core product specifications buyers need before making an enquiry.",
+            },
+            applications: {
+              title: "Applications",
+              description:
+                "Show where and how the product is used by commercial buyers.",
+            },
+            whyRootym: {
+              title: "Why Us",
+              description:
+                "Build buyer confidence around sourcing, quality and export execution.",
+            },
+            buyerFocus: {
+              title: "Buyer Focus",
+              description:
+                "Define the buyer profiles and commercial audiences this page targets.",
+            },
+            packaging: {
+              title: "Packaging",
+              description:
+                "Present practical packaging choices for export buyers.",
+            },
+            exportDocuments: {
+              title: "Export Documents",
+              description:
+                "List the standard export documentation buyers can provide to buyers.",
+            },
+            cta: {
+              title: "CTA",
+              description:
+                "Close the page with a clear commercial action for the buyer.",
+            },
+            faq: {
+              title: "FAQ",
+              description:
+                "Answer the most common buyer questions before they get in touch.",
+            },
+          }[section.type];
+
+          return renderSectionCard(
+            index,
+            metadata.title,
+            metadata.description,
+            section,
+            renderSectionContent(index, section)
+          );
+        })}
       </div>
     );
   }

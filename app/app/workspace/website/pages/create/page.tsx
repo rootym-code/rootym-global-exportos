@@ -22,6 +22,7 @@ import {
   ArrowLeft,
   ChevronDown,
   ChevronUp,
+  Copy as CopyIcon,
   Loader2,
   Plus,
   Save,
@@ -692,144 +693,270 @@ export default function CreateWebsitePage() {
     );
   }
 
-  function updateSection(type: LandingPageSection["type"], patch: Record<string, unknown>) {
+  function updateSection(
+    sectionIndex: number,
+    patch: Record<string, unknown>
+  ) {
     setForm((current) => ({
       ...current,
       structuredContent: {
         ...current.structuredContent,
-        sections: current.structuredContent.sections.map((section) =>
-          section.type === type
-            ? ({ ...section, ...patch } as LandingPageSection)
-            : section
+        sections: current.structuredContent.sections.map(
+          (section, index) =>
+            index === sectionIndex
+              ? ({ ...section, ...patch } as LandingPageSection)
+              : section
         ),
       },
     }));
   }
 
+  function copySection(sectionIndex: number) {
+    setForm((current) => {
+      const source = current.structuredContent.sections[sectionIndex];
+
+      if (!source) {
+        return current;
+      }
+
+      const duplicate = JSON.parse(
+        JSON.stringify(source)
+      ) as LandingPageSection;
+
+      const sections = [...current.structuredContent.sections];
+      sections.splice(sectionIndex + 1, 0, duplicate);
+
+      return {
+        ...current,
+        structuredContent: {
+          ...current.structuredContent,
+          sections,
+        },
+      };
+    });
+
+    setOpenSections((current) => {
+      const next: Record<string, boolean> = {};
+
+      Object.entries(current).forEach(([key, value]) => {
+        const index = Number(key);
+        if (Number.isNaN(index)) {
+          next[key] = value;
+          return;
+        }
+        next[String(index >= sectionIndex + 1 ? index + 1 : index)] = value;
+      });
+
+      next[String(sectionIndex + 1)] = true;
+      return next;
+    });
+  }
+
+  function removeSection(sectionIndex: number) {
+    setForm((current) => ({
+      ...current,
+      structuredContent: {
+        ...current.structuredContent,
+        sections: current.structuredContent.sections.filter(
+          (_, index) => index !== sectionIndex
+        ),
+      },
+    }));
+
+    setOpenSections((current) => {
+      const next: Record<string, boolean> = {};
+
+      Object.entries(current).forEach(([key, value]) => {
+        const index = Number(key);
+        if (Number.isNaN(index) || index === sectionIndex) {
+          return;
+        }
+        next[String(index > sectionIndex ? index - 1 : index)] = value;
+      });
+
+      return next;
+    });
+  }
+
+  function moveSection(sectionIndex: number, direction: -1 | 1) {
+    setForm((current) => {
+      const targetIndex = sectionIndex + direction;
+
+      if (
+        sectionIndex < 0 ||
+        sectionIndex >= current.structuredContent.sections.length ||
+        targetIndex < 0 ||
+        targetIndex >= current.structuredContent.sections.length
+      ) {
+        return current;
+      }
+
+      const sections = [...current.structuredContent.sections];
+      const [movedSection] = sections.splice(sectionIndex, 1);
+
+      if (!movedSection) {
+        return current;
+      }
+
+      sections.splice(targetIndex, 0, movedSection);
+
+      return {
+        ...current,
+        structuredContent: {
+          ...current.structuredContent,
+          sections,
+        },
+      };
+    });
+
+    setOpenSections((current) => {
+      const next: Record<string, boolean> = {};
+
+      Object.entries(current).forEach(([key, value]) => {
+        const index = Number(key);
+        if (Number.isNaN(index)) {
+          return;
+        }
+
+        if (index === sectionIndex) {
+          next[String(sectionIndex + direction)] = value;
+        } else if (direction === 1 && index === sectionIndex + 1) {
+          next[String(sectionIndex)] = value;
+        } else if (direction === -1 && index === sectionIndex - 1) {
+          next[String(sectionIndex)] = value;
+        } else {
+          next[String(index)] = value;
+        }
+      });
+
+      return next;
+    });
+  }
+
   function updateStringArrayItem(
-    type: LandingPageSection["type"],
+    sectionIndex: number,
     key: "points" | "applications" | "buyerTypes" | "options" | "documents",
     index: number,
     value: string
   ) {
-    const section = form.structuredContent.sections.find(
-      (item) => item.type === type
-    ) as unknown as Record<string, unknown>;
+    const section = form.structuredContent.sections[
+      sectionIndex
+    ] as unknown as Record<string, unknown> | undefined;
     const values = Array.isArray(section?.[key])
       ? [...(section[key] as string[])]
       : [];
     values[index] = value;
-    updateSection(type, { [key]: values });
+    updateSection(sectionIndex, { [key]: values });
   }
 
   function addStringArrayItem(
-    type: LandingPageSection["type"],
+    sectionIndex: number,
     key: "points" | "applications" | "buyerTypes" | "options" | "documents"
   ) {
-    const section = form.structuredContent.sections.find(
-      (item) => item.type === type
-    ) as unknown as Record<string, unknown>;
+    const section = form.structuredContent.sections[
+      sectionIndex
+    ] as unknown as Record<string, unknown> | undefined;
     const values = Array.isArray(section?.[key])
       ? [...(section[key] as string[])]
       : [];
     values.push("");
-    updateSection(type, { [key]: values });
+    updateSection(sectionIndex, { [key]: values });
   }
 
   function removeStringArrayItem(
-    type: LandingPageSection["type"],
+    sectionIndex: number,
     key: "points" | "applications" | "buyerTypes" | "options" | "documents",
     index: number
   ) {
-    const section = form.structuredContent.sections.find(
-      (item) => item.type === type
-    ) as unknown as Record<string, unknown>;
+    const section = form.structuredContent.sections[
+      sectionIndex
+    ] as unknown as Record<string, unknown> | undefined;
     const values = Array.isArray(section?.[key])
       ? [...(section[key] as string[])]
       : [];
     values.splice(index, 1);
-    updateSection(type, { [key]: values });
+    updateSection(sectionIndex, { [key]: values });
   }
 
   function updateObjectArrayItem(
-    type: "applications" | "whyRootym" | "faq",
+    sectionIndex: number,
     key: "items" | "points",
     index: number,
     field: "title" | "description" | "question" | "answer",
     value: string
   ) {
-    const section = form.structuredContent.sections.find(
-      (item) => item.type === type
-    ) as unknown as Record<string, unknown>;
+    const section = form.structuredContent.sections[
+      sectionIndex
+    ] as unknown as Record<string, unknown> | undefined;
     const values = Array.isArray(section?.[key])
       ? [...(section[key] as Array<Record<string, string>>)]
       : [];
     values[index] = { ...values[index], [field]: value };
-    updateSection(type, { [key]: values });
+    updateSection(sectionIndex, { [key]: values });
   }
 
-  function addObjectArrayItem(type: "applications" | "whyRootym" | "faq", key: "items" | "points") {
-    const section = form.structuredContent.sections.find(
-      (item) => item.type === type
-    ) as unknown as Record<string, unknown>;
+  function addObjectArrayItem(
+    sectionIndex: number,
+    key: "items" | "points"
+  ) {
+    const section = form.structuredContent.sections[
+      sectionIndex
+    ] as unknown as Record<string, unknown> | undefined;
     const values = Array.isArray(section?.[key])
       ? [...(section[key] as Array<Record<string, string>>)]
       : [];
-    values.push(type === "faq" ? { question: "", answer: "" } : { title: "", description: "" });
-    updateSection(type, { [key]: values });
+    values.push(
+      section?.type === "faq"
+        ? { question: "", answer: "" }
+        : { title: "", description: "" }
+    );
+    updateSection(sectionIndex, { [key]: values });
   }
 
-  function removeObjectArrayItem(type: "applications" | "whyRootym" | "faq", key: "items" | "points", index: number) {
-    const section = form.structuredContent.sections.find(
-      (item) => item.type === type
-    ) as unknown as Record<string, unknown>;
+  function removeObjectArrayItem(
+    sectionIndex: number,
+    key: "items" | "points",
+    index: number
+  ) {
+    const section = form.structuredContent.sections[
+      sectionIndex
+    ] as unknown as Record<string, unknown> | undefined;
     const values = Array.isArray(section?.[key])
       ? [...(section[key] as Array<Record<string, string>>)]
       : [];
     values.splice(index, 1);
-    updateSection(type, { [key]: values });
+    updateSection(sectionIndex, { [key]: values });
   }
 
-  function toggleSection(type: LandingPageSection["type"]) {
-    setOpenSections((current) => ({ ...current, [type]: !current[type] }));
+  function toggleSection(sectionIndex: number) {
+    setOpenSections((current) => ({
+      ...current,
+      [String(sectionIndex)]: !current[String(sectionIndex)],
+    }));
   }
 
-  function getSection<T extends LandingPageSection["type"]>(type: T): Extract<LandingPageSection, { type: T }> {
-    const existing = form.structuredContent.sections.find((section) => section.type === type);
-    if (existing) {
-      return existing as Extract<LandingPageSection, { type: T }>;
-    }
-    return createDefaultStructuredContent("STANDARD").sections.find(
-      (section) => section.type === type
-    ) as Extract<LandingPageSection, { type: T }>;
-  }
   function renderStructuredSections() {
-    const hero = getSection("hero");
-    const valueProposition = getSection("valueProposition");
-    const product = getSection("product");
-    const applications = getSection("applications");
-    const whyRootym = getSection("whyRootym");
-    const buyerFocus = getSection("buyerFocus");
-    const packaging = getSection("packaging");
-    const exportDocuments = getSection("exportDocuments");
-    const cta = getSection("cta");
-    const faq = getSection("faq");
-
     return (
       <div className="space-y-4">
-        {renderSectionCard(
-          "hero",
-          1,
-          "Hero",
-          "Primary headline, supporting message and calls to action.",
+        {form.structuredContent.sections.map((section, index) => {
+          const sectionIndex = index;
+
+          switch (section.type) {
+            case "hero":
+              return renderSectionCard(
+                section,
+                index,
+                1,
+                "Hero",
+                "Primary headline, supporting message and calls to action.",
           <div className="grid gap-5 md:grid-cols-2">
             <div className="space-y-2 md:col-span-2">
               <Label>Heading</Label>
               <Input
-                value={hero.heading}
+                value={section.heading}
                 placeholder="Dehydrated Onion Flakes from India"
                 onChange={(event) =>
-                  updateSection("hero", {
+                  updateSection(index, {
                     heading: event.target.value,
                   })
                 }
@@ -838,11 +965,11 @@ export default function CreateWebsitePage() {
             <div className="space-y-2 md:col-span-2">
               <Label>Subheading</Label>
               <Textarea
-                value={hero.subheading}
+                value={section.subheading}
                 placeholder="Premium Indian dehydrated onion flakes for importers, distributors and food manufacturers."
                 rows={4}
                 onChange={(event) =>
-                  updateSection("hero", {
+                  updateSection(index, {
                     subheading: event.target.value,
                   })
                 }
@@ -851,10 +978,10 @@ export default function CreateWebsitePage() {
             <div className="space-y-2">
               <Label>Primary CTA</Label>
               <Input
-                value={hero.primaryCtaText}
+                value={section.primaryCtaText}
                 placeholder="Request a Quote"
                 onChange={(event) =>
-                  updateSection("hero", {
+                  updateSection(index, {
                     primaryCtaText:
                       event.target.value,
                   })
@@ -864,10 +991,10 @@ export default function CreateWebsitePage() {
             <div className="space-y-2">
               <Label>Secondary CTA</Label>
               <Input
-                value={hero.secondaryCtaText}
+                value={section.secondaryCtaText}
                 placeholder="View Product Details"
                 onChange={(event) =>
-                  updateSection("hero", {
+                  updateSection(index, {
                     secondaryCtaText:
                       event.target.value,
                   })
@@ -875,21 +1002,23 @@ export default function CreateWebsitePage() {
               />
             </div>
           </div>
-        )}
+              );
 
-        {renderSectionCard(
-          "valueProposition",
-          2,
-          "Value Proposition",
-          "Explain why the product is relevant to the target market.",
+            case "valueProposition":
+              return renderSectionCard(
+                section,
+                index,
+                2,
+                "Value Proposition",
+                "Explain why the product is relevant to the target market.",
           <div className="space-y-5">
             <div className="space-y-2">
               <Label>Heading</Label>
               <Input
-                value={valueProposition.heading}
+                value={section.heading}
                 placeholder="Consistent Indian supply for global buyers"
                 onChange={(event) =>
-                  updateSection("valueProposition", {
+                  updateSection(index, {
                     heading: event.target.value,
                   })
                 }
@@ -898,10 +1027,10 @@ export default function CreateWebsitePage() {
             <div className="space-y-2">
               <Label>Description</Label>
               <Textarea
-                value={valueProposition.description}
+                value={section.description}
                 rows={4}
                 onChange={(event) =>
-                  updateSection("valueProposition", {
+                  updateSection(index, {
                     description:
                       event.target.value,
                   })
@@ -910,11 +1039,11 @@ export default function CreateWebsitePage() {
             </div>
             <TextArrayEditor
               label="Key Points"
-              values={valueProposition.points}
+              values={section.points}
               placeholder="Reliable sourcing and export-ready supply"
               onChange={(index, value) =>
                 updateStringArrayItem(
-                  "valueProposition",
+                  sectionIndex,
                   "points",
                   index,
                   value
@@ -922,35 +1051,37 @@ export default function CreateWebsitePage() {
               }
               onAdd={() =>
                 addStringArrayItem(
-                  "valueProposition",
+                  sectionIndex,
                   "points"
                 )
               }
               onRemove={(index) =>
                 removeStringArrayItem(
-                  "valueProposition",
+                  sectionIndex,
                   "points",
                   index
                 )
               }
             />
           </div>
-        )}
+              );
 
-        {renderSectionCard(
-          "product",
-          3,
-          "Product",
-          "Capture the core product specifications buyers need before making an enquiry.",
+            case "product":
+              return renderSectionCard(
+                section,
+                index,
+                3,
+                "Product",
+                "Capture the core product specifications buyers need before making an enquiry.",
           <div className="space-y-5">
             <div className="grid gap-5 md:grid-cols-2">
               <div className="space-y-2 md:col-span-2">
                 <Label>Heading</Label>
                 <Input
-                  value={product.heading}
+                  value={section.heading}
                   placeholder="Premium Dehydrated Onion Flakes"
                   onChange={(event) =>
-                    updateSection("product", {
+                    updateSection(index, {
                       heading: event.target.value,
                     })
                   }
@@ -959,10 +1090,10 @@ export default function CreateWebsitePage() {
               <div className="space-y-2 md:col-span-2">
                 <Label>Description</Label>
                 <Textarea
-                  value={product.description}
+                  value={section.description}
                   rows={4}
                   onChange={(event) =>
-                    updateSection("product", {
+                    updateSection(index, {
                       description:
                         event.target.value,
                     })
@@ -972,9 +1103,9 @@ export default function CreateWebsitePage() {
               <div className="space-y-2">
                 <Label>Product Name</Label>
                 <Input
-                  value={product.productName}
+                  value={section.productName}
                   onChange={(event) =>
-                    updateSection("product", {
+                    updateSection(index, {
                       productName:
                         event.target.value,
                     })
@@ -984,10 +1115,10 @@ export default function CreateWebsitePage() {
               <div className="space-y-2">
                 <Label>Origin</Label>
                 <Input
-                  value={product.origin}
+                  value={section.origin}
                   placeholder="Nashik, Maharashtra, India"
                   onChange={(event) =>
-                    updateSection("product", {
+                    updateSection(index, {
                       origin: event.target.value,
                     })
                   }
@@ -996,10 +1127,10 @@ export default function CreateWebsitePage() {
               <div className="space-y-2">
                 <Label>Form</Label>
                 <Input
-                  value={product.form}
+                  value={section.form}
                   placeholder="Flakes"
                   onChange={(event) =>
-                    updateSection("product", {
+                    updateSection(index, {
                       form: event.target.value,
                     })
                   }
@@ -1008,10 +1139,10 @@ export default function CreateWebsitePage() {
               <div className="space-y-2">
                 <Label>Packaging</Label>
                 <Input
-                  value={product.packaging}
+                  value={section.packaging}
                   placeholder="Bulk export cartons / food-grade bags"
                   onChange={(event) =>
-                    updateSection("product", {
+                    updateSection(index, {
                       packaging:
                         event.target.value,
                     })
@@ -1021,10 +1152,10 @@ export default function CreateWebsitePage() {
               <div className="space-y-2 md:col-span-2">
                 <Label>MOQ</Label>
                 <Input
-                  value={product.moq}
+                  value={section.moq}
                   placeholder="1 MT or buyer requirement"
                   onChange={(event) =>
-                    updateSection("product", {
+                    updateSection(index, {
                       moq: event.target.value,
                     })
                   }
@@ -1034,11 +1165,11 @@ export default function CreateWebsitePage() {
 
             <TextArrayEditor
               label="Applications"
-              values={product.applications}
+              values={section.applications}
               placeholder="Food manufacturing"
               onChange={(index, value) =>
                 updateStringArrayItem(
-                  "product",
+                  sectionIndex,
                   "applications",
                   index,
                   value
@@ -1046,33 +1177,35 @@ export default function CreateWebsitePage() {
               }
               onAdd={() =>
                 addStringArrayItem(
-                  "product",
+                  sectionIndex,
                   "applications"
                 )
               }
               onRemove={(index) =>
                 removeStringArrayItem(
-                  "product",
+                  sectionIndex,
                   "applications",
                   index
                 )
               }
             />
           </div>
-        )}
+              );
 
-        {renderSectionCard(
-          "applications",
-          4,
-          "Applications",
-          "Show where and how the product is used by commercial buyers.",
+            case "applications":
+              return renderSectionCard(
+                section,
+                index,
+                4,
+                "Applications",
+                "Show where and how the product is used by commercial buyers.",
           <div className="space-y-5">
             <div className="space-y-2">
               <Label>Heading</Label>
               <Input
-                value={applications.heading}
+                value={section.heading}
                 onChange={(event) =>
-                  updateSection("applications", {
+                  updateSection(index, {
                     heading: event.target.value,
                   })
                 }
@@ -1081,10 +1214,10 @@ export default function CreateWebsitePage() {
             <div className="space-y-2">
               <Label>Description</Label>
               <Textarea
-                value={applications.description}
+                value={section.description}
                 rows={4}
                 onChange={(event) =>
-                  updateSection("applications", {
+                  updateSection(index, {
                     description:
                       event.target.value,
                   })
@@ -1093,12 +1226,12 @@ export default function CreateWebsitePage() {
             </div>
             <ObjectArrayEditor
               label="Application Items"
-              values={applications.items}
+              values={section.items}
               firstPlaceholder="Food processing"
               secondPlaceholder="Describe the application and buyer use case."
               onChange={(index, field, value) =>
                 updateObjectArrayItem(
-                  "applications",
+                  sectionIndex,
                   "items",
                   index,
                   field,
@@ -1107,33 +1240,35 @@ export default function CreateWebsitePage() {
               }
               onAdd={() =>
                 addObjectArrayItem(
-                  "applications",
+                  sectionIndex,
                   "items"
                 )
               }
               onRemove={(index) =>
                 removeObjectArrayItem(
-                  "applications",
+                  sectionIndex,
                   "items",
                   index
                 )
               }
             />
           </div>
-        )}
+              );
 
-        {renderSectionCard(
-          "whyRootym",
-          5,
-          "Why ROOTYM",
-          "Build buyer confidence around sourcing, quality and export execution.",
+            case "whyRootym":
+              return renderSectionCard(
+                section,
+                index,
+                5,
+                "Why ROOTYM",
+                "Build buyer confidence around sourcing, quality and export execution.",
           <div className="space-y-5">
             <div className="space-y-2">
               <Label>Heading</Label>
               <Input
-                value={whyRootym.heading}
+                value={section.heading}
                 onChange={(event) =>
-                  updateSection("whyRootym", {
+                  updateSection(index, {
                     heading: event.target.value,
                   })
                 }
@@ -1141,12 +1276,12 @@ export default function CreateWebsitePage() {
             </div>
             <ObjectArrayEditor
               label="Why Us Points"
-              values={whyRootym.points}
+              values={section.points}
               firstPlaceholder="Quality-focused sourcing"
               secondPlaceholder="Explain the buyer benefit."
               onChange={(index, field, value) =>
                 updateObjectArrayItem(
-                  "whyRootym",
+                  sectionIndex,
                   "points",
                   index,
                   field,
@@ -1155,33 +1290,35 @@ export default function CreateWebsitePage() {
               }
               onAdd={() =>
                 addObjectArrayItem(
-                  "whyRootym",
+                  sectionIndex,
                   "points"
                 )
               }
               onRemove={(index) =>
                 removeObjectArrayItem(
-                  "whyRootym",
+                  sectionIndex,
                   "points",
                   index
                 )
               }
             />
           </div>
-        )}
+              );
 
-        {renderSectionCard(
-          "buyerFocus",
-          6,
-          "Buyer Focus",
-          "Define the buyer profiles and commercial audiences this page targets.",
+            case "buyerFocus":
+              return renderSectionCard(
+                section,
+                index,
+                6,
+                "Buyer Focus",
+                "Define the buyer profiles and commercial audiences this page targets.",
           <div className="space-y-5">
             <div className="space-y-2">
               <Label>Heading</Label>
               <Input
-                value={buyerFocus.heading}
+                value={section.heading}
                 onChange={(event) =>
-                  updateSection("buyerFocus", {
+                  updateSection(index, {
                     heading: event.target.value,
                   })
                 }
@@ -1190,10 +1327,10 @@ export default function CreateWebsitePage() {
             <div className="space-y-2">
               <Label>Description</Label>
               <Textarea
-                value={buyerFocus.description}
+                value={section.description}
                 rows={4}
                 onChange={(event) =>
-                  updateSection("buyerFocus", {
+                  updateSection(index, {
                     description:
                       event.target.value,
                   })
@@ -1202,11 +1339,11 @@ export default function CreateWebsitePage() {
             </div>
             <TextArrayEditor
               label="Buyer Types"
-              values={buyerFocus.buyerTypes}
+              values={section.buyerTypes}
               placeholder="Food ingredient importer"
               onChange={(index, value) =>
                 updateStringArrayItem(
-                  "buyerFocus",
+                  sectionIndex,
                   "buyerTypes",
                   index,
                   value
@@ -1214,33 +1351,35 @@ export default function CreateWebsitePage() {
               }
               onAdd={() =>
                 addStringArrayItem(
-                  "buyerFocus",
+                  sectionIndex,
                   "buyerTypes"
                 )
               }
               onRemove={(index) =>
                 removeStringArrayItem(
-                  "buyerFocus",
+                  sectionIndex,
                   "buyerTypes",
                   index
                 )
               }
             />
           </div>
-        )}
+              );
 
-        {renderSectionCard(
-          "packaging",
-          7,
-          "Packaging",
-          "Present practical packaging choices for export buyers.",
+            case "packaging":
+              return renderSectionCard(
+                section,
+                index,
+                7,
+                "Packaging",
+                "Present practical packaging choices for export buyers.",
           <div className="space-y-5">
             <div className="space-y-2">
               <Label>Heading</Label>
               <Input
-                value={packaging.heading}
+                value={section.heading}
                 onChange={(event) =>
-                  updateSection("packaging", {
+                  updateSection(index, {
                     heading: event.target.value,
                   })
                 }
@@ -1249,10 +1388,10 @@ export default function CreateWebsitePage() {
             <div className="space-y-2">
               <Label>Description</Label>
               <Textarea
-                value={packaging.description}
+                value={section.description}
                 rows={4}
                 onChange={(event) =>
-                  updateSection("packaging", {
+                  updateSection(index, {
                     description:
                       event.target.value,
                   })
@@ -1261,11 +1400,11 @@ export default function CreateWebsitePage() {
             </div>
             <TextArrayEditor
               label="Packaging Options"
-              values={packaging.options}
+              values={section.options}
               placeholder="25 kg food-grade export bag"
               onChange={(index, value) =>
                 updateStringArrayItem(
-                  "packaging",
+                  sectionIndex,
                   "options",
                   index,
                   value
@@ -1273,33 +1412,35 @@ export default function CreateWebsitePage() {
               }
               onAdd={() =>
                 addStringArrayItem(
-                  "packaging",
+                  sectionIndex,
                   "options"
                 )
               }
               onRemove={(index) =>
                 removeStringArrayItem(
-                  "packaging",
+                  sectionIndex,
                   "options",
                   index
                 )
               }
             />
           </div>
-        )}
+              );
 
-        {renderSectionCard(
-          "exportDocuments",
-          8,
-          "Export Documents",
-          "List the standard export documentation buyers can expect from the business.",
+            case "exportDocuments":
+              return renderSectionCard(
+                section,
+                index,
+                8,
+                "Export Documents",
+                "List the standard export documentation buyers can expect from the business.",
           <div className="space-y-5">
             <div className="space-y-2">
               <Label>Heading</Label>
               <Input
-                value={exportDocuments.heading}
+                value={section.heading}
                 onChange={(event) =>
-                  updateSection("exportDocuments", {
+                  updateSection(index, {
                     heading: event.target.value,
                   })
                 }
@@ -1308,10 +1449,10 @@ export default function CreateWebsitePage() {
             <div className="space-y-2">
               <Label>Description</Label>
               <Textarea
-                value={exportDocuments.description}
+                value={section.description}
                 rows={4}
                 onChange={(event) =>
-                  updateSection("exportDocuments", {
+                  updateSection(index, {
                     description:
                       event.target.value,
                   })
@@ -1320,11 +1461,11 @@ export default function CreateWebsitePage() {
             </div>
             <TextArrayEditor
               label="Documents"
-              values={exportDocuments.documents}
+              values={section.documents}
               placeholder="Commercial Invoice"
               onChange={(index, value) =>
                 updateStringArrayItem(
-                  "exportDocuments",
+                  sectionIndex,
                   "documents",
                   index,
                   value
@@ -1332,33 +1473,35 @@ export default function CreateWebsitePage() {
               }
               onAdd={() =>
                 addStringArrayItem(
-                  "exportDocuments",
+                  sectionIndex,
                   "documents"
                 )
               }
               onRemove={(index) =>
                 removeStringArrayItem(
-                  "exportDocuments",
+                  sectionIndex,
                   "documents",
                   index
                 )
               }
             />
           </div>
-        )}
+              );
 
-        {renderSectionCard(
-          "cta",
-          9,
-          "CTA",
-          "Close the page with a clear commercial action for the buyer.",
+            case "cta":
+              return renderSectionCard(
+                section,
+                index,
+                9,
+                "CTA",
+                "Close the page with a clear commercial action for the buyer.",
           <div className="grid gap-5 md:grid-cols-2">
             <div className="space-y-2 md:col-span-2">
               <Label>Heading</Label>
               <Input
-                value={cta.heading}
+                value={section.heading}
                 onChange={(event) =>
-                  updateSection("cta", {
+                  updateSection(index, {
                     heading: event.target.value,
                   })
                 }
@@ -1367,10 +1510,10 @@ export default function CreateWebsitePage() {
             <div className="space-y-2 md:col-span-2">
               <Label>Description</Label>
               <Textarea
-                value={cta.description}
+                value={section.description}
                 rows={4}
                 onChange={(event) =>
-                  updateSection("cta", {
+                  updateSection(index, {
                     description: event.target.value,
                   })
                 }
@@ -1379,10 +1522,10 @@ export default function CreateWebsitePage() {
             <div className="space-y-2">
               <Label>Primary CTA</Label>
               <Input
-                value={cta.primaryCtaText}
+                value={section.primaryCtaText}
                 placeholder="Request a Quote"
                 onChange={(event) =>
-                  updateSection("cta", {
+                  updateSection(index, {
                     primaryCtaText:
                       event.target.value,
                   })
@@ -1392,10 +1535,10 @@ export default function CreateWebsitePage() {
             <div className="space-y-2">
               <Label>Secondary CTA</Label>
               <Input
-                value={cta.secondaryCtaText}
+                value={section.secondaryCtaText}
                 placeholder="Contact Us"
                 onChange={(event) =>
-                  updateSection("cta", {
+                  updateSection(index, {
                     secondaryCtaText:
                       event.target.value,
                   })
@@ -1403,20 +1546,22 @@ export default function CreateWebsitePage() {
               />
             </div>
           </div>
-        )}
+              );
 
-        {renderSectionCard(
-          "faq",
-          10,
-          "FAQ",
-          "Answer the most common buyer questions before they contact the business.",
+            case "faq":
+              return renderSectionCard(
+                section,
+                index,
+                10,
+                "FAQ",
+                "Answer the most common buyer questions before they contact the business.",
           <div className="space-y-5">
             <div className="space-y-2">
               <Label>Heading</Label>
               <Input
-                value={faq.heading}
+                value={section.heading}
                 onChange={(event) =>
-                  updateSection("faq", {
+                  updateSection(index, {
                     heading: event.target.value,
                   })
                 }
@@ -1430,7 +1575,7 @@ export default function CreateWebsitePage() {
                   variant="outline"
                   onClick={() =>
                     addObjectArrayItem(
-                      "faq",
+                      sectionIndex,
                       "items"
                     )
                   }
@@ -1441,14 +1586,14 @@ export default function CreateWebsitePage() {
                 </Button>
               </div>
 
-              {faq.items.length === 0 ? (
+              {section.items.length === 0 ? (
                 <p className="rounded-xl border border-dashed border-gray-300 px-4 py-3 text-sm text-gray-500">
                   No FAQs added yet.
                 </p>
               ) : (
-                faq.items.map((item, index) => (
+                section.items.map((item, index) => (
                   <div
-                    key={`faq-${index}`}
+                    key={`section-${index}`}
                     className="rounded-xl border border-gray-200 p-4"
                   >
                     <div className="mb-3 flex items-center justify-between">
@@ -1461,7 +1606,7 @@ export default function CreateWebsitePage() {
                         className="h-8 w-8 px-0"
                         onClick={() =>
                           removeObjectArrayItem(
-                            "faq",
+                            sectionIndex,
                             "items",
                             index
                           )
@@ -1477,7 +1622,7 @@ export default function CreateWebsitePage() {
                           value={item.question}
                           onChange={(event) =>
                             updateObjectArrayItem(
-                              "faq",
+                              sectionIndex,
                               "items",
                               index,
                               "question",
@@ -1493,7 +1638,7 @@ export default function CreateWebsitePage() {
                           rows={4}
                           onChange={(event) =>
                             updateObjectArrayItem(
-                              "faq",
+                              sectionIndex,
                               "items",
                               index,
                               "answer",
@@ -1508,46 +1653,98 @@ export default function CreateWebsitePage() {
               )}
             </div>
           </div>
-        )}
+              );
+            default:
+              return null;
+          }
+        })}
       </div>
     );
   }
 
   function renderSectionCard(
-    type: LandingPageSection["type"],
+    section: LandingPageSection,
+    sectionIndex: number,
     number: number,
     title: string,
     description: string,
     children: ReactNode
   ) {
-    if (!isStructuredSectionSelected(type)) {
-      return null;
-    }
-
-    const section = getSection(type) as LandingPageSection & {
-      sectionTitle?: string;
-      sectionDescription?: string;
-    };
-
     const displayTitle = section.sectionTitle?.trim() || title;
-    const displayDescription = section.sectionDescription?.trim() || description;
+    const displayDescription =
+      section.sectionDescription?.trim() || description;
+    const isFirst = sectionIndex === 0;
+    const isLast =
+      sectionIndex === form.structuredContent.sections.length - 1;
+    const isOpen = openSections[String(sectionIndex)] ?? true;
 
     return (
       <Card hover={false} className="overflow-hidden p-0">
-        <button
-          type="button"
-          className="flex w-full items-center justify-between gap-4 p-6 text-left"
-          onClick={() => toggleSection(type)}
-        >
-          <SectionHeader number={number} title={displayTitle} description={displayDescription} />
-          {openSections[type] ? (
-            <ChevronUp className="h-5 w-5 shrink-0 text-gray-400" />
-          ) : (
-            <ChevronDown className="h-5 w-5 shrink-0 text-gray-400" />
-          )}
-        </button>
+        <div className="flex items-start gap-4 p-6">
+          <button
+            type="button"
+            className="flex min-w-0 flex-1 items-start gap-4 text-left"
+            onClick={() => toggleSection(sectionIndex)}
+          >
+            <SectionHeader
+              number={sectionIndex + 1}
+              title={displayTitle}
+              description={displayDescription}
+            />
+            {isOpen ? (
+              <ChevronUp className="h-5 w-5 shrink-0 text-gray-400" />
+            ) : (
+              <ChevronDown className="h-5 w-5 shrink-0 text-gray-400" />
+            )}
+          </button>
 
-        {openSections[type] && (
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 px-3"
+              onClick={() => moveSection(sectionIndex, -1)}
+              disabled={isFirst}
+              aria-label={`Move ${displayTitle} up`}
+            >
+              <ChevronUp className="h-4 w-4" />
+              Up
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 px-3"
+              onClick={() => moveSection(sectionIndex, 1)}
+              disabled={isLast}
+              aria-label={`Move ${displayTitle} down`}
+            >
+              <ChevronDown className="h-4 w-4" />
+              Down
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 px-3"
+              onClick={() => copySection(sectionIndex)}
+              aria-label={`Copy ${displayTitle}`}
+            >
+              <CopyIcon className="h-4 w-4" />
+              Copy
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 px-3"
+              onClick={() => removeSection(sectionIndex)}
+              aria-label={`Remove ${displayTitle}`}
+            >
+              <Trash2 className="h-4 w-4 text-red-500" />
+              Remove
+            </Button>
+          </div>
+        </div>
+
+        {isOpen && (
           <div className="border-t border-gray-100 p-6">
             <div className="mb-6 grid gap-5 rounded-2xl border border-emerald-100 bg-emerald-50/40 p-5 md:grid-cols-2">
               <div className="space-y-2">
@@ -1555,9 +1752,15 @@ export default function CreateWebsitePage() {
                 <Input
                   value={section.sectionTitle ?? title}
                   placeholder={title}
-                  onChange={(event) => updateSection(type, { sectionTitle: event.target.value })}
+                  onChange={(event) =>
+                    updateSection(sectionIndex, {
+                      sectionTitle: event.target.value,
+                    })
+                  }
                 />
-                <p className="text-xs text-gray-500">Rename this section for this page.</p>
+                <p className="text-xs text-gray-500">
+                  Rename this section for this page.
+                </p>
               </div>
               <div className="space-y-2">
                 <Label>Section Description</Label>
@@ -1565,17 +1768,24 @@ export default function CreateWebsitePage() {
                   value={section.sectionDescription ?? description}
                   placeholder={description}
                   rows={3}
-                  onChange={(event) => updateSection(type, { sectionDescription: event.target.value })}
+                  onChange={(event) =>
+                    updateSection(sectionIndex, {
+                      sectionDescription: event.target.value,
+                    })
+                  }
                 />
-                <p className="text-xs text-gray-500">Explain what this section is for on this page.</p>
+                <p className="text-xs text-gray-500">
+                  Explain what this section is for on this page.
+                </p>
               </div>
             </div>
+
             {children}
 
             <SectionElementsEditor
               value={section.elements ?? []}
               onChange={(elements) =>
-                updateSection(type, {
+                updateSection(sectionIndex, {
                   elements,
                 })
               }
