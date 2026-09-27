@@ -25,7 +25,6 @@ import {
   LayoutDashboard,
   Link2,
   Menu,
-  MessageCircle,
   Package,
   Search,
   Settings,
@@ -65,7 +64,11 @@ const navGroups: NavGroup[] = [
         icon: Search,
         href: "/app/workspace/inquiries",
       },
-      { label: "FollowUps", icon: Link2, href: "/app/workspace/followups" },
+      {
+        label: "FollowUps",
+        icon: Link2,
+        href: "/app/workspace/followups",
+      },
     ],
   },
   {
@@ -77,27 +80,24 @@ const navGroups: NavGroup[] = [
         href: "/app/workspace/website/overview",
         icon: LayoutDashboard,
       },
-
-{
-  label: "Pages & Content",
-  icon: Menu,
-  children: [
-    {
-      label: "All Pages",
-      href: "/app/workspace/website/pages/all",
-    },
-    {
-      label: "Create Page",
-      href: "/app/workspace/website/pages/create",
-    },
-    {
-      label: "Page Editor",
-      disabled: true,
-    },
-  ],
-},
-
-
+      {
+        label: "Pages & Content",
+        icon: Menu,
+        children: [
+          {
+            label: "All Pages",
+            href: "/app/workspace/website/pages/all",
+          },
+          {
+            label: "Create Page",
+            href: "/app/workspace/website/pages/create",
+          },
+          {
+            label: "Page Editor",
+            disabled: true,
+          },
+        ],
+      },
       {
         label: "Media Library",
         href: "/app/workspace/website/media",
@@ -109,7 +109,7 @@ const navGroups: NavGroup[] = [
         icon: Menu,
       },
       {
-        label: "Analytics & Integrations",
+        label: "Marketing & Tracking",
         href: "/app/workspace/website/analytics",
         icon: BarChart3,
       },
@@ -124,8 +124,10 @@ const navGroups: NavGroup[] = [
     label: "INTEGRATIONS",
     defaultOpen: true,
     items: [
-      { label: "Google", disabled: true },
-      { label: "WhatsApp", href: "/app/workspace/integrations/whatsapp", icon: MessageCircle },
+      {
+        label: "WhatsApp",
+        disabled: true,
+      },
     ],
   },
   {
@@ -152,7 +154,11 @@ const navGroups: NavGroup[] = [
         href: "/app/billing",
         icon: CreditCard,
       },
-      { label: "Account", icon: Users, disabled: true },
+      {
+        label: "Account",
+        icon: Users,
+        disabled: true,
+      },
       {
         label: "Team & Access",
         href: "/app/workspace/business/team-access",
@@ -187,7 +193,9 @@ function itemMatchesSearch(
   if (item.label.toLowerCase().includes(normalized)) return true;
 
   return Boolean(
-    item.children?.some((child) => itemMatchesSearch(child, normalized))
+    item.children?.some((child) =>
+      itemMatchesSearch(child, normalized)
+    )
   );
 }
 
@@ -202,7 +210,10 @@ export default function WorkspaceLayout({
   const [searchQuery, setSearchQuery] = useState("");
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(
     Object.fromEntries(
-      navGroups.map((group) => [group.label, group.defaultOpen ?? true])
+      navGroups.map((group) => [
+        group.label,
+        group.defaultOpen ?? true,
+      ])
     )
   );
   const [openItems, setOpenItems] = useState<Record<string, boolean>>({
@@ -227,7 +238,8 @@ export default function WorkspaceLayout({
       }))
       .filter(
         (group) =>
-          group.label.toLowerCase().includes(query) || group.items.length > 0
+          group.label.toLowerCase().includes(query) ||
+          group.items.length > 0
       );
   }, [searchQuery]);
 
@@ -348,7 +360,9 @@ export default function WorkspaceLayout({
             title={collapsed ? "R-CAPTAIN Insights" : undefined}
           >
             <Sparkles className="h-4 w-4 shrink-0" />
-            {!collapsed && <span className="flex-1">R-CAPTAIN INSIGHTS</span>}
+            {!collapsed && (
+              <span className="flex-1">R-CAPTAIN INSIGHTS</span>
+            )}
           </Link>
         </div>
 
@@ -398,7 +412,9 @@ export default function WorkspaceLayout({
                               {item.icon && (
                                 <item.icon className="mr-2 h-4 w-4 shrink-0 text-slate-400" />
                               )}
-                              <span className="flex-1 text-left">{item.label}</span>
+                              <span className="flex-1 text-left">
+                                {item.label}
+                              </span>
                               {openItems[item.label] ? (
                                 <ChevronDown className="h-3.5 w-3.5" />
                               ) : (
@@ -415,7 +431,9 @@ export default function WorkspaceLayout({
                                       className="flex items-center rounded-lg px-3 py-2 text-sm text-slate-400"
                                       title="This workspace destination is not a standalone route"
                                     >
-                                      <span className="truncate">{child.label}</span>
+                                      <span className="truncate">
+                                        {child.label}
+                                      </span>
                                       <span className="ml-auto pl-2 text-[9px] uppercase tracking-wide text-slate-300">
                                         In editor
                                       </span>
@@ -510,7 +528,6 @@ export default function WorkspaceLayout({
           </div>
         )}
       </nav>
-
     </div>
   );
 
@@ -525,7 +542,10 @@ export default function WorkspaceLayout({
 
       <div className="md:hidden">
         <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-slate-200 bg-white px-4">
-          <Link href="/app/workspace" className="text-sm font-bold tracking-tight">
+          <Link
+            href="/app/workspace"
+            className="text-sm font-bold tracking-tight"
+          >
             ROOTYM
           </Link>
           <button

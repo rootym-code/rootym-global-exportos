@@ -5,6 +5,18 @@
  * Author: Prem Singh
  * Purpose: Provides tenant-safe Website Configuration retrieval
  *          and updates for the authenticated customer Website.
+ *
+ * Includes:
+ *   - Website identity configuration
+ *   - Google Tag Manager configuration
+ *   - Google Analytics / Google Tag configuration
+ *   - Google Search Console verification configuration
+ *   - Meta Pixel configuration
+ *
+ * PATCH behavior:
+ *   - Supports partial updates.
+ *   - Omitted fields are NOT modified.
+ *   - Explicit null values clear the corresponding field.
  * ============================================================
  */
 
@@ -23,6 +35,11 @@ interface ConfigurationPayload {
   tagline?: string | null;
   websiteDescription?: string | null;
   companyDescription?: string | null;
+
+  gtmContainerId?: string | null;
+  googleAnalyticsMeasurementId?: string | null;
+  searchConsoleVerificationCode?: string | null;
+  metaPixelId?: string | null;
 }
 
 function normalizeOptionalString(value: unknown): string | null {
@@ -37,6 +54,22 @@ function normalizeOptionalString(value: unknown): string | null {
   const normalized = value.trim();
 
   return normalized || null;
+}
+
+function validateTrackingId(
+  value: string | null,
+  pattern: RegExp,
+  message: string,
+) {
+  if (value && !pattern.test(value)) {
+    return ApiResponse.error({
+      message,
+      code: "INVALID_TRACKING_CONFIGURATION",
+      status: 400,
+    });
+  }
+
+  return null;
 }
 
 async function getCustomerWebsite() {
@@ -92,6 +125,10 @@ export async function GET() {
           tagline: true,
           websiteDescription: true,
           companyDescription: true,
+          gtmContainerId: true,
+          googleAnalyticsMeasurementId: true,
+          searchConsoleVerificationCode: true,
+          metaPixelId: true,
           createdAt: true,
           updatedAt: true,
         },
@@ -137,72 +174,328 @@ export async function PATCH(request: NextRequest) {
 
     const body = (await request.json()) as ConfigurationPayload;
 
-    const websiteTitle = normalizeOptionalString(
-      body.websiteTitle,
-    );
+    /**
+     * ----------------------------------------------------------
+     * IMPORTANT:
+     * PATCH is intentionally partial.
+     *
+     * We must distinguish between:
+     *
+     *   field omitted
+     *      -> do not change existing database value
+     *
+     *   field: null
+     *      -> explicitly clear existing database value
+     *
+     *   field: "value"
+     *      -> save new value
+     * ----------------------------------------------------------
+     */
 
-    const tagline = normalizeOptionalString(body.tagline);
+    const hasField = (field: keyof ConfigurationPayload) =>
+      Object.prototype.hasOwnProperty.call(body, field);
 
-    const websiteDescription = normalizeOptionalString(
-      body.websiteDescription,
-    );
+    /**
+     * ----------------------------------------------------------
+     * Normalize only fields actually supplied by the client.
+     * ----------------------------------------------------------
+     */
 
-    const companyDescription = normalizeOptionalString(
-      body.companyDescription,
-    );
+    const websiteTitle = hasField("websiteTitle")
+      ? normalizeOptionalString(body.websiteTitle)
+      : undefined;
 
-    if (websiteTitle && websiteTitle.length > 200) {
-      return ApiResponse.error({
-        message: "Website title must be 200 characters or fewer.",
-        code: "WEBSITE_TITLE_TOO_LONG",
-        status: 400,
-      });
+    const tagline = hasField("tagline")
+      ? normalizeOptionalString(body.tagline)
+      : undefined;
+
+    const websiteDescription = hasField("websiteDescription")
+      ? normalizeOptionalString(body.websiteDescription)
+      : undefined;
+
+    const companyDescription = hasField("companyDescription")
+      ? normalizeOptionalString(body.companyDescription)
+      : undefined;
+
+    const gtmContainerId = hasField("gtmContainerId")
+      ? normalizeOptionalString(body.gtmContainerId)
+      : undefined;
+
+    const googleAnalyticsMeasurementId = hasField(
+      "googleAnalyticsMeasurementId",
+    )
+      ? normalizeOptionalString(
+          body.googleAnalyticsMeasurementId,
+        )
+      : undefined;
+
+    const searchConsoleVerificationCode = hasField(
+      "searchConsoleVerificationCode",
+    )
+      ? normalizeOptionalString(
+          body.searchConsoleVerificationCode,
+        )
+      : undefined;
+
+    const metaPixelId = hasField("metaPixelId")
+      ? normalizeOptionalString(body.metaPixelId)
+      : undefined;
+
+    /**
+     * ----------------------------------------------------------
+     * Website identity validation
+     * ----------------------------------------------------------
+     */
+
+    if (websiteTitle !== undefined) {
+      if (websiteTitle && websiteTitle.length > 200) {
+        return ApiResponse.error({
+          message:
+            "Website title must be 200 characters or fewer.",
+          code: "WEBSITE_TITLE_TOO_LONG",
+          status: 400,
+        });
+      }
     }
 
-    if (tagline && tagline.length > 300) {
-      return ApiResponse.error({
-        message: "Tagline must be 300 characters or fewer.",
-        code: "TAGLINE_TOO_LONG",
-        status: 400,
-      });
+    if (tagline !== undefined) {
+      if (tagline && tagline.length > 300) {
+        return ApiResponse.error({
+          message: "Tagline must be 300 characters or fewer.",
+          code: "TAGLINE_TOO_LONG",
+          status: 400,
+        });
+      }
     }
 
-    if (websiteDescription && websiteDescription.length > 2000) {
-      return ApiResponse.error({
-        message:
-          "Website description must be 2000 characters or fewer.",
-        code: "WEBSITE_DESCRIPTION_TOO_LONG",
-        status: 400,
-      });
+    if (websiteDescription !== undefined) {
+      if (websiteDescription && websiteDescription.length > 2000) {
+        return ApiResponse.error({
+          message:
+            "Website description must be 2000 characters or fewer.",
+          code: "WEBSITE_DESCRIPTION_TOO_LONG",
+          status: 400,
+        });
+      }
     }
 
-    if (companyDescription && companyDescription.length > 2000) {
-      return ApiResponse.error({
-        message:
-          "Company description must be 2000 characters or fewer.",
-        code: "COMPANY_DESCRIPTION_TOO_LONG",
-        status: 400,
-      });
+    if (companyDescription !== undefined) {
+      if (companyDescription && companyDescription.length > 2000) {
+        return ApiResponse.error({
+          message:
+            "Company description must be 2000 characters or fewer.",
+          code: "COMPANY_DESCRIPTION_TOO_LONG",
+          status: 400,
+        });
+      }
     }
+
+    /**
+     * ----------------------------------------------------------
+     * Tracking configuration length validation
+     * ----------------------------------------------------------
+     */
+
+    if (gtmContainerId !== undefined) {
+      if (gtmContainerId && gtmContainerId.length > 100) {
+        return ApiResponse.error({
+          message:
+            "Google Tag Manager Container ID is too long.",
+          code: "GTM_CONTAINER_ID_TOO_LONG",
+          status: 400,
+        });
+      }
+    }
+
+    if (googleAnalyticsMeasurementId !== undefined) {
+      if (
+        googleAnalyticsMeasurementId &&
+        googleAnalyticsMeasurementId.length > 100
+      ) {
+        return ApiResponse.error({
+          message:
+            "Google Analytics Measurement ID is too long.",
+          code: "GOOGLE_ANALYTICS_ID_TOO_LONG",
+          status: 400,
+        });
+      }
+    }
+
+    if (searchConsoleVerificationCode !== undefined) {
+      if (
+        searchConsoleVerificationCode &&
+        searchConsoleVerificationCode.length > 500
+      ) {
+        return ApiResponse.error({
+          message:
+            "Google Search Console verification value is too long.",
+          code: "SEARCH_CONSOLE_VERIFICATION_TOO_LONG",
+          status: 400,
+        });
+      }
+    }
+
+    if (metaPixelId !== undefined) {
+      if (metaPixelId && metaPixelId.length > 100) {
+        return ApiResponse.error({
+          message: "Meta Pixel ID is too long.",
+          code: "META_PIXEL_ID_TOO_LONG",
+          status: 400,
+        });
+      }
+    }
+
+    /**
+     * ----------------------------------------------------------
+     * Tracking ID format validation
+     * ----------------------------------------------------------
+     */
+
+    if (gtmContainerId !== undefined) {
+      const gtmValidation = validateTrackingId(
+        gtmContainerId,
+        /^GTM-[A-Z0-9]+$/i,
+        "Google Tag Manager Container ID must use the format GTM-XXXXXXX.",
+      );
+
+      if (gtmValidation) {
+        return gtmValidation;
+      }
+    }
+
+    if (googleAnalyticsMeasurementId !== undefined) {
+      const analyticsValidation = validateTrackingId(
+        googleAnalyticsMeasurementId,
+        /^G-[A-Z0-9]+$/i,
+        "Google Analytics Measurement ID must use the format G-XXXXXXXXXX.",
+      );
+
+      if (analyticsValidation) {
+        return analyticsValidation;
+      }
+    }
+
+    if (metaPixelId !== undefined) {
+      const metaPixelValidation = validateTrackingId(
+        metaPixelId,
+        /^\d+$/,
+        "Meta Pixel ID must contain numbers only.",
+      );
+
+      if (metaPixelValidation) {
+        return metaPixelValidation;
+      }
+    }
+
+    /**
+     * ----------------------------------------------------------
+     * Build partial update object.
+     *
+     * Undefined properties are deliberately NOT included.
+     * Therefore Prisma leaves those database values unchanged.
+     * ----------------------------------------------------------
+     */
+
+    const updateData: Record<string, string | null> = {};
+
+    if (websiteTitle !== undefined) {
+      updateData.websiteTitle = websiteTitle;
+    }
+
+    if (tagline !== undefined) {
+      updateData.tagline = tagline;
+    }
+
+    if (websiteDescription !== undefined) {
+      updateData.websiteDescription = websiteDescription;
+    }
+
+    if (companyDescription !== undefined) {
+      updateData.companyDescription = companyDescription;
+    }
+
+    if (gtmContainerId !== undefined) {
+      updateData.gtmContainerId = gtmContainerId;
+    }
+
+    if (googleAnalyticsMeasurementId !== undefined) {
+      updateData.googleAnalyticsMeasurementId =
+        googleAnalyticsMeasurementId;
+    }
+
+    if (searchConsoleVerificationCode !== undefined) {
+      updateData.searchConsoleVerificationCode =
+        searchConsoleVerificationCode;
+    }
+
+    if (metaPixelId !== undefined) {
+      updateData.metaPixelId = metaPixelId;
+    }
+
+    /**
+     * ----------------------------------------------------------
+     * Upsert configuration.
+     *
+     * CREATE:
+     * Missing values become null.
+     *
+     * UPDATE:
+     * Only supplied fields are modified.
+     * ----------------------------------------------------------
+     */
 
     const configuration =
       await prisma.websiteConfiguration.upsert({
         where: {
           websiteId: website.id,
         },
+
         create: {
           websiteId: website.id,
-          websiteTitle,
-          tagline,
-          websiteDescription,
-          companyDescription,
+
+          websiteTitle:
+            websiteTitle !== undefined
+              ? websiteTitle
+              : null,
+
+          tagline:
+            tagline !== undefined
+              ? tagline
+              : null,
+
+          websiteDescription:
+            websiteDescription !== undefined
+              ? websiteDescription
+              : null,
+
+          companyDescription:
+            companyDescription !== undefined
+              ? companyDescription
+              : null,
+
+          gtmContainerId:
+            gtmContainerId !== undefined
+              ? gtmContainerId
+              : null,
+
+          googleAnalyticsMeasurementId:
+            googleAnalyticsMeasurementId !== undefined
+              ? googleAnalyticsMeasurementId
+              : null,
+
+          searchConsoleVerificationCode:
+            searchConsoleVerificationCode !== undefined
+              ? searchConsoleVerificationCode
+              : null,
+
+          metaPixelId:
+            metaPixelId !== undefined
+              ? metaPixelId
+              : null,
         },
-        update: {
-          websiteTitle,
-          tagline,
-          websiteDescription,
-          companyDescription,
-        },
+
+        update: updateData,
+
         select: {
           id: true,
           websiteId: true,
@@ -210,6 +503,10 @@ export async function PATCH(request: NextRequest) {
           tagline: true,
           websiteDescription: true,
           companyDescription: true,
+          gtmContainerId: true,
+          googleAnalyticsMeasurementId: true,
+          searchConsoleVerificationCode: true,
+          metaPixelId: true,
           createdAt: true,
           updatedAt: true,
         },

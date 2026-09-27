@@ -869,6 +869,38 @@ model WhatsAppIntegration {
   @@index([phoneNumberId])
 }
 
+/**
+ * ============================================================
+ * ROOTYM Customer Google Integration
+ * ============================================================
+ * Author: Prem Singh
+ * Purpose: Stores tenant-owned Google account connection
+ * details for the Customer Workspace integration.
+ * ============================================================
+ */
+model GoogleIntegration {
+  id              String                  @id @default(cuid())
+  tenantId        String                  @unique
+  googleAccountId String
+  email           String?
+  name            String?
+  accessToken     String
+  refreshToken    String
+  tokenExpiresAt  DateTime?
+  scopes          String?
+  status          GoogleIntegrationStatus @default(CONNECTED)
+  connectedAt     DateTime                @default(now())
+  lastVerifiedAt  DateTime?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([googleAccountId])
+  @@index([email])
+}
+
 model User {
   id                       String                       @id @default(cuid())
   email                    String                       @unique
@@ -936,6 +968,7 @@ model Tenant {
   website                      Website?
   workspaceInvitations         WorkspaceInvitation[]
   whatsappIntegration          WhatsAppIntegration?
+  googleIntegration            GoogleIntegration?
 
   @@index([isActive])
 }
@@ -1049,9 +1082,20 @@ model WebsiteConfiguration {
   /// Customer-facing website description.
   websiteDescription String?
 
-    /// Company description used in the public 3D company panel and footer.
+  /// Company description used in the public 3D company panel and footer.
   companyDescription String?
 
+  /// Google Tag Manager container ID, for example GTM-XXXXXXX.
+  gtmContainerId String?
+
+  /// Google Analytics 4 / Google tag measurement ID, for example G-XXXXXXXXXX.
+  googleAnalyticsMeasurementId String?
+
+  /// Google Search Console verification token/code.
+  searchConsoleVerificationCode String?
+
+  /// Meta Pixel ID associated with the tenant's Meta Business account.
+  metaPixelId String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1708,6 +1752,12 @@ model WebsiteDomain {
 }
 
 enum WhatsAppIntegrationStatus {
+  CONNECTED
+  DISCONNECTED
+  ERROR
+}
+
+enum GoogleIntegrationStatus {
   CONNECTED
   DISCONNECTED
   ERROR

@@ -1,137 +1,335 @@
+"use client";
+
 /**
  * ============================================================
  * ROOTYM Customer Workspace
  * ============================================================
- * Author: Prem Singh
- * Purpose: Provides the authenticated Website Analytics &
- *          Integrations page for the customer Website &
- *          Marketing workspace.
+ * Purpose:
+ *   Marketing & Tracking configuration page for the customer
+ *   website.
+ *
+ * Scope:
+ *   - Google Tag Manager
+ *   - Google Analytics / Google Tag
+ *   - Google Search Console
+ *   - Meta Pixel
+ *
+ * Important:
+ *   This page is configuration-focused.
+ *   ROOTYM does not recreate Google or Meta reporting here.
  * ============================================================
  */
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  Activity,
   ArrowLeft,
   ArrowRight,
   BarChart3,
   CheckCircle2,
-  CircleUserRound,
   Code2,
   Globe2,
   LayoutDashboard,
-  Link2,
-  LockKeyhole,
+  Loader2,
+  Megaphone,
+  Search,
   Settings,
   ShieldCheck,
-  Sparkles,
-  TrendingUp,
+  Tag,
 } from "lucide-react";
 
-import {
-  getWebsiteAnalyticsOverview,
-  type WebsiteAnalyticsStatus,
-} from "@/app/lib/workspace/website/website-analytics.service";
+type IntegrationStatus = "NOT_CONFIGURED" | "CONFIGURED";
 
-function getStatusLabel(status: WebsiteAnalyticsStatus) {
-  switch (status) {
-    case "READY":
-      return "Ready";
+type TrackingIntegration = {
+  id: string;
+  title: string;
+  description: string;
+  purpose: string;
+  icon: typeof Tag;
+  status: IntegrationStatus;
+  fieldLabel: string;
+  fieldPlaceholder: string;
+  helpText: string;
+  fieldKey:
+    | "gtmContainerId"
+    | "googleAnalyticsMeasurementId"
+    | "searchConsoleVerificationCode"
+    | "metaPixelId";
+};
 
-    case "NOT_CONNECTED":
-      return "Not Connected";
+type Configuration = {
+  gtmContainerId: string | null;
+  googleAnalyticsMeasurementId: string | null;
+  searchConsoleVerificationCode: string | null;
+  metaPixelId: string | null;
+};
 
-    case "PREPARING":
-    default:
-      return "Preparing";
-  }
-}
+type Website = {
+  id: string;
+  name: string;
+  slug: string;
+};
 
-function getStatusClassName(status: WebsiteAnalyticsStatus) {
-  switch (status) {
-    case "READY":
-      return "bg-emerald-50 text-emerald-700 ring-emerald-100";
-
-    case "NOT_CONNECTED":
-      return "bg-slate-100 text-slate-500 ring-slate-200";
-
-    case "PREPARING":
-    default:
-      return "bg-amber-50 text-amber-700 ring-amber-100";
-  }
-}
-
-function getStatusIcon(status: WebsiteAnalyticsStatus) {
-  switch (status) {
-    case "READY":
-      return CheckCircle2;
-
-    case "NOT_CONNECTED":
-      return LockKeyhole;
-
-    case "PREPARING":
-    default:
-      return Activity;
-  }
-}
-
-const analyticsAreas = [
+const integrations: TrackingIntegration[] = [
   {
-    title: "Website Analytics",
+    id: "google-tag-manager",
+    title: "Google Tag Manager",
     description:
-      "Review website traffic, visitor activity and future customer-facing analytics from your workspace.",
+      "Manage website tracking and marketing tags from one Google Tag Manager container.",
+    purpose:
+      "GTM acts as the tag management layer for your website. It can deploy Google, Meta and other supported marketing tags without repeatedly changing website code.",
+    icon: Tag,
+    status: "NOT_CONFIGURED",
+    fieldLabel: "GTM Container ID",
+    fieldPlaceholder: "GTM-XXXXXXX",
+    helpText:
+      "Enter the Google Tag Manager container ID that belongs to your business.",
+    fieldKey: "gtmContainerId",
+  },
+  {
+    id: "google-analytics",
+    title: "Google Analytics",
+    description:
+      "Measure visitors, traffic sources, page activity and website events using Google Analytics.",
+    purpose:
+      "The Google Tag sends measurement data to your Google Analytics property. ROOTYM enables the website connection; Google provides the analytics and reporting.",
     icon: BarChart3,
+    status: "NOT_CONFIGURED",
+    fieldLabel: "Google Analytics Measurement ID",
+    fieldPlaceholder: "G-XXXXXXXXXX",
+    helpText:
+      "Enter the GA4 Measurement ID associated with your Google Analytics property.",
+    fieldKey: "googleAnalyticsMeasurementId",
   },
   {
-    title: "Tracking Configuration",
+    id: "google-search-console",
+    title: "Google Search Console",
     description:
-      "Configure future website tracking and measurement settings for your customer website.",
-    icon: Code2,
+      "Connect your website to Google Search Console to monitor search visibility and indexing.",
+    purpose:
+      "Search Console is independent of Google Analytics. It helps you understand how your website appears in Google Search, including search queries, impressions, clicks and indexing.",
+    icon: Search,
+    status: "NOT_CONFIGURED",
+    fieldLabel: "Search Console Verification",
+    fieldPlaceholder: "Verification value",
+    helpText:
+      "Enter the Search Console verification value that will be used for your website.",
+    fieldKey: "searchConsoleVerificationCode",
   },
   {
-    title: "Search & Performance",
+    id: "meta-pixel",
+    title: "Meta Pixel",
     description:
-      "Review future search visibility, website performance and discovery metrics.",
-    icon: TrendingUp,
-  },
-  {
-    title: "External Integrations",
-    description:
-      "Connect supported analytics, marketing and external website services to your workspace.",
-    icon: Link2,
-  },
-  {
-    title: "Integration Settings",
-    description:
-      "Manage connected services, integration preferences and future synchronization settings.",
-    icon: Settings,
-  },
-  {
-    title: "AI Marketing Assistance",
-    description:
-      "Use future ROOTYM AI capabilities to interpret website performance and assist with marketing decisions.",
-    icon: Sparkles,
+      "Prepare your website for Meta advertising, conversion tracking and audience measurement.",
+    purpose:
+      "The Meta Pixel sends supported website events to Meta so that Meta Ads can measure website activity and use eligible events for advertising and optimization.",
+    icon: Megaphone,
+    status: "NOT_CONFIGURED",
+    fieldLabel: "Meta Pixel ID",
+    fieldPlaceholder: "XXXXXXXXXXXXXXXX",
+    helpText:
+      "Enter the Meta Pixel ID associated with your Meta Business account.",
+    fieldKey: "metaPixelId",
   },
 ];
 
-export default async function WebsiteAnalyticsPage() {
-  const overview = await getWebsiteAnalyticsOverview();
+function getStatusLabel(status: IntegrationStatus) {
+  return status === "CONFIGURED" ? "Configured" : "Not configured";
+}
 
-  const analyticsStatusIcon = getStatusIcon(
-    overview.analytics.analyticsStatus
-  );
+function getStatusClasses(status: IntegrationStatus) {
+  if (status === "CONFIGURED") {
+    return "bg-emerald-50 text-emerald-700 ring-emerald-100";
+  }
 
-  const trackingStatusIcon = getStatusIcon(
-    overview.analytics.trackingStatus
-  );
+  return "bg-slate-100 text-slate-500 ring-slate-200";
+}
 
-  const integrationsStatusIcon = getStatusIcon(
-    overview.analytics.integrationsStatus
-  );
+function getStatusIcon(status: IntegrationStatus) {
+  return status === "CONFIGURED" ? CheckCircle2 : ShieldCheck;
+}
 
-  const AnalyticsStatusIcon = analyticsStatusIcon;
-  const TrackingStatusIcon = trackingStatusIcon;
-  const IntegrationsStatusIcon = integrationsStatusIcon;
+function emptyConfiguration(): Configuration {
+  return {
+    gtmContainerId: null,
+    googleAnalyticsMeasurementId: null,
+    searchConsoleVerificationCode: null,
+    metaPixelId: null,
+  };
+}
+
+export default function WebsiteAnalyticsPage() {
+  const [website, setWebsite] = useState<Website | null>(null);
+  const [configuration, setConfiguration] =
+    useState<Configuration>(emptyConfiguration());
+
+  const [loading, setLoading] = useState(true);
+  const [savingKey, setSavingKey] = useState<
+    TrackingIntegration["fieldKey"] | null
+  >(null);
+
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadConfiguration() {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await fetch(
+          "/api/workspace/website/configuration",
+          {
+            method: "GET",
+            credentials: "include",
+            cache: "no-store",
+          },
+        );
+
+        const payload = await response.json().catch(() => null);
+
+        if (!response.ok) {
+          throw new Error(
+            payload?.message ??
+              "Unable to load Website Configuration.",
+          );
+        }
+
+        const loadedWebsite = payload?.data?.website;
+        const loadedConfiguration =
+          payload?.data?.configuration;
+
+        if (cancelled) {
+          return;
+        }
+
+        setWebsite(
+          loadedWebsite
+            ? {
+                id: loadedWebsite.id,
+                name: loadedWebsite.name,
+                slug: loadedWebsite.slug,
+              }
+            : null,
+        );
+
+        setConfiguration({
+          gtmContainerId:
+            loadedConfiguration?.gtmContainerId ?? null,
+          googleAnalyticsMeasurementId:
+            loadedConfiguration?.googleAnalyticsMeasurementId ??
+            null,
+          searchConsoleVerificationCode:
+            loadedConfiguration?.searchConsoleVerificationCode ??
+            null,
+          metaPixelId:
+            loadedConfiguration?.metaPixelId ?? null,
+        });
+      } catch (loadError) {
+        if (cancelled) {
+          return;
+        }
+
+        setError(
+          loadError instanceof Error
+            ? loadError.message
+            : "Unable to load Marketing & Tracking configuration.",
+        );
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void loadConfiguration();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function saveIntegration(
+    fieldKey: TrackingIntegration["fieldKey"],
+  ) {
+    try {
+      setSavingKey(fieldKey);
+      setError(null);
+      setSuccess(null);
+
+      const response = await fetch(
+        "/api/workspace/website/configuration",
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            [fieldKey]: configuration[fieldKey],
+          }),
+        },
+      );
+
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(
+          payload?.message ??
+            "Unable to save the tracking configuration.",
+        );
+      }
+
+      const savedConfiguration =
+        payload?.data?.configuration;
+
+      if (savedConfiguration) {
+        setConfiguration({
+          gtmContainerId:
+            savedConfiguration.gtmContainerId ?? null,
+          googleAnalyticsMeasurementId:
+            savedConfiguration.googleAnalyticsMeasurementId ??
+            null,
+          searchConsoleVerificationCode:
+            savedConfiguration.searchConsoleVerificationCode ??
+            null,
+          metaPixelId:
+            savedConfiguration.metaPixelId ?? null,
+        });
+      }
+
+      const integration = integrations.find(
+        (item) => item.fieldKey === fieldKey,
+      );
+
+      setSuccess(
+        `${integration?.title ?? "Tracking configuration"} saved successfully.`,
+      );
+    } catch (saveError) {
+      setError(
+        saveError instanceof Error
+          ? saveError.message
+          : "Unable to save the tracking configuration.",
+      );
+    } finally {
+      setSavingKey(null);
+    }
+  }
+
+  function updateConfiguration(
+    fieldKey: TrackingIntegration["fieldKey"],
+    value: string,
+  ) {
+    setConfiguration((current) => ({
+      ...current,
+      [fieldKey]: value || null,
+    }));
+
+    setError(null);
+    setSuccess(null);
+  }
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
@@ -144,7 +342,7 @@ export default async function WebsiteAnalyticsPage() {
           <div className="flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-950">
-                <BarChart3 className="h-5 w-5 text-white" />
+                <Tag className="h-5 w-5 text-white" />
               </div>
 
               <div>
@@ -153,7 +351,7 @@ export default async function WebsiteAnalyticsPage() {
                 </p>
 
                 <p className="text-lg font-bold">
-                  Analytics & Integrations
+                  Marketing & Tracking
                 </p>
               </div>
             </div>
@@ -194,18 +392,18 @@ export default async function WebsiteAnalyticsPage() {
           <div className="flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
               <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.16em] text-emerald-400">
-                <BarChart3 className="h-4 w-4" />
+                <Tag className="h-4 w-4" />
                 Website & Marketing
               </div>
 
               <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
-                Analytics & Integrations
+                Marketing & Tracking
               </h1>
 
               <p className="mt-5 max-w-2xl text-sm leading-7 text-slate-300 sm:text-base">
-                Connect website analytics and future digital
-                marketing integrations to your ROOTYM workspace
-                from one central environment.
+                Configure the Google and Meta services that help your
+                website get discovered, measured and used for
+                advertising — all from one place.
               </p>
             </div>
 
@@ -216,14 +414,14 @@ export default async function WebsiteAnalyticsPage() {
               </div>
 
               <div className="inline-flex items-center gap-2 rounded-full bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-300 ring-1 ring-white/10">
-                Module Preparing
+                Website Services
               </div>
             </div>
           </div>
         </section>
 
         {/* =====================================================
-            WORKSPACE CONTEXT
+            WEBSITE CONTEXT
             ===================================================== */}
 
         <section className="mt-8">
@@ -231,28 +429,29 @@ export default async function WebsiteAnalyticsPage() {
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.16em] text-emerald-600">
-                  Workspace
+                  Website
                 </p>
 
                 <h2 className="mt-2 text-2xl font-bold">
-                  {overview.workspace.name}
+                  {website?.name ??
+                    (loading ? "Loading..." : "Customer Website")}
                 </h2>
 
                 <p className="mt-2 text-sm text-slate-500">
-                  {overview.workspace.slug}
+                  {website?.slug ?? ""}
                 </p>
               </div>
 
               <div className="flex items-center gap-3 rounded-2xl bg-slate-50 px-5 py-4 ring-1 ring-slate-200">
-                <CircleUserRound className="h-5 w-5 text-slate-600" />
+                <Globe2 className="h-5 w-5 text-slate-600" />
 
                 <div>
                   <p className="text-sm font-semibold text-slate-900">
-                    {overview.owner.name}
+                    Website Tracking
                   </p>
 
                   <p className="text-xs text-slate-500">
-                    {overview.owner.email}
+                    Google & Meta configuration
                   </p>
                 </div>
               </div>
@@ -261,268 +460,7 @@ export default async function WebsiteAnalyticsPage() {
         </section>
 
         {/* =====================================================
-            ANALYTICS STATUS
-            ===================================================== */}
-
-        <section className="mt-8">
-          <div className="mb-6">
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-emerald-600">
-              Analytics Environment
-            </p>
-
-            <h2 className="mt-2 text-2xl font-bold tracking-tight">
-              Analytics & integration status
-            </h2>
-
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-              These indicators show the current readiness of the
-              customer website analytics and integration environment.
-            </p>
-          </div>
-
-          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-              <div className="flex items-center justify-between">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50">
-                  <BarChart3 className="h-5 w-5 text-emerald-600" />
-                </div>
-
-                <AnalyticsStatusIcon className="h-5 w-5 text-slate-400" />
-              </div>
-
-              <p className="mt-5 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Analytics
-              </p>
-
-              <p className="mt-2 text-xl font-bold">
-                {getStatusLabel(
-                  overview.analytics.analyticsStatus
-                )}
-              </p>
-
-              <span
-                className={`mt-3 inline-flex rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ${getStatusClassName(
-                  overview.analytics.analyticsStatus
-                )}`}
-              >
-                {getStatusLabel(
-                  overview.analytics.analyticsStatus
-                )}
-              </span>
-            </div>
-
-            <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-              <div className="flex items-center justify-between">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100">
-                  <Code2 className="h-5 w-5 text-slate-700" />
-                </div>
-
-                <TrackingStatusIcon className="h-5 w-5 text-slate-400" />
-              </div>
-
-              <p className="mt-5 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Tracking
-              </p>
-
-              <p className="mt-2 text-xl font-bold">
-                {getStatusLabel(
-                  overview.analytics.trackingStatus
-                )}
-              </p>
-
-              <span
-                className={`mt-3 inline-flex rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ${getStatusClassName(
-                  overview.analytics.trackingStatus
-                )}`}
-              >
-                {getStatusLabel(
-                  overview.analytics.trackingStatus
-                )}
-              </span>
-            </div>
-
-            <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-              <div className="flex items-center justify-between">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100">
-                  <Link2 className="h-5 w-5 text-slate-700" />
-                </div>
-
-                <IntegrationsStatusIcon className="h-5 w-5 text-slate-400" />
-              </div>
-
-              <p className="mt-5 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Integrations
-              </p>
-
-              <p className="mt-2 text-xl font-bold">
-                {getStatusLabel(
-                  overview.analytics.integrationsStatus
-                )}
-              </p>
-
-              <span
-                className={`mt-3 inline-flex rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ${getStatusClassName(
-                  overview.analytics.integrationsStatus
-                )}`}
-              >
-                {getStatusLabel(
-                  overview.analytics.integrationsStatus
-                )}
-              </span>
-            </div>
-
-            <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-              <div className="flex items-center justify-between">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100">
-                  <Globe2 className="h-5 w-5 text-slate-700" />
-                </div>
-
-                <LockKeyhole className="h-5 w-5 text-slate-400" />
-              </div>
-
-              <p className="mt-5 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Website Binding
-              </p>
-
-              <p className="mt-2 text-xl font-bold">
-                Not Connected
-              </p>
-
-              <span className="mt-3 inline-flex rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-500 ring-1 ring-slate-200">
-                Not Connected
-              </span>
-            </div>
-          </div>
-        </section>
-
-        {/* =====================================================
-            ANALYTICS READINESS
-            ===================================================== */}
-
-        <section className="mt-8">
-          <div className="rounded-3xl border border-emerald-100 bg-emerald-50 p-7 sm:p-8">
-            <div className="flex items-start gap-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white ring-1 ring-emerald-100">
-                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-              </div>
-
-              <div className="flex-1">
-                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-emerald-700">
-                  Analytics Readiness
-                </p>
-
-                <h2 className="mt-2 text-xl font-bold text-slate-900">
-                  Prepare your analytics environment
-                </h2>
-
-                <p className="mt-3 max-w-4xl text-sm leading-6 text-slate-600">
-                  The customer workspace boundary is ready for
-                  future tenant-specific analytics and integration
-                  configuration. External services will be connected
-                  only after the customer website binding is
-                  established.
-                </p>
-
-                <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  <div className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3 ring-1 ring-emerald-100">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-
-                    <span className="text-sm font-medium text-slate-700">
-                      Workspace connected
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3 ring-1 ring-emerald-100">
-                    <BarChart3 className="h-4 w-4 text-slate-400" />
-
-                    <span className="text-sm font-medium text-slate-700">
-                      Analytics not connected
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3 ring-1 ring-emerald-100">
-                    <Code2 className="h-4 w-4 text-slate-400" />
-
-                    <span className="text-sm font-medium text-slate-700">
-                      Tracking not configured
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3 ring-1 ring-emerald-100">
-                    <LockKeyhole className="h-4 w-4 text-slate-400" />
-
-                    <span className="text-sm font-medium text-slate-700">
-                      Integrations not connected
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* =====================================================
-            ANALYTICS MANAGEMENT AREAS
-            ===================================================== */}
-
-        <section className="mt-8">
-          <div className="mb-6">
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-emerald-600">
-              Analytics Management
-            </p>
-
-            <h2 className="mt-2 text-2xl font-bold tracking-tight">
-              Analytics & integration areas
-            </h2>
-
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-              These capabilities will be enabled progressively as
-              the customer website analytics and integration
-              architecture is implemented.
-            </p>
-          </div>
-
-          <div className="grid gap-5 md:grid-cols-2">
-            {analyticsAreas.map((area) => {
-              const Icon = area.icon;
-
-              return (
-                <div
-                  key={area.title}
-                  className="rounded-3xl bg-white p-7 shadow-sm ring-1 ring-slate-200 transition hover:shadow-md"
-                >
-                  <div className="flex items-start justify-between gap-5">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 ring-1 ring-emerald-100">
-                      <Icon className="h-6 w-6 text-emerald-600" />
-                    </div>
-
-                    <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-500">
-                      Preparing
-                    </span>
-                  </div>
-
-                  <h3 className="mt-6 text-xl font-bold">
-                    {area.title}
-                  </h3>
-
-                  <p className="mt-3 text-sm leading-6 text-slate-500">
-                    {area.description}
-                  </p>
-
-                  <div className="mt-6">
-                    <span className="inline-flex items-center gap-2 text-sm font-semibold text-slate-400">
-                      Coming soon
-                      <ArrowRight className="h-4 w-4" />
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* =====================================================
-            ARCHITECTURE NOTE
+            INTRODUCTION
             ===================================================== */}
 
         <section className="mt-8">
@@ -534,18 +472,19 @@ export default async function WebsiteAnalyticsPage() {
 
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.16em] text-emerald-700">
-                  Integration Architecture
+                  Website Tracking
                 </p>
 
                 <h2 className="mt-2 text-xl font-bold text-slate-900">
-                  Customer-owned analytics configuration
+                  Connect your website to Google and Meta
                 </h2>
 
-                <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-600">
-                  Analytics and external integrations will be
-                  associated with the authenticated customer workspace.
-                  Global ROOTYM configuration is not exposed through
-                  this customer-facing module.
+                <p className="mt-3 max-w-4xl text-sm leading-6 text-slate-600">
+                  ROOTYM provides the website configuration needed to
+                  connect your external marketing and measurement
+                  services. Google and Meta remain responsible for
+                  their own analytics, search and advertising
+                  platforms.
                 </p>
               </div>
             </div>
@@ -553,36 +492,277 @@ export default async function WebsiteAnalyticsPage() {
         </section>
 
         {/* =====================================================
-            SUBSCRIPTION CONTEXT
+            GLOBAL FEEDBACK
+            ===================================================== */}
+
+        {(error || success) && (
+          <section className="mt-8">
+            {error && (
+              <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-medium text-red-700">
+                {error}
+              </div>
+            )}
+
+            {success && !error && (
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-700">
+                {success}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* =====================================================
+            INTEGRATIONS
+            ===================================================== */}
+
+        <section className="mt-8">
+          <div className="mb-6">
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-emerald-600">
+              Integrations
+            </p>
+
+            <h2 className="mt-2 text-2xl font-bold tracking-tight">
+              Configure your website tracking
+            </h2>
+
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
+              All supported services are managed from this single
+              page. No separate integration pages are required.
+            </p>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            {integrations.map((integration) => {
+              const Icon = integration.icon;
+
+              const value =
+                configuration[integration.fieldKey] ?? "";
+
+              const status: IntegrationStatus = value.trim()
+                ? "CONFIGURED"
+                : "NOT_CONFIGURED";
+
+              const StatusIcon = getStatusIcon(status);
+
+              const isSaving =
+                savingKey === integration.fieldKey;
+
+              return (
+                <div
+                  key={integration.id}
+                  className="rounded-3xl bg-white p-7 shadow-sm ring-1 ring-slate-200"
+                >
+                  <div className="flex items-start justify-between gap-5">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 ring-1 ring-emerald-100">
+                      <Icon className="h-6 w-6 text-emerald-600" />
+                    </div>
+
+                    <div
+                      className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ${getStatusClasses(
+                        status,
+                      )}`}
+                    >
+                      <StatusIcon className="h-3.5 w-3.5" />
+                      {getStatusLabel(status)}
+                    </div>
+                  </div>
+
+                  <h3 className="mt-6 text-xl font-bold">
+                    {integration.title}
+                  </h3>
+
+                  <p className="mt-3 text-sm font-medium leading-6 text-slate-700">
+                    {integration.description}
+                  </p>
+
+                  <div className="mt-5 rounded-2xl bg-slate-50 p-5 ring-1 ring-slate-200">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                      What it does
+                    </p>
+
+                    <p className="mt-2 text-sm leading-6 text-slate-600">
+                      {integration.purpose}
+                    </p>
+                  </div>
+
+                  <div className="mt-6">
+                    <label
+                      htmlFor={`${integration.id}-value`}
+                      className="block text-sm font-semibold text-slate-800"
+                    >
+                      {integration.fieldLabel}
+                    </label>
+
+                    <div className="mt-2 flex flex-col gap-3 sm:flex-row">
+                      <input
+                        id={`${integration.id}-value`}
+                        type="text"
+                        value={value}
+                        onChange={(event) =>
+                          updateConfiguration(
+                            integration.fieldKey,
+                            event.target.value,
+                          )
+                        }
+                        placeholder={
+                          integration.fieldPlaceholder
+                        }
+                        disabled={loading || isSaving}
+                        className="h-11 flex-1 rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:bg-slate-50"
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void saveIntegration(
+                            integration.fieldKey,
+                          )
+                        }
+                        disabled={loading || isSaving}
+                        className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+                      >
+                        {isSaving ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Saving
+                          </>
+                        ) : (
+                          <>
+                            {value.trim() ? "Save" : "Clear"}
+                            <ArrowRight className="h-4 w-4" />
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    <p className="mt-2 text-xs leading-5 text-slate-400">
+                      {integration.helpText}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* =====================================================
+            HOW THE SERVICES WORK TOGETHER
             ===================================================== */}
 
         <section className="mt-8">
           <div className="rounded-3xl bg-white p-7 shadow-sm ring-1 ring-slate-200 sm:p-8">
-            <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-              <div>
+            <div className="flex items-start gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-950">
+                <Code2 className="h-5 w-5 text-white" />
+              </div>
+
+              <div className="flex-1">
                 <p className="text-sm font-semibold uppercase tracking-[0.16em] text-emerald-600">
-                  Workspace Subscription
+                  How it works
                 </p>
 
                 <h2 className="mt-2 text-xl font-bold">
-                  {overview.subscription.planName ??
-                    "No active plan"}
+                  ROOTYM connects your website. Google and Meta do
+                  the reporting.
                 </h2>
 
-                <p className="mt-2 text-sm text-slate-500">
-                  Status:{" "}
-                  {overview.subscription.status ??
-                    "No subscription"}
+                <p className="mt-3 max-w-4xl text-sm leading-6 text-slate-500">
+                  ROOTYM is not intended to replace Google Analytics,
+                  Google Search Console or Meta Ads reporting. The
+                  purpose of this module is to make the ROOTYM website
+                  ready to send the required tracking information to
+                  those external platforms.
                 </p>
+
+                <div className="mt-7 grid gap-4 md:grid-cols-3">
+                  <div className="rounded-2xl bg-slate-50 p-5 ring-1 ring-slate-200">
+                    <div className="flex items-center gap-3">
+                      <Tag className="h-5 w-5 text-slate-700" />
+                      <p className="font-semibold">GTM</p>
+                    </div>
+
+                    <p className="mt-3 text-sm leading-6 text-slate-500">
+                      Manages website tags such as Google and Meta
+                      tracking tags.
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl bg-slate-50 p-5 ring-1 ring-slate-200">
+                    <div className="flex items-center gap-3">
+                      <BarChart3 className="h-5 w-5 text-slate-700" />
+                      <p className="font-semibold">
+                        Google Analytics
+                      </p>
+                    </div>
+
+                    <p className="mt-3 text-sm leading-6 text-slate-500">
+                      Measures visitors, traffic and website activity
+                      through the tenant&apos;s Google Analytics
+                      property.
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl bg-slate-50 p-5 ring-1 ring-slate-200">
+                    <div className="flex items-center gap-3">
+                      <Search className="h-5 w-5 text-slate-700" />
+                      <p className="font-semibold">
+                        Search Console
+                      </p>
+                    </div>
+
+                    <p className="mt-3 text-sm leading-6 text-slate-500">
+                      Measures how the website performs in Google
+                      Search and helps identify indexing issues.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4 rounded-2xl bg-slate-50 p-5 ring-1 ring-slate-200">
+                  <div className="flex items-center gap-3">
+                    <Megaphone className="h-5 w-5 text-slate-700" />
+                    <p className="font-semibold">Meta Pixel</p>
+                  </div>
+
+                  <p className="mt-3 text-sm leading-6 text-slate-500">
+                    Sends supported website events to Meta for
+                    advertising measurement, audience building and
+                    campaign optimization.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* =====================================================
+            IMPORTANT NOTE
+            ===================================================== */}
+
+        <section className="mt-8">
+          <div className="rounded-3xl border border-slate-200 bg-slate-100 p-7 sm:p-8">
+            <div className="flex items-start gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white ring-1 ring-slate-200">
+                <ShieldCheck className="h-5 w-5 text-slate-700" />
               </div>
 
-              <Link
-                href="/app/billing"
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
-              >
-                Manage Billing
-                <ArrowRight className="h-4 w-4" />
-              </Link>
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-600">
+                  Scope
+                </p>
+
+                <h2 className="mt-2 text-xl font-bold text-slate-900">
+                  External platforms remain the source of analytics
+                  and advertising reports
+                </h2>
+
+                <p className="mt-3 max-w-4xl text-sm leading-6 text-slate-600">
+                  Google Analytics provides analytics reports.
+                  Google Search Console provides Google Search
+                  performance reports. Meta provides advertising and
+                  event reports. ROOTYM only manages the website-side
+                  configuration required to connect these services.
+                </p>
+              </div>
             </div>
           </div>
         </section>
@@ -595,11 +775,11 @@ export default async function WebsiteAnalyticsPage() {
           <div className="flex flex-col gap-4 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <span className="font-semibold text-slate-700">
-                ROOTYM Analytics & Integrations
+                ROOTYM Marketing & Tracking
               </span>
 
               <span className="ml-2">
-                · {overview.workspace.name}
+                · {website?.name ?? ""}
               </span>
             </div>
 
