@@ -11,6 +11,12 @@
 "use client";
 
 import { useState } from "react";
+
+declare global {
+  interface Window {
+    dataLayer?: Array<Record<string, unknown>>;
+  }
+}
 import {
   CheckCircle2,
   FileCheck2,
@@ -94,6 +100,17 @@ type ExportInquiryFormProps = {
     slug: string;
   }[];
 };
+
+function pushTrackingEvent(
+  event: Record<string, unknown>,
+) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.dataLayer = window.dataLayer || [];
+  window.dataLayer.push(event);
+}
 
 export default function ExportInquiryForm({
   products,
@@ -208,6 +225,18 @@ ${form.requirements || "-"}
         );
       }
 
+      pushTrackingEvent({
+        event: "inquiry_submitted",
+        inquiry_product_id: form.productId || null,
+        inquiry_product:
+          selectedProduct?.name ||
+          form.product ||
+          null,
+        inquiry_country: form.country || null,
+        inquiry_quantity: form.quantity || null,
+        inquiry_incoterm: form.incoterm || null,
+      });
+      
       setSuccessMessage(
         "Thank you! Your export inquiry has been submitted successfully. Our team will contact you shortly.",
       );
