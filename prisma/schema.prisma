@@ -35,23 +35,16 @@ model WhatsAppMessage {
 }
 
 model Inquiry {
-  id            String  @id @default(cuid())
-  companyName   String
-  contactPerson String
-  email         String
-  phone         String?
-  country       String
-
+  id               String                 @id @default(cuid())
+  companyName      String
+  contactPerson    String
+  email            String
+  phone            String?
+  country          String
   /// Product name snapshot submitted by customer.
   /// Kept for legacy compatibility and historical display.
-  product String
-
-  /// Optional link to the Website Product master.
-  /// Nullable so existing/legacy inquiries remain valid.
-  productId     String?
-  linkedProduct Product? @relation("InquiryProduct", fields: [productId], references: [id], onDelete: SetNull)
-  quantity      String?
-
+  product          String
+  quantity         String?
   message          String
   status           InquiryStatus          @default(NEW)
   priority         InquiryPriority        @default(MEDIUM)
@@ -66,16 +59,19 @@ model Inquiry {
   unit             String?
   userAgent        String?
   salesStage       SalesStage             @default(NEW)
+  /// Website ownership for customer-originated inquiries.
+  /// Nullable for legacy inquiries during the initial backfill.
+  websiteId        String?
+  /// Optional link to the Website Product master.
+  /// Nullable so existing/legacy inquiries remain valid.
+  productId        String?
   followUps        FollowUp[]
+  linkedProduct    Product?               @relation("InquiryProduct", fields: [productId], references: [id])
+  website          Website?               @relation(fields: [websiteId], references: [id])
   notes            InquiryNote[]
   statusHistory    InquiryStatusHistory[]
   quotes           Quote[]
   whatsappMessages WhatsAppMessage[]
-
-  /// Website ownership for customer-originated inquiries.
-  /// Nullable for legacy inquiries during the initial backfill.
-  websiteId String?
-  website   Website? @relation(fields: [websiteId], references: [id], onDelete: SetNull)
 
   @@index([websiteId])
   @@index([productId])
@@ -174,10 +170,10 @@ model Admin {
   statusChanges          InquiryStatusHistory[]
   createdQuotes          Quote[]                      @relation("QuoteCreatedBy")
   updatedQuotes          Quote[]                      @relation("QuoteUpdatedBy")
-  assignedSupportTickets SupportTicket[]              @relation("SupportTicketAssignedTo")
-  resolvedSupportTickets SupportTicket[]              @relation("SupportTicketResolvedBy")
-  closedSupportTickets   SupportTicket[]              @relation("SupportTicketClosedBy")
   supportMessages        SupportMessage[]
+  assignedSupportTickets SupportTicket[]              @relation("SupportTicketAssignedTo")
+  closedSupportTickets   SupportTicket[]              @relation("SupportTicketClosedBy")
+  resolvedSupportTickets SupportTicket[]              @relation("SupportTicketResolvedBy")
   supportStatusChanges   SupportTicketStatusHistory[]
 }
 
@@ -218,30 +214,22 @@ model FollowUp {
   @@index([parentFollowUpId])
 }
 
-/**
- * ============================================================
- * ROOTYM Website Product
- * ============================================================
- * Author: Prem Singh
- * Purpose: Stores products as Website-owned catalogue records.
- * Product identity, presentation, pricing and publication
- * are independently configurable by each tenant.
- * ============================================================
- */
+/// *
+///  * ============================================================
+///  * ROOTYM Website Product
+///  * ============================================================
+///  * Author: Prem Singh
+///  * Purpose: Stores products as Website-owned catalogue records.
+///  * Product identity, presentation, pricing and publication
+///  * are independently configurable by each tenant.
+///  * ============================================================
 model Product {
-  id String @id @default(cuid())
-
-  /// Website ownership. Every Product belongs to exactly one Website.
-  websiteId String
-  website   Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
-
+  id                      String                @id @default(cuid())
   /// SKU is unique within a Website, not globally.
-  sku  String
-  name String
-
+  sku                     String
+  name                    String
   /// Public URL slug is unique within a Website.
-  slug String
-
+  slug                    String
   shortDescription        String?
   description             String?
   category                String?
@@ -254,14 +242,17 @@ model Product {
   createdAt               DateTime              @default(now())
   updatedAt               DateTime              @updatedAt
   featuredImageId         String?
-  featuredImage           Media?                @relation("ProductFeaturedImage", fields: [featuredImageId], references: [id])
+  /// Website ownership. Every Product belongs to exactly one Website.
+  websiteId               String
   /// Optional Website-scoped buyer specification document.
   specificationDocumentId String?
-  specificationDocument   Media?                @relation("ProductSpecificationDocument", fields: [specificationDocumentId], references: [id], onDelete: SetNull)
+  inquiries               Inquiry[]             @relation("InquiryProduct")
+  featuredImage           Media?                @relation("ProductFeaturedImage", fields: [featuredImageId], references: [id])
+  specificationDocument   Media?                @relation("ProductSpecificationDocument", fields: [specificationDocumentId], references: [id])
+  website                 Website               @relation(fields: [websiteId], references: [id], onDelete: Cascade)
   pricing                 ProductPricing[]
   proformaInvoiceItems    ProformaInvoiceItem[]
   quoteItems              QuoteItem[]
-  inquiries               Inquiry[]             @relation("InquiryProduct")
 
   @@unique([websiteId, sku])
   @@unique([websiteId, slug])
@@ -273,15 +264,14 @@ model Product {
   @@index([specificationDocumentId])
 }
 
-/**
- * ============================================================
- * ROOTYM Global ExportOS
- * ============================================================
- * Author: Prem Singh
- * Purpose: Stores Website Product pricing, including fixed
- * prices and market/price-on-request pricing.
- * ============================================================
- */
+/// *
+///  * ============================================================
+///  * ROOTYM Global ExportOS
+///  * ============================================================
+///  * Author: Prem Singh
+///  * Purpose: Stores Website Product pricing, including fixed
+///  * prices and market/price-on-request pricing.
+///  * ============================================================
 model ProductPricing {
   id          String      @id @default(cuid())
   productId   String
@@ -301,20 +291,13 @@ model ProductPricing {
 }
 
 model Quote {
-  id String @id @default(cuid())
-
-  /// Website ownership. Nullable during the initial backfill.
-  websiteId String?
-  website   Website? @relation(fields: [websiteId], references: [id], onDelete: SetNull)
-
+  id              String           @id @default(cuid())
   quoteNumber     String           @unique
   inquiryId       String?
   companyName     String
   contactPerson   String
   email           String
   phone           String?
-  buyerAddress    String?
-  buyerGstin      String?
   country         String
   currency        String
   subtotal        Decimal          @default(0) @db.Decimal(18, 2)
@@ -333,12 +316,17 @@ model Quote {
   parentQuoteId   String?
   validUntil      DateTime?
   version         Int              @default(1)
+  /// Website ownership. Nullable during the initial backfill.
+  websiteId       String?
+  buyerAddress    String?
+  buyerGstin      String?
   proformaInvoice ProformaInvoice?
   createdBy       Admin?           @relation("QuoteCreatedBy", fields: [createdById], references: [id])
   inquiry         Inquiry?         @relation(fields: [inquiryId], references: [id])
   parentQuote     Quote?           @relation("QuoteRevisions", fields: [parentQuoteId], references: [id])
   revisions       Quote[]          @relation("QuoteRevisions")
   updatedBy       Admin?           @relation("QuoteUpdatedBy", fields: [updatedById], references: [id])
+  website         Website?         @relation(fields: [websiteId], references: [id])
   items           QuoteItem[]
 
   @@index([websiteId])
@@ -370,12 +358,7 @@ model QuoteItem {
 }
 
 model ProformaInvoice {
-  id String @id @default(cuid())
-
-  /// Website ownership. Nullable during the initial backfill.
-  websiteId String?
-  website   Website? @relation(fields: [websiteId], references: [id], onDelete: SetNull)
-
+  id             String                @id @default(cuid())
   piNumber       String                @unique
   quoteId        String                @unique
   issueDate      DateTime              @default(now())
@@ -384,8 +367,6 @@ model ProformaInvoice {
   contactPerson  String
   email          String
   phone          String?
-  buyerAddress   String?
-  buyerGstin     String?
   country        String
   currency       String
   subtotal       Decimal               @default(0) @db.Decimal(18, 2)
@@ -400,7 +381,12 @@ model ProformaInvoice {
   status         ProformaInvoiceStatus @default(DRAFT)
   createdAt      DateTime              @default(now())
   updatedAt      DateTime              @updatedAt
+  /// Website ownership. Nullable during the initial backfill.
+  websiteId      String?
+  buyerAddress   String?
+  buyerGstin     String?
   quote          Quote                 @relation(fields: [quoteId], references: [id])
+  website        Website?              @relation(fields: [websiteId], references: [id])
   items          ProformaInvoiceItem[]
 
   @@index([websiteId])
@@ -429,45 +415,40 @@ model ProformaInvoiceItem {
   @@index([productId])
 }
 
-/**
- * ============================================================
- * ROOTYM Customer Support
- * ============================================================
- * Author: Prem Singh
- * Purpose: Stores tenant-scoped customer support tickets,
- * customer/Admin conversation, attachments and the
- * immutable status history used for support operations.
- * ============================================================
- */
+/// *
+///  * ============================================================
+///  * ROOTYM Customer Support
+///  * ============================================================
+///  * Author: Prem Singh
+///  * Purpose: Stores tenant-scoped customer support tickets,
+///  * customer/Admin conversation, attachments and the
+///  * immutable status history used for support operations.
+///  * ============================================================
 model SupportTicket {
-  id           String                @id @default(cuid())
-  tenantId     String
-  websiteId    String?
-  ticketNumber String                @unique
-  subject      String
-  description  String
-  category     SupportTicketCategory
-  priority     SupportTicketPriority @default(MEDIUM)
-  status       SupportTicketStatus   @default(OPEN)
-
-  assignedToId String?
-  resolvedById String?
-  closedById   String?
-
-  resolvedAt DateTime?
-  closedAt   DateTime?
-
-  createdById String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  tenant        Tenant                       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  website       Website?                     @relation(fields: [websiteId], references: [id], onDelete: SetNull)
-  createdBy     User                         @relation(fields: [createdById], references: [id])
-  assignedTo    Admin?                       @relation("SupportTicketAssignedTo", fields: [assignedToId], references: [id], onDelete: SetNull)
-  resolvedBy    Admin?                       @relation("SupportTicketResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
-  closedBy      Admin?                       @relation("SupportTicketClosedBy", fields: [closedById], references: [id], onDelete: SetNull)
+  id            String                       @id @default(cuid())
+  tenantId      String
+  websiteId     String?
+  ticketNumber  String                       @unique
+  subject       String
+  description   String
+  category      SupportTicketCategory
+  priority      SupportTicketPriority        @default(MEDIUM)
+  status        SupportTicketStatus          @default(OPEN)
+  assignedToId  String?
+  resolvedById  String?
+  closedById    String?
+  resolvedAt    DateTime?
+  closedAt      DateTime?
+  createdById   String
+  createdAt     DateTime                     @default(now())
+  updatedAt     DateTime                     @updatedAt
   messages      SupportMessage[]
+  assignedTo    Admin?                       @relation("SupportTicketAssignedTo", fields: [assignedToId], references: [id])
+  closedBy      Admin?                       @relation("SupportTicketClosedBy", fields: [closedById], references: [id])
+  createdBy     User                         @relation(fields: [createdById], references: [id])
+  resolvedBy    Admin?                       @relation("SupportTicketResolvedBy", fields: [resolvedById], references: [id])
+  tenant        Tenant                       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  website       Website?                     @relation(fields: [websiteId], references: [id])
   attachments   SupportTicketAttachment[]
   statusHistory SupportTicketStatusHistory[]
 
@@ -483,21 +464,20 @@ model SupportTicket {
 }
 
 model SupportMessage {
-  id            String                   @id @default(cuid())
+  id            String                    @id @default(cuid())
   ticketId      String
   authorUserId  String?
   authorAdminId String?
   message       String
-  messageType   SupportMessageType       @default(REPLY)
-  visibility    SupportMessageVisibility @default(CUSTOMER)
+  messageType   SupportMessageType        @default(REPLY)
+  visibility    SupportMessageVisibility  @default(CUSTOMER)
   sequence      Int
-  createdAt     DateTime                 @default(now())
-  updatedAt     DateTime                 @updatedAt
-
-  ticket      SupportTicket             @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  authorUser  User?                     @relation(fields: [authorUserId], references: [id], onDelete: SetNull)
-  authorAdmin Admin?                    @relation(fields: [authorAdminId], references: [id], onDelete: SetNull)
-  attachments SupportTicketAttachment[]
+  createdAt     DateTime                  @default(now())
+  updatedAt     DateTime                  @updatedAt
+  authorAdmin   Admin?                    @relation(fields: [authorAdminId], references: [id])
+  authorUser    User?                     @relation(fields: [authorUserId], references: [id])
+  ticket        SupportTicket             @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  attachments   SupportTicketAttachment[]
 
   @@unique([ticketId, sequence])
   @@index([ticketId])
@@ -508,15 +488,14 @@ model SupportMessage {
 }
 
 model SupportTicketAttachment {
-  id        String   @id @default(cuid())
+  id        String          @id @default(cuid())
   ticketId  String
   messageId String?
   mediaId   String
-  createdAt DateTime @default(now())
-
-  ticket  SupportTicket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  message SupportMessage? @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  media   Media           @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  createdAt DateTime        @default(now())
+  media     Media           @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  message   SupportMessage? @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  ticket    SupportTicket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   @@index([ticketId])
   @@index([messageId])
@@ -532,10 +511,9 @@ model SupportTicketStatusHistory {
   changedByAdminId String?
   note             String?
   createdAt        DateTime             @default(now())
-
-  ticket         SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  changedByUser  User?         @relation(fields: [changedByUserId], references: [id], onDelete: SetNull)
-  changedByAdmin Admin?        @relation(fields: [changedByAdminId], references: [id], onDelete: SetNull)
+  changedByAdmin   Admin?               @relation(fields: [changedByAdminId], references: [id])
+  changedByUser    User?                @relation(fields: [changedByUserId], references: [id])
+  ticket           SupportTicket        @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   @@index([ticketId])
   @@index([createdAt])
@@ -683,48 +661,47 @@ model CmsPageTranslation {
 }
 
 model Media {
-  id              String    @id @default(cuid())
+  id                       String                    @id @default(cuid())
   /// Original filename
-  fileName        String
+  fileName                 String
   /// Stored filename
-  storedFileName  String
+  storedFileName           String
   /// Public URL or relative path
-  fileUrl         String
+  fileUrl                  String
   /// Storage provider (local, s3, cloudinary, etc.)
-  storageProvider String?   @default("local")
+  storageProvider          String?                   @default("local")
   /// MIME type
-  mimeType        String?
+  mimeType                 String?
   /// IMAGE / VIDEO / DOCUMENT / AUDIO / OTHER
-  mediaType       MediaType
+  mediaType                MediaType
   /// File size in bytes
-  fileSize        Int?
+  fileSize                 Int?
   /// Image dimensions
-  width           Int?
-  height          Int?
+  width                    Int?
+  height                   Int?
   /// Optional alt text
-  altText         String?
+  altText                  String?
   /// Optional title
-  title           String?
+  title                    String?
   /// Optional description
-  description     String?
+  description              String?
   /// Folder/category
-  folder          String?
+  folder                   String?
   /// Soft delete
-  isDeleted       Boolean   @default(false)
+  isDeleted                Boolean                   @default(false)
+  uploadedById             String?
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
   /// Website ownership
-  websiteId       String?
-  website         Website?  @relation(fields: [websiteId], references: [id], onDelete: SetNull)
-  uploadedById    String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
+  websiteId                String?
+  website                  Website?                  @relation(fields: [websiteId], references: [id])
   featuredInProducts       Product[]                 @relation("ProductFeaturedImage")
   specificationForProducts Product[]                 @relation("ProductSpecificationDocument")
-  whatsAppAttachments      WhatsAppAttachment[]
   supportAttachments       SupportTicketAttachment[]
-  websiteBrandingLogos     WebsiteBranding[]         @relation("WebsiteBrandingLogo")
   websiteBrandingFavicons  WebsiteBranding[]         @relation("WebsiteBrandingFavicon")
+  websiteBrandingLogos     WebsiteBranding[]         @relation("WebsiteBrandingLogo")
   websiteBrandingOgImages  WebsiteBranding[]         @relation("WebsiteBrandingOgImage")
+  whatsAppAttachments      WhatsAppAttachment[]
 
   @@index([mediaType])
   @@index([folder])
@@ -733,35 +710,32 @@ model Media {
   @@index([websiteId])
 }
 
-/**
- * ============================================================
- * ROOTYM Website Navigation
- * ============================================================
- * Author: Prem Singh
- * Purpose: Allows a Website to own its customer-facing
- * navigation while preserving existing global Admin
- * menus for backward compatibility.
- * ============================================================
- */
+/// *
+///  * ============================================================
+///  * ROOTYM Website Navigation
+///  * ============================================================
+///  * Author: Prem Singh
+///  * Purpose: Allows a Website to own its customer-facing
+///  * navigation while preserving existing global Admin
+///  * menus for backward compatibility.
+///  * ============================================================
 model Menu {
-  id          String   @id @default(cuid())
+  id          String     @id @default(cuid())
   /// Internal menu name
   name        String
   /// Unique menu identifier. Kept globally unique so existing
   /// Admin CMS menu functionality remains unchanged.
-  code        String   @unique
+  code        String     @unique
   /// Description
   description String?
   /// Active menu
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
   /// Optional Website ownership. NULL means legacy/Admin menu.
-  websiteId String?  @unique
-  website   Website? @relation(fields: [websiteId], references: [id], onDelete: Cascade)
-
-  items MenuItem[]
+  websiteId   String?    @unique
+  website     Website?   @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  items       MenuItem[]
 
   @@index([isActive])
   @@index([websiteId])
@@ -839,15 +813,14 @@ model Redirect {
   @@index([redirectType])
 }
 
-/**
- * ============================================================
- * ROOTYM Customer WhatsApp Integration
- * ============================================================
- * Author: Prem Singh
- * Purpose: Stores tenant-owned WhatsApp Business connection
- * details for the Customer Workspace integration.
- * ============================================================
- */
+/// *
+///  * ============================================================
+///  * ROOTYM Customer WhatsApp Integration
+///  * ============================================================
+///  * Author: Prem Singh
+///  * Purpose: Stores tenant-owned WhatsApp Business connection
+///  * details for the Customer Workspace integration.
+///  * ============================================================
 model WhatsAppIntegration {
   id                 String                    @id @default(cuid())
   tenantId           String                    @unique
@@ -861,23 +834,21 @@ model WhatsAppIntegration {
   lastVerifiedAt     DateTime?
   createdAt          DateTime                  @default(now())
   updatedAt          DateTime                  @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant             Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([status])
   @@index([businessAccountId])
   @@index([phoneNumberId])
 }
 
-/**
- * ============================================================
- * ROOTYM Customer Google Integration
- * ============================================================
- * Author: Prem Singh
- * Purpose: Stores tenant-owned Google account connection
- * details for the Customer Workspace integration.
- * ============================================================
- */
+/// *
+///  * ============================================================
+///  * ROOTYM Customer Google Integration
+///  * ============================================================
+///  * Author: Prem Singh
+///  * Purpose: Stores tenant-owned Google account connection
+///  * details for the Customer Workspace integration.
+///  * ============================================================
 model GoogleIntegration {
   id              String                  @id @default(cuid())
   tenantId        String                  @unique
@@ -893,8 +864,7 @@ model GoogleIntegration {
   lastVerifiedAt  DateTime?
   createdAt       DateTime                @default(now())
   updatedAt       DateTime                @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant          Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([status])
   @@index([googleAccountId])
@@ -907,14 +877,14 @@ model User {
   name                     String
   avatarUrl                String?
   emailVerifiedAt          DateTime?
-  passwordHash             String?
   isActive                 Boolean                      @default(true)
   createdAt                DateTime                     @default(now())
   updatedAt                DateTime                     @updatedAt
+  passwordHash             String?
   identities               AuthIdentity[]
   memberships              Membership[]
-  supportTicketsCreated    SupportTicket[]
   supportMessages          SupportMessage[]
+  supportTicketsCreated    SupportTicket[]
   supportStatusChanges     SupportTicketStatusHistory[]
   sentWorkspaceInvitations WorkspaceInvitation[]        @relation("WorkspaceInvitationInviter")
 
@@ -937,13 +907,13 @@ model AuthIdentity {
 }
 
 /// *
-///  * ============================================================
-///  * ROOTYM Customer Workspace
-///  * ============================================================
-///  * Author: Prem Singh
-///  * Purpose: Defines the tenant-owned customer website root
-///  *          used by Website & Marketing and its website resources.
-///  * ============================================================
+/// * ============================================================
+/// * ROOTYM Customer Workspace
+/// * ============================================================
+/// * Author: Prem Singh
+/// * Purpose: Defines the tenant-owned customer website root
+/// *          used by Website & Marketing and its website resources.
+/// * ============================================================
 model Tenant {
   id                           String                        @id @default(cuid())
   name                         String
@@ -953,6 +923,7 @@ model Tenant {
   updatedAt                    DateTime                      @updatedAt
   billingCustomer              BillingCustomer?
   billingDetails               BillingCustomerDetails?
+  invoices                     BillingInvoice[]
   businessAddress              BusinessAddress?
   businessContactCommunication BusinessContactCommunication?
   businessExportCredentials    BusinessExportCredentials?
@@ -960,37 +931,18 @@ model Tenant {
   businessOperatingPreferences BusinessOperatingPreferences?
   businessProfile              BusinessProfile?
   businessTaxCompliance        BusinessTaxCompliance?
+  googleIntegration            GoogleIntegration?
   memberships                  Membership[]
   payments                     Payment[]
-  invoices                     BillingInvoice[]
-  supportTickets               SupportTicket[]
   subscriptions                Subscription[]
   planChanges                  SubscriptionPlanChange[]
+  supportTickets               SupportTicket[]
   website                      Website?
-  workspaceInvitations         WorkspaceInvitation[]
   whatsappIntegration          WhatsAppIntegration?
-  googleIntegration            GoogleIntegration?
+  workspaceInvitations         WorkspaceInvitation[]
 
   @@index([isActive])
 }
-
-/// *
-///  * ============================================================
-///  * ROOTYM Customer Website
-///  * ============================================================
-///  * Author: Prem Singh
-///  * Purpose: Provides the tenant-owned root entity for the
-///  *          customer-facing Website & Marketing system.
-///  * ============================================================
-/// *
-///  * ============================================================
-///  * ROOTYM Customer Website
-///  * ============================================================
-///  * Author: Prem Singh
-///  * Purpose: Provides the tenant-owned root entity for the
-///  *          customer-facing Website & Marketing system and
-///  *          owns the website's CMS pages.
-///  * ============================================================
 
 model Website {
   id               String                @id @default(cuid())
@@ -1001,129 +953,104 @@ model Website {
   createdAt        DateTime              @default(now())
   updatedAt        DateTime              @updatedAt
   cmsPages         CmsPage[]
-  branding         WebsiteBranding?
+  inquiries        Inquiry[]
   media            Media[]
   mediaFolders     MediaFolder[]
-  configuration    WebsiteConfiguration?
-  products         Product[]
-  inquiries        Inquiry[]
-  quotes           Quote[]
-  proformaInvoices ProformaInvoice[]
-  supportTickets   SupportTicket[]
-  domains          WebsiteDomain[]
-  /// Website-owned Main Navigation. Legacy/Admin menus remain
-  /// available through Menu records with websiteId = NULL.
   navigation       Menu?
+  products         Product[]
+  proformaInvoices ProformaInvoice[]
+  quotes           Quote[]
+  supportTickets   SupportTicket[]
   tenant           Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branding         WebsiteBranding?
+  configuration    WebsiteConfiguration?
+  domains          WebsiteDomain[]
 }
 
-/**
- * ============================================================
- * ROOTYM Customer Website Branding
- * ============================================================
- * Author: Prem Singh
- * Purpose: Stores Website-scoped visual branding configuration
- * independently from tenant business information.
- * ============================================================
- */
+/// *
+///  * ============================================================
+///  * ROOTYM Customer Website Branding
+///  * ============================================================
+///  * Author: Prem Singh
+///  * Purpose: Stores Website-scoped visual branding configuration
+///  * independently from tenant business information.
+///  * ============================================================
 model WebsiteBranding {
-  id        String @id @default(cuid())
-  websiteId String @unique
-
+  id             String   @id @default(cuid())
+  websiteId      String   @unique
   /// Primary website logo
-  logoMediaId String?
-
+  logoMediaId    String?
   /// Browser/application favicon
   faviconMediaId String?
-
   /// Default social sharing / Open Graph image
   ogImageMediaId String?
-
   /// Optional brand colors
   primaryColor   String?
   secondaryColor String?
   accentColor    String?
-
   /// Optional typography preference
-  fontFamily String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  website Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
-
-  logoMedia    Media? @relation("WebsiteBrandingLogo", fields: [logoMediaId], references: [id], onDelete: SetNull)
-  faviconMedia Media? @relation("WebsiteBrandingFavicon", fields: [faviconMediaId], references: [id], onDelete: SetNull)
-  ogImageMedia Media? @relation("WebsiteBrandingOgImage", fields: [ogImageMediaId], references: [id], onDelete: SetNull)
+  fontFamily     String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  faviconMedia   Media?   @relation("WebsiteBrandingFavicon", fields: [faviconMediaId], references: [id])
+  logoMedia      Media?   @relation("WebsiteBrandingLogo", fields: [logoMediaId], references: [id])
+  ogImageMedia   Media?   @relation("WebsiteBrandingOgImage", fields: [ogImageMediaId], references: [id])
+  website        Website  @relation(fields: [websiteId], references: [id], onDelete: Cascade)
 
   @@index([logoMediaId])
   @@index([faviconMediaId])
   @@index([ogImageMediaId])
 }
 
-/**
- * ============================================================
- * ROOTYM Customer Website Configuration
- * ============================================================
- * Author: Prem Singh
- * Purpose: Stores Website-scoped customer-facing configuration
- * independently from ROOTYM global SiteSetting records.
- * ============================================================
- */
+/// *
+///  * ============================================================
+///  * ROOTYM Customer Website Configuration
+///  * ============================================================
+///  * Author: Prem Singh
+///  * Purpose: Stores Website-scoped customer-facing configuration
+///  * independently from ROOTYM global SiteSetting records.
+///  * ============================================================
 model WebsiteConfiguration {
-  id        String @id @default(cuid())
-  websiteId String @unique
-
+  id                            String   @id @default(cuid())
+  websiteId                     String   @unique
   /// Website title used for customer-facing browser/page identity.
-  websiteTitle String?
-
+  websiteTitle                  String?
   /// Short customer-facing tagline.
-  tagline String?
-
+  tagline                       String?
   /// Customer-facing website description.
-  websiteDescription String?
-
+  websiteDescription            String?
+  createdAt                     DateTime @default(now())
+  updatedAt                     DateTime @updatedAt
   /// Company description used in the public 3D company panel and footer.
-  companyDescription String?
-
-  /// Google Tag Manager container ID, for example GTM-XXXXXXX.
-  gtmContainerId String?
-
+  companyDescription            String?
   /// Google Analytics 4 / Google tag measurement ID, for example G-XXXXXXXXXX.
-  googleAnalyticsMeasurementId String?
-
+  googleAnalyticsMeasurementId  String?
+  /// Google Tag Manager container ID, for example GTM-XXXXXXX.
+  gtmContainerId                String?
+  /// Meta Pixel ID associated with the tenant's Meta Business account.
+  metaPixelId                   String?
   /// Google Search Console verification token/code.
   searchConsoleVerificationCode String?
-
-  /// Meta Pixel ID associated with the tenant's Meta Business account.
-  metaPixelId String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  website Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  website                       Website  @relation(fields: [websiteId], references: [id], onDelete: Cascade)
 }
 
-/**
- * ============================================================
- * ROOTYM Media Folder
- * ============================================================
- * Author: Prem Singh
- * Purpose: Stores Website-scoped Media Library folders so
- * customers can organize media independently within
- * their own Website.
- * ============================================================
- */
+/// *
+///  * ============================================================
+///  * ROOTYM Media Folder
+///  * ============================================================
+///  * Author: Prem Singh
+///  * Purpose: Stores Website-scoped Media Library folders so
+///  * customers can organize media independently within
+///  * their own Website.
+///  * ============================================================
 model MediaFolder {
-  id        String @id @default(cuid())
+  id        String   @id @default(cuid())
   websiteId String
   name      String
   path      String
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  website Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  website   Website  @relation(fields: [websiteId], references: [id], onDelete: Cascade)
 
   @@unique([websiteId, path])
   @@index([websiteId])
@@ -1444,11 +1371,11 @@ model Subscription {
   razorpayCurrentStart   DateTime?
   razorpayEndAt          DateTime?
   razorpayStartAt        DateTime?
+  billingInvoices        BillingInvoice[]
   payments               Payment[]
   plan                   Plan                     @relation(fields: [planId], references: [id])
   tenant                 Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   planChanges            SubscriptionPlanChange[]
-  billingInvoices        BillingInvoice[]
 
   @@index([tenantId])
   @@index([planId])
@@ -1477,8 +1404,8 @@ model SubscriptionPlanChange {
   razorpayCurrentStart   DateTime?
   razorpayEndAt          DateTime?
   razorpayStartAt        DateTime?
-  payments               Payment[]
   invoices               BillingInvoice[]
+  payments               Payment[]
   fromPlan               Plan             @relation("PlanChangeFromPlan", fields: [fromPlanId], references: [id])
   subscription           Subscription     @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
   tenant                 Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -1507,10 +1434,9 @@ model BillingCustomer {
   @@index([provider])
 }
 
-/**
- * Author: Prem Singh
- * Purpose: Stores the current tenant billing details collected before SaaS payment.
- */
+/// *
+///  * Author: Prem Singh
+///  * Purpose: Stores the current tenant billing details collected before SaaS payment.
 model BillingCustomerDetails {
   id            String   @id @default(cuid())
   tenantId      String   @unique
@@ -1527,8 +1453,7 @@ model BillingCustomerDetails {
   gstin         String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([state])
   @@index([gstRegistered])
@@ -1554,8 +1479,8 @@ model Payment {
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
   planChangeId           String?
-  planChange             SubscriptionPlanChange? @relation(fields: [planChangeId], references: [id])
   invoice                BillingInvoice?
+  planChange             SubscriptionPlanChange? @relation(fields: [planChangeId], references: [id])
   subscription           Subscription?           @relation(fields: [subscriptionId], references: [id])
   tenant                 Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -1568,63 +1493,56 @@ model Payment {
   @@index([providerSubscriptionId])
 }
 
-/**
- * Author: Prem Singh
- * Purpose: Stores immutable ROOTYM SaaS customer GST invoice snapshots.
- */
+/// *
+///  * Author: Prem Singh
+///  * Purpose: Stores immutable ROOTYM SaaS customer GST invoice snapshots.
 model BillingInvoice {
-  id             String   @id @default(cuid())
-  tenantId       String
-  paymentId      String   @unique
-  subscriptionId String?
-  planChangeId   String?
-  invoiceNumber  String   @unique
-  invoiceDate    DateTime @default(now())
-  currency       String   @default("INR")
-
-  customerName        String
-  customerEmail       String
-  customerMobile      String
-  billingAddressLine1 String
-  billingAddressLine2 String?
-  billingCity         String?
-  billingState        String
-  billingPostalCode   String?
-  billingCountry      String
-  customerGstin       String?
-
-  taxType        BillingTaxType
-  taxRate        Decimal        @db.Decimal(5, 2)
-  taxableAmount  Decimal        @db.Decimal(18, 2)
-  cgstRate       Decimal        @default(0) @db.Decimal(5, 2)
-  cgstAmount     Decimal        @default(0) @db.Decimal(18, 2)
-  sgstRate       Decimal        @default(0) @db.Decimal(5, 2)
-  sgstAmount     Decimal        @default(0) @db.Decimal(18, 2)
-  igstRate       Decimal        @default(0) @db.Decimal(5, 2)
-  igstAmount     Decimal        @default(0) @db.Decimal(18, 2)
-  totalTaxAmount Decimal        @default(0) @db.Decimal(18, 2)
-  totalAmount    Decimal        @db.Decimal(18, 2)
-
-  status         BillingInvoiceStatus @default(PENDING)
-  pdfPath        String?
-  generatedAt    DateTime?
-  sentAt         DateTime?
-  emailAttempts  Int                  @default(0)
-  lastEmailError String?
-
-  provider               String  @default("RAZORPAY")
+  id                     String                  @id @default(cuid())
+  tenantId               String
+  paymentId              String                  @unique
+  subscriptionId         String?
+  planChangeId           String?
+  invoiceNumber          String                  @unique
+  invoiceDate            DateTime                @default(now())
+  currency               String                  @default("INR")
+  customerName           String
+  customerEmail          String
+  customerMobile         String
+  billingAddressLine1    String
+  billingAddressLine2    String?
+  billingCity            String?
+  billingState           String
+  billingPostalCode      String?
+  billingCountry         String
+  customerGstin          String?
+  taxType                BillingTaxType
+  taxRate                Decimal                 @db.Decimal(5, 2)
+  taxableAmount          Decimal                 @db.Decimal(18, 2)
+  cgstRate               Decimal                 @default(0) @db.Decimal(5, 2)
+  cgstAmount             Decimal                 @default(0) @db.Decimal(18, 2)
+  sgstRate               Decimal                 @default(0) @db.Decimal(5, 2)
+  sgstAmount             Decimal                 @default(0) @db.Decimal(18, 2)
+  igstRate               Decimal                 @default(0) @db.Decimal(5, 2)
+  igstAmount             Decimal                 @default(0) @db.Decimal(18, 2)
+  totalTaxAmount         Decimal                 @default(0) @db.Decimal(18, 2)
+  totalAmount            Decimal                 @db.Decimal(18, 2)
+  status                 BillingInvoiceStatus    @default(PENDING)
+  pdfPath                String?
+  generatedAt            DateTime?
+  sentAt                 DateTime?
+  emailAttempts          Int                     @default(0)
+  lastEmailError         String?
+  provider               String                  @default("RAZORPAY")
   providerPaymentId      String
   providerSubscriptionId String?
   providerInvoiceId      String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tenant       Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  payment      Payment                 @relation(fields: [paymentId], references: [id])
-  subscription Subscription?           @relation(fields: [subscriptionId], references: [id])
-  planChange   SubscriptionPlanChange? @relation(fields: [planChangeId], references: [id])
-  items        BillingInvoiceItem[]
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  payment                Payment                 @relation(fields: [paymentId], references: [id])
+  planChange             SubscriptionPlanChange? @relation(fields: [planChangeId], references: [id])
+  subscription           Subscription?           @relation(fields: [subscriptionId], references: [id])
+  tenant                 Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  items                  BillingInvoiceItem[]
 
   @@index([tenantId])
   @@index([subscriptionId])
@@ -1635,30 +1553,27 @@ model BillingInvoice {
   @@index([providerSubscriptionId])
 }
 
-/**
- * Author: Prem Singh
- * Purpose: Stores immutable ROOTYM SaaS invoice line-item snapshots.
- */
+/// *
+///  * Author: Prem Singh
+///  * Purpose: Stores immutable ROOTYM SaaS invoice line-item snapshots.
 model BillingInvoiceItem {
-  id            String   @id @default(cuid())
+  id            String         @id @default(cuid())
   invoiceId     String
   description   String
-  quantity      Decimal  @default(1) @db.Decimal(18, 3)
-  unit          String   @default("subscription")
-  unitPrice     Decimal  @db.Decimal(18, 2)
-  taxableAmount Decimal  @db.Decimal(18, 2)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  invoice BillingInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  quantity      Decimal        @default(1) @db.Decimal(18, 3)
+  unit          String         @default("subscription")
+  unitPrice     Decimal        @db.Decimal(18, 2)
+  taxableAmount Decimal        @db.Decimal(18, 2)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  invoice       BillingInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
   @@index([invoiceId])
 }
 
-/**
- * Author: Prem Singh
- * Purpose: Stores Admin-controlled ROOTYM GST/tax configuration.
- */
+/// *
+///  * Author: Prem Singh
+///  * Purpose: Stores Admin-controlled ROOTYM GST/tax configuration.
 model BillingTaxConfiguration {
   id                     String    @id @default(cuid())
   name                   String
@@ -1686,63 +1601,49 @@ model BillingTaxConfiguration {
   @@index([isActive])
 }
 
-/**
- * ============================================================
- * ROOTYM Customer Website Domain & Deployment
- * ============================================================
- * Author: Prem Singh
- * Purpose: Stores Website-owned custom domain verification,
- * SSL readiness and publication/deployment state.
- * Domain lifecycle is intentionally provider-neutral. Provider-
- * specific deployment integration will be implemented in the
- * service layer without coupling the database to one host.
- * ============================================================
- */
+/// *
+///  * ============================================================
+///  * ROOTYM Customer Website Domain & Deployment
+///  * ============================================================
+///  * Author: Prem Singh
+///  * Purpose: Stores Website-owned custom domain verification,
+///  * SSL readiness and publication/deployment state.
+///  * Domain lifecycle is intentionally provider-neutral. Provider-
+///  * specific deployment integration will be implemented in the
+///  * service layer without coupling the database to one host.
+///  * ============================================================
 model WebsiteDomain {
-  id        String @id @default(cuid())
-  websiteId String
-
+  id                      String                          @id @default(cuid())
+  websiteId               String
   /// Normalized hostname/domain used for routing and uniqueness.
-  domain String @unique
-
+  domain                  String                          @unique
   /// Optional display label shown in the Workspace.
-  label String?
-
+  label                   String?
   /// Whether this is the primary public domain for the Website.
-  isPrimary Boolean @default(false)
-
+  isPrimary               Boolean                         @default(false)
   /// Domain verification lifecycle.
-  verificationStatus WebsiteDomainVerificationStatus @default(PENDING)
-
+  verificationStatus      WebsiteDomainVerificationStatus @default(PENDING)
   /// Verification method currently supported by the deployment flow.
-  verificationMethod WebsiteDomainVerificationMethod @default(DNS)
-
+  verificationMethod      WebsiteDomainVerificationMethod @default(DNS)
   /// Server-generated value used when issuing DNS verification instructions.
-  verificationToken String?
-
+  verificationToken       String?
   /// DNS record details required to verify ownership.
   verificationRecordType  String?
   verificationRecordName  String?
   verificationRecordValue String?
-
-  verifiedAt DateTime?
-
+  verifiedAt              DateTime?
   /// SSL certificate lifecycle.
-  sslStatus    WebsiteDomainSslStatus @default(NOT_CONFIGURED)
-  sslIssuedAt  DateTime?
-  sslExpiresAt DateTime?
-
+  sslStatus               WebsiteDomainSslStatus          @default(NOT_CONFIGURED)
+  sslIssuedAt             DateTime?
+  sslExpiresAt            DateTime?
   /// Website publication/deployment lifecycle for this domain.
-  deploymentStatus WebsiteDomainDeploymentStatus @default(NOT_DEPLOYED)
-
-  lastDeploymentAt DateTime?
-  lastCheckedAt    DateTime?
-  lastError        String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  website Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  deploymentStatus        WebsiteDomainDeploymentStatus   @default(NOT_DEPLOYED)
+  lastDeploymentAt        DateTime?
+  lastCheckedAt           DateTime?
+  lastError               String?
+  createdAt               DateTime                        @default(now())
+  updatedAt               DateTime                        @updatedAt
+  website                 Website                         @relation(fields: [websiteId], references: [id], onDelete: Cascade)
 
   @@index([websiteId])
   @@index([websiteId, isPrimary])
@@ -1750,6 +1651,24 @@ model WebsiteDomain {
   @@index([sslStatus])
   @@index([deploymentStatus])
   @@index([verifiedAt])
+}
+
+model BillingWebhookEvent {
+  id           String               @id @default(cuid())
+  provider     String               @default("RAZORPAY")
+  eventId      String               @unique
+  eventType    String
+  status       BillingWebhookStatus @default(RECEIVED)
+  payload      Json
+  processedAt  DateTime?
+  errorMessage String?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  @@index([provider])
+  @@index([eventType])
+  @@index([status])
+  @@index([createdAt])
 }
 
 enum WhatsAppIntegrationStatus {
@@ -1775,24 +1694,6 @@ enum BillingInvoiceStatus {
   GENERATED
   SENT
   FAILED
-}
-
-model BillingWebhookEvent {
-  id           String               @id @default(cuid())
-  provider     String               @default("RAZORPAY")
-  eventId      String               @unique
-  eventType    String
-  status       BillingWebhookStatus @default(RECEIVED)
-  payload      Json
-  processedAt  DateTime?
-  errorMessage String?
-  createdAt    DateTime             @default(now())
-  updatedAt    DateTime             @updatedAt
-
-  @@index([provider])
-  @@index([eventType])
-  @@index([status])
-  @@index([createdAt])
 }
 
 enum WebsiteDomainVerificationStatus {
@@ -1987,7 +1888,6 @@ enum SupportMessageVisibility {
 }
 
 enum ActivityEntityType {
-  SUPPORT_TICKET
   INQUIRY
   QUOTE
   ORDER
@@ -1996,6 +1896,7 @@ enum ActivityEntityType {
   CUSTOMER
   DOCUMENT
   FOLLOWUP
+  SUPPORT_TICKET
 }
 
 enum ActivityActorType {
@@ -2006,7 +1907,6 @@ enum ActivityActorType {
 }
 
 enum NumberSequenceType {
-  SUPPORT_TICKET
   INQUIRY
   QUOTE
   ORDER
@@ -2015,6 +1915,7 @@ enum NumberSequenceType {
   CUSTOMER
   SUPPLIER
   PROFORMA_INVOICE
+  SUPPORT_TICKET
 }
 
 enum ProformaInvoiceStatus {

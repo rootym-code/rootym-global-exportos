@@ -3,10 +3,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+
 import InquiryFilters from "@/components/admin/InquiryFilters";
 import InquiryTable, {
   InquiryTableItem,
 } from "@/components/admin/InquiryTable";
+
+import TenantSelector, {
+  type AdminTenant,
+} from "@/components/admin/TenantSelector";
 
 interface ApiResponse {
   success: boolean;
@@ -25,6 +30,16 @@ export default function InquiriesPage() {
 
   const [status, setStatus] = useState("");
 
+  /**
+   * null = All Customers
+   * value = selected customer tenant
+   */
+  const [selectedTenantId, setSelectedTenantId] =
+    useState<string | null>(null);
+
+  const [selectedTenant, setSelectedTenant] =
+    useState<AdminTenant | null>(null);
+
   const [page, setPage] = useState(1);
 
   const [data, setData] = useState<ApiResponse | null>(
@@ -33,7 +48,7 @@ export default function InquiriesPage() {
 
   useEffect(() => {
     loadInquiries();
-  }, [page, status]);
+  }, [page, status, selectedTenantId]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -51,16 +66,25 @@ export default function InquiriesPage() {
 
       params.set("page", page.toString());
 
-      if (search) {
-        params.set("search", search);
+      if (search.trim()) {
+        params.set("search", search.trim());
       }
 
       if (status) {
         params.set("status", status);
       }
 
+      if (selectedTenantId) {
+        params.set("tenantId", selectedTenantId);
+      }
+
       const response = await fetch(
-        `/api/admin/inquiries?${params.toString()}`
+        `/api/admin/inquiries?${params.toString()}`,
+        {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        }
       );
 
       const result = await response.json();
@@ -73,8 +97,18 @@ export default function InquiriesPage() {
     }
   }
 
+  function handleTenantChange(
+    tenantId: string | null,
+    tenant?: AdminTenant
+  ) {
+    setPage(1);
+    setSelectedTenantId(tenantId);
+    setSelectedTenant(tenant ?? null);
+  }
+
   return (
     <div className="space-y-6">
+      {/* Page Header */}
       <div>
         <h1 className="text-3xl font-bold">
           Inquiry Management
@@ -85,6 +119,38 @@ export default function InquiriesPage() {
         </p>
       </div>
 
+      {/* Customer Workspace Filter */}
+      <div className="rounded-lg border bg-white p-5">
+        <TenantSelector
+          value={selectedTenantId}
+          onChange={handleTenantChange}
+        />
+      </div>
+
+      {/* Selected Customer Context */}
+      {selectedTenant && (
+        <div className="rounded-lg border border-green-200 bg-green-50 px-5 py-4">
+          <div className="text-xs font-semibold uppercase tracking-wide text-green-700">
+            Selected Customer
+          </div>
+
+          <div className="mt-1 text-lg font-semibold text-slate-900">
+            {selectedTenant.businessName ||
+              selectedTenant.name}
+          </div>
+
+          <div className="mt-1 text-sm text-slate-500">
+            {selectedTenant.email
+              ? selectedTenant.email
+              : selectedTenant.slug}
+            {selectedTenant.country
+              ? ` · ${selectedTenant.country}`
+              : ""}
+          </div>
+        </div>
+      )}
+
+      {/* Inquiry Filters */}
       <InquiryFilters
         search={search}
         status={status}
@@ -98,6 +164,7 @@ export default function InquiriesPage() {
         }}
       />
 
+      {/* Inquiry Table */}
       {loading ? (
         <div className="rounded-lg border bg-white p-12 text-center">
           Loading...
@@ -108,6 +175,7 @@ export default function InquiriesPage() {
         />
       )}
 
+      {/* Pagination */}
       {data && data.pagination.totalPages > 1 && (
         <div className="flex items-center justify-center gap-3">
           <button

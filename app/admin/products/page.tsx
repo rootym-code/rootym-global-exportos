@@ -2,9 +2,12 @@
  * ============================================================
  * ROOTYM Global ExportOS
  * ============================================================
+ *
  * Author: Prem Singh
+ *
  * Purpose: Provides Website-scoped Product Management UI for
  *          the current Admin Website context.
+ *
  * ============================================================
  */
 
@@ -28,6 +31,9 @@ import {
 
 import Card from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import TenantSelector, {
+  type AdminTenant,
+} from "@/components/admin/TenantSelector";
 
 type ProductStatus =
   | "PUBLISHED"
@@ -86,56 +92,63 @@ const CURRENT_WEBSITE_NAME = "ROOTYM";
 const CURRENT_WEBSITE_SLUG = "rootym-agro";
 
 export default function AdminProductsPage() {
-  const [products, setProducts] =
-    useState<Product[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [loading, setLoading] = useState(true);
 
   const [deleteLoading, setDeleteLoading] =
     useState<string | null>(null);
 
-  const [error, setError] =
-    useState("");
+  const [error, setError] = useState("");
 
-  const [message, setMessage] =
-    useState("");
+  const [message, setMessage] = useState("");
 
-  const [search, setSearch] =
-    useState("");
+  const [search, setSearch] = useState("");
 
-  const [status, setStatus] =
-    useState("ALL");
+  const [status, setStatus] = useState("ALL");
 
-  const [pagination, setPagination] =
-    useState<Pagination>({
-      page: 1,
-      pageSize: 20,
-      total: 0,
-      totalPages: 0,
-    });
+  /**
+   * ------------------------------------------------------------
+   * Admin Tenant Filter
+   * ------------------------------------------------------------
+   *
+   * null = All Customers
+   * value = selected customer tenant
+   */
+  const [selectedTenantId, setSelectedTenantId] =
+    useState<string | null>(null);
 
+  const [selectedTenant, setSelectedTenant] =
+    useState<AdminTenant | null>(null);
+
+  const [pagination, setPagination] = useState<Pagination>({
+    page: 1,
+    pageSize: 20,
+    total: 0,
+    totalPages: 0,
+  });
+
+  /**
+   * ------------------------------------------------------------
+   * Query String
+   * ------------------------------------------------------------
+   */
   const queryString = useMemo(() => {
     const params = new URLSearchParams();
 
+    if (selectedTenantId) {
+      params.set("tenantId", selectedTenantId);
+    }
+
     if (search.trim()) {
-      params.set(
-        "search",
-        search.trim()
-      );
+      params.set("search", search.trim());
     }
 
     if (status !== "ALL") {
-      params.set(
-        "status",
-        status
-      );
+      params.set("status", status);
     }
 
-    params.set(
-      "page",
-      String(pagination.page)
-    );
+    params.set("page", String(pagination.page));
 
     params.set(
       "pageSize",
@@ -144,61 +157,97 @@ export default function AdminProductsPage() {
 
     return params.toString();
   }, [
+    selectedTenantId,
     search,
     status,
     pagination.page,
     pagination.pageSize,
   ]);
 
-  const fetchProducts =
-    useCallback(async () => {
-      try {
-        setLoading(true);
-        setError("");
+  /**
+   * ------------------------------------------------------------
+   * Fetch Products
+   * ------------------------------------------------------------
+   */
+  const fetchProducts = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
 
-        const response = await fetch(
-          `/api/admin/products?${queryString}`,
-          {
-            credentials: "include",
-            cache: "no-store",
-          }
-        );
-
-        const result: ProductsResponse =
-          await response.json();
-
-        if (
-          !response.ok ||
-          !result.success
-        ) {
-          throw new Error(
-            "Unable to load products."
-          );
+      const response = await fetch(
+        `/api/admin/products?${queryString}`,
+        {
+          credentials: "include",
+          cache: "no-store",
         }
-
-        setProducts(result.items);
-
-        setPagination(
-          result.pagination
-        );
-      } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Unable to load products."
-        );
-      } finally {
-        setLoading(false);
-      }
-    }, [queryString]);
-
-  async function handleDelete(
-    id: string
-  ) {
-    const confirmed =
-      window.confirm(
-        "Are you sure you want to delete this product?"
       );
+
+      const result: ProductsResponse =
+        await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          "Unable to load products."
+        );
+      }
+
+      setProducts(
+        Array.isArray(result.items)
+          ? result.items
+          : []
+      );
+
+      // Keep the current pagination state if the API response
+      // does not contain pagination metadata. This prevents the
+      // page from crashing when a successful response is missing
+      // the pagination object.
+      setPagination((current) =>
+        result.pagination ?? current
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to load products."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [queryString]);
+
+  /**
+   * ------------------------------------------------------------
+   * Tenant Selection
+   * ------------------------------------------------------------
+   */
+  const handleTenantChange = (
+    tenantId: string | null,
+    tenant?: AdminTenant
+  ) => {
+    setSelectedTenantId(tenantId);
+    setSelectedTenant(tenant ?? null);
+
+    /**
+     * Always return to the first page when switching customers.
+     */
+    setPagination((current) => ({
+      ...current,
+      page: 1,
+    }));
+
+    setMessage("");
+    setError("");
+  };
+
+  /**
+   * ------------------------------------------------------------
+   * Delete Product
+   * ------------------------------------------------------------
+   */
+  async function handleDelete(id: string) {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this product?"
+    );
 
     if (!confirmed) {
       return;
@@ -209,22 +258,17 @@ export default function AdminProductsPage() {
       setError("");
       setMessage("");
 
-      const response =
-        await fetch(
-          `/api/admin/products/${id}`,
-          {
-            method: "DELETE",
-            credentials: "include",
-          }
-        );
+      const response = await fetch(
+        `/api/admin/products/${id}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+        }
+      );
 
-      const result =
-        await response.json();
+      const result = await response.json();
 
-      if (
-        !response.ok ||
-        !result.success
-      ) {
+      if (!response.ok || !result.success) {
         throw new Error(
           result.message ??
             "Unable to delete product."
@@ -247,9 +291,32 @@ export default function AdminProductsPage() {
     }
   }
 
+  /**
+   * ------------------------------------------------------------
+   * Load Products
+   * ------------------------------------------------------------
+   */
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
+
+  /**
+   * ------------------------------------------------------------
+   * Display Context
+   * ------------------------------------------------------------
+   *
+   * For the current step the selected Tenant is the Admin
+   * filtering context. Website-specific creation/editing is
+   * intentionally unchanged.
+   */
+  const displayContextName =
+    selectedTenant?.businessName ||
+    selectedTenant?.name ||
+    CURRENT_WEBSITE_NAME;
+
+  const displayContextSlug =
+    selectedTenant?.slug ||
+    CURRENT_WEBSITE_SLUG;
 
   return (
     <div className="space-y-8">
@@ -263,13 +330,15 @@ export default function AdminProductsPage() {
 
             <span className="inline-flex items-center gap-2 rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
               <Globe2 className="h-3.5 w-3.5" />
-              Website: {CURRENT_WEBSITE_NAME}
+              {selectedTenant
+                ? "Customer Selected"
+                : `Website: ${CURRENT_WEBSITE_NAME}`}
             </span>
           </div>
 
           <p className="mt-2 text-slate-600">
             Manage products, visibility, and product
-            information for the selected Website.
+            information for the selected customer.
           </p>
         </div>
 
@@ -288,6 +357,17 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
+      {/* Customer Workspace Filter */}
+      <Card
+        hover={false}
+        className="border border-slate-200 bg-white p-5"
+      >
+        <TenantSelector
+          value={selectedTenantId}
+          onChange={handleTenantChange}
+        />
+      </Card>
+
       {/* Website Context */}
       <Card
         hover={false}
@@ -301,18 +381,31 @@ export default function AdminProductsPage() {
 
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-green-700">
-                Current Website
+                {selectedTenant
+                  ? "Selected Customer"
+                  : "Current Website"}
               </p>
 
               <h2 className="mt-1 text-lg font-bold text-slate-900">
-                {CURRENT_WEBSITE_NAME}
+                {displayContextName}
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
-                Product catalogue for{" "}
-                <span className="font-medium text-slate-700">
-                  {CURRENT_WEBSITE_SLUG}
-                </span>
+                {selectedTenant?.email ? (
+                  <>
+                    {selectedTenant.email}
+                    {selectedTenant.country
+                      ? ` · ${selectedTenant.country}`
+                      : ""}
+                  </>
+                ) : (
+                  <>
+                    Product catalogue for{" "}
+                    <span className="font-medium text-slate-700">
+                      {displayContextSlug}
+                    </span>
+                  </>
+                )}
               </p>
             </div>
           </div>
@@ -389,7 +482,7 @@ export default function AdminProductsPage() {
 
           <p className="mt-1 text-sm text-slate-500">
             {pagination.total} product(s) found for{" "}
-            {CURRENT_WEBSITE_NAME}
+            {displayContextName}
           </p>
         </div>
 
@@ -456,7 +549,7 @@ export default function AdminProductsPage() {
                       <p className="mt-3 max-w-xl text-slate-500">
                         The product catalogue for{" "}
                         <span className="font-semibold text-slate-700">
-                          {CURRENT_WEBSITE_NAME}
+                          {displayContextName}
                         </span>{" "}
                         is currently empty. Add your first
                         product to begin building the Website
@@ -494,6 +587,7 @@ export default function AdminProductsPage() {
                               }
                               width={64}
                               height={64}
+                              unoptimized
                               className="h-full w-full object-cover"
                             />
                           ) : (
@@ -527,8 +621,8 @@ export default function AdminProductsPage() {
                           product.status === "PUBLISHED"
                             ? "bg-green-100 text-green-700"
                             : product.status === "DRAFT"
-                            ? "bg-amber-100 text-amber-700"
-                            : "bg-slate-200 text-slate-700"
+                              ? "bg-amber-100 text-amber-700"
+                              : "bg-slate-200 text-slate-700"
                         }`}
                       >
                         {product.status}

@@ -3,8 +3,17 @@
  * ROOTYM Global ExportOS
  * ============================================================
  * Author: Prem Singh
- * Purpose: Provides authenticated Admin Product listing and
- *          creation using the current ROOTYM Website context.
+ *
+ * Purpose:
+ * Provides authenticated Admin Product listing and creation.
+ *
+ * Tenant filtering:
+ * - No tenantId = preserve existing ROOTYM website behaviour.
+ * - tenantId provided = resolve that tenant's active website.
+ *
+ * Important:
+ * Product service remains Website-scoped.
+ * Tenant filtering is therefore resolved to Website ID here.
  * ============================================================
  */
 
@@ -14,6 +23,7 @@ import { ProductStatus } from "@/lib/generated/prisma";
 import { authenticateAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createProductSchema } from "@/lib/validations/product";
+
 import {
   createProduct,
   listProducts,
@@ -21,7 +31,55 @@ import {
 
 const ROOTYM_WEBSITE_SLUG = "rootym-agro";
 
-async function getAdminWebsite() {
+/**
+ * ------------------------------------------------------------
+ * Resolve the website used by Admin Products.
+ *
+ * Existing behaviour:
+ * Admin Products operated against the ROOTYM website.
+ *
+ * New behaviour:
+ * If tenantId is supplied, resolve the website belonging to
+ * that tenant instead.
+ * ------------------------------------------------------------
+ */
+async function getAdminWebsite(tenantId?: string) {
+  if (tenantId) {
+    const tenant = await prisma.tenant.findUnique({
+      where: {
+        id: tenantId,
+      },
+      select: {
+        id: true,
+        isActive: true,
+        website: {
+          select: {
+            id: true,
+            isActive: true,
+          },
+        },
+      },
+    });
+
+    if (
+      !tenant ||
+      !tenant.isActive ||
+      !tenant.website ||
+      !tenant.website.isActive
+    ) {
+      return null;
+    }
+
+    return tenant.website;
+  }
+
+  /**
+   * ----------------------------------------------------------
+   * No tenant selected.
+   *
+   * Preserve the original Admin Products behaviour.
+   * ----------------------------------------------------------
+   */
   const website = await prisma.website.findUnique({
     where: {
       slug: ROOTYM_WEBSITE_SLUG,
@@ -39,8 +97,18 @@ async function getAdminWebsite() {
   return website;
 }
 
+/**
+ * ============================================================
+ * GET — Admin Product Listing
+ * ============================================================
+ */
 export async function GET(request: NextRequest) {
   try {
+    /**
+     * ----------------------------------------------------------
+     * 1. Authenticate Admin
+     * ----------------------------------------------------------
+     */
     const auth = await authenticateAdmin(request);
 
     if (!auth.authenticated) {
@@ -55,13 +123,68 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const website = await getAdminWebsite();
+    /**
+     * ----------------------------------------------------------
+     * 2. Read query parameters
+     * ----------------------------------------------------------
+     */
+    const { searchParams } = new URL(request.url);
+
+    const tenantId =
+      searchParams.get("tenantId")?.trim() || undefined;
+
+    const search =
+      searchParams.get("search")?.trim() || undefined;
+
+    const category =
+      searchParams.get("category")?.trim() || undefined;
+
+    const status =
+      (searchParams.get("status") as ProductStatus | null) ??
+      undefined;
+
+    const pageParam = Number(
+      searchParams.get("page") ?? "1"
+    );
+
+    const pageSizeParam = Number(
+      searchParams.get("pageSize") ?? "20"
+    );
+
+    const page =
+      Number.isFinite(pageParam) && pageParam > 0
+        ? Math.floor(pageParam)
+        : 1;
+
+    const pageSize =
+      Number.isFinite(pageSizeParam) && pageSizeParam > 0
+        ? Math.floor(pageSizeParam)
+        : 20;
+
+    /**
+     * ----------------------------------------------------------
+     * 3. Resolve Website
+     * ----------------------------------------------------------
+     *
+     * Specific tenant:
+     *   tenant → website → products
+     *
+     * No tenant:
+     *   ROOTYM website → products
+     *
+     * This deliberately preserves the previous working
+     * behaviour when "All Customers" is selected.
+     * ----------------------------------------------------------
+     */
+    const website = await getAdminWebsite(tenantId);
 
     if (!website) {
       return NextResponse.json(
         {
           success: false,
-          message: "Website is not available.",
+          message: tenantId
+            ? "Selected customer workspace does not have an active website."
+            : "Website is not available.",
         },
         {
           status: 404,
@@ -69,16 +192,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { searchParams } = new URL(request.url);
-
-    const search = searchParams.get("search") ?? undefined;
-    const category = searchParams.get("category") ?? undefined;
-    const status =
-      (searchParams.get("status") as ProductStatus | null) ?? undefined;
-
-    const page = Number(searchParams.get("page") ?? "1");
-    const pageSize = Number(searchParams.get("pageSize") ?? "20");
-
+    /**
+     * ----------------------------------------------------------
+     * 4. Load Products
+     * ----------------------------------------------------------
+     */
     const result = await listProducts(website.id, {
       search,
       category,
@@ -87,12 +205,22 @@ export async function GET(request: NextRequest) {
       pageSize,
     });
 
+    /**
+     * ----------------------------------------------------------
+     * 5. Return response
+     * ----------------------------------------------------------
+     *
+     * Keep the existing response contract unchanged.
+     */
     return NextResponse.json({
       success: true,
       ...result,
     });
   } catch (error) {
-    console.error("GET /api/admin/products", error);
+    console.error(
+      "GET /api/admin/products error:",
+      error
+    );
 
     return NextResponse.json(
       {
@@ -106,8 +234,23 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/**
+ * ============================================================
+ * POST — Admin Product Creation
+ * ============================================================
+ *
+ * Existing ROOTYM Admin creation behaviour is preserved.
+ * Tenant-specific product creation can be handled separately
+ * after the listing/filter feature is confirmed working.
+ * ============================================================
+ */
 export async function POST(request: NextRequest) {
   try {
+    /**
+     * ----------------------------------------------------------
+     * 1. Authenticate Admin
+     * ----------------------------------------------------------
+     */
     const auth = await authenticateAdmin(request);
 
     if (!auth.authenticated) {
@@ -122,6 +265,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    /**
+     * ----------------------------------------------------------
+     * 2. Preserve existing ROOTYM website behaviour
+     * ----------------------------------------------------------
+     */
     const website = await getAdminWebsite();
 
     if (!website) {
@@ -136,6 +284,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    /**
+     * ----------------------------------------------------------
+     * 3. Validate request body
+     * ----------------------------------------------------------
+     */
     const body = await request.json();
 
     const parsed = createProductSchema.safeParse(body);
@@ -153,6 +306,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    /**
+     * ----------------------------------------------------------
+     * 4. Create Product
+     * ----------------------------------------------------------
+     */
     const product = await createProduct(
       website.id,
       parsed.data
@@ -169,7 +327,10 @@ export async function POST(request: NextRequest) {
       }
     );
   } catch (error) {
-    console.error("POST /api/admin/products", error);
+    console.error(
+      "POST /api/admin/products error:",
+      error
+    );
 
     const message =
       error instanceof Error

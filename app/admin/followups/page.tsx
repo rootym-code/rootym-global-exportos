@@ -6,6 +6,9 @@ import FollowUpFilters from "@/components/admin/FollowUpFilters";
 import FollowUpTable, {
   FollowUpTableItem,
 } from "@/components/admin/FollowUpTable";
+import TenantSelector, {
+  type AdminTenant,
+} from "@/components/admin/TenantSelector";
 
 interface DashboardSummary {
   pending: number;
@@ -15,7 +18,6 @@ interface DashboardSummary {
   completed: number;
 }
 
-
 interface Pagination {
   page: number;
   limit: number;
@@ -23,61 +25,55 @@ interface Pagination {
   totalPages: number;
 }
 
-
 interface FollowUpResponse {
   success: boolean;
   followUps: FollowUpTableItem[];
   pagination: Pagination;
 }
 
-
 interface DashboardResponse {
   success: boolean;
   summary: DashboardSummary;
 }
 
-
 export default function FollowUpsPage() {
+  const [loading, setLoading] = useState(true);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [search, setSearch] = useState("");
 
+  const [status, setStatus] = useState("");
 
-  const [search, setSearch] =
-    useState("");
+  const [priority, setPriority] = useState("");
 
+  const [myFollowUps, setMyFollowUps] = useState(false);
 
-  const [status, setStatus] =
-    useState("");
-
-
-  const [priority, setPriority] =
-    useState("");
-
-
-  const [myFollowUps, setMyFollowUps] =
-    useState(false);
-
-
-  const [page, setPage] =
-    useState(1);
-
+  const [page, setPage] = useState(1);
 
   const limit = 10;
 
+  /**
+   * ------------------------------------------------------------
+   * Admin Tenant Filter
+   * ------------------------------------------------------------
+   *
+   * null = All Customers
+   * value = selected customer tenant
+   */
+  const [selectedTenantId, setSelectedTenantId] =
+    useState<string | null>(null);
 
-  const [pagination, setPagination] =
-    useState<Pagination>({
-      page: 1,
-      limit,
-      totalRecords: 0,
-      totalPages: 1,
-    });
+  const [selectedTenant, setSelectedTenant] =
+    useState<AdminTenant | null>(null);
 
+  const [pagination, setPagination] = useState<Pagination>({
+    page: 1,
+    limit,
+    totalRecords: 0,
+    totalPages: 1,
+  });
 
   const [followUps, setFollowUps] =
     useState<FollowUpTableItem[]>([]);
-
 
   const [summary, setSummary] =
     useState<DashboardSummary>({
@@ -88,172 +84,152 @@ export default function FollowUpsPage() {
       completed: 0,
     });
 
-
   useEffect(() => {
-
     loadData();
-
   }, [
     page,
     status,
     priority,
     myFollowUps,
+    selectedTenantId,
   ]);
 
-
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(1);
+      loadData(1);
+    }, 400);
 
-    const timer =
-      setTimeout(() => {
-
-        setPage(1);
-
-        loadData(1);
-
-      }, 400);
-
-
-    return () =>
-      clearTimeout(timer);
-
-
+    return () => clearTimeout(timer);
   }, [search]);
 
-
-
-  async function loadData(
-    currentPage = page,
-  ) {
-
+  async function loadData(currentPage = page) {
     try {
-
       setLoading(true);
 
-
-      const params =
-        new URLSearchParams();
-
+      const params = new URLSearchParams();
 
       params.set(
         "page",
-        currentPage.toString(),
+        currentPage.toString()
       );
-
 
       params.set(
         "limit",
-        limit.toString(),
+        limit.toString()
       );
 
+      /**
+       * --------------------------------------------------------
+       * Tenant Filter
+       * --------------------------------------------------------
+       */
+      if (selectedTenantId) {
+        params.set(
+          "tenantId",
+          selectedTenantId
+        );
+      }
 
       if (search) {
-
         params.set(
           "search",
-          search,
+          search
         );
-
       }
-
 
       if (status) {
-
         params.set(
           "status",
-          status,
+          status
         );
-
       }
-
 
       if (priority) {
-
         params.set(
           "priority",
-          priority,
+          priority
         );
-
       }
-
 
       if (myFollowUps) {
-
         params.set(
           "mine",
-          "true",
+          "true"
         );
-
       }
-
 
       const [
         listResponse,
         dashboardResponse,
-      ] =
-        await Promise.all([
+      ] = await Promise.all([
+        fetch(
+          `/api/admin/followups?${params.toString()}`,
+          {
+            credentials: "include",
+            cache: "no-store",
+          }
+        ),
 
-          fetch(
-            `/api/admin/followups?${params.toString()}`
-          ),
+        fetch(
+          "/api/admin/followups/dashboard",
+          {
+            credentials: "include",
+            cache: "no-store",
+          }
+        ),
+      ]);
 
-          fetch(
-            "/api/admin/followups/dashboard"
-          ),
+      const list =
+        (await listResponse.json()) as FollowUpResponse;
 
-        ]);
-
-
-
-        const list = (
-          await listResponse.json()
-        ) as FollowUpResponse;
-        
-        
-        
-        const dashboard = (
-          await dashboardResponse.json()
-        ) as DashboardResponse;
-
-
+      const dashboard =
+        (await dashboardResponse.json()) as DashboardResponse;
 
       if (list.success) {
-
         setFollowUps(
-          list.followUps ?? [],
+          list.followUps ?? []
         );
-
 
         setPagination(
-          list.pagination,
+          list.pagination
         );
-
       }
-
-
 
       if (dashboard.success) {
-
         setSummary(
-          dashboard.summary,
+          dashboard.summary
         );
-
       }
-
-
     } catch (error) {
-
       console.error(error);
-
-
     } finally {
-
       setLoading(false);
-
     }
-
   }
 
+  /**
+   * ------------------------------------------------------------
+   * Tenant Selection
+   * ------------------------------------------------------------
+   */
+  const handleTenantChange = (
+    tenantId: string | null,
+    tenant?: AdminTenant
+  ) => {
+    setSelectedTenantId(tenantId);
+    setSelectedTenant(tenant ?? null);
 
+    /**
+     * Always return to the first page when switching customers.
+     */
+    setPage(1);
+
+    setPagination((current) => ({
+      ...current,
+      page: 1,
+    }));
+  };
 
   function DashboardCard({
     title,
@@ -264,476 +240,272 @@ export default function FollowUpsPage() {
     value: number;
     description?: string;
   }) {
-
     return (
-
       <div className="rounded-xl border bg-white p-5 shadow-sm">
-
         <div className="text-sm text-gray-500">
-
           {title}
-
         </div>
-
 
         <div className="mt-2 text-3xl font-bold text-slate-900">
-
           {value}
-
         </div>
-
 
         {description && (
-
           <div className="mt-2 text-xs text-gray-500">
-
             {description}
-
           </div>
-
         )}
-
       </div>
-
     );
-
   }
+
   return (
-
     <div className="space-y-6">
-
-
       {/* Header */}
-
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-
         <div>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-3xl font-bold text-slate-900">
+              FollowUp Center
+            </h1>
 
-          <h1 className="text-3xl font-bold text-slate-900">
-
-            FollowUp Center
-
-          </h1>
-
+            <span className="inline-flex items-center rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
+              {selectedTenant
+                ? "Customer Selected"
+                : "All Customers"}
+            </span>
+          </div>
 
           <p className="mt-1 text-gray-500">
-
             Manage and track all buyer follow-up activities in one place.
-
           </p>
-
-
         </div>
-
 
         <button
-
           type="button"
-
           className="rounded-lg bg-green-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-green-700"
-
         >
-
           + Create FollowUp
-
         </button>
-
-
       </div>
 
-
-
+      {/* Customer Workspace Filter */}
+      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <TenantSelector
+          value={selectedTenantId}
+          onChange={handleTenantChange}
+        />
+      </div>
 
       {/* Summary Cards */}
-
       <div className="grid gap-4 md:grid-cols-5">
-
-
         <DashboardCard
-
           title="Total FollowUps"
-
-          value={
-            pagination.totalRecords
-          }
-
+          value={pagination.totalRecords}
           description="All follow-up activities"
-
         />
 
-
         <DashboardCard
-
           title="Pending"
-
-          value={
-            summary.pending
-          }
-
+          value={summary.pending}
           description="Needs attention"
-
         />
 
-
         <DashboardCard
-
           title="Overdue"
-
-          value={
-            summary.overdue
-          }
-
+          value={summary.overdue}
           description="Past due date"
-
         />
 
-
         <DashboardCard
-
           title="Completed"
-
-          value={
-            summary.completed
-          }
-
+          value={summary.completed}
           description="Successfully closed"
-
         />
-
 
         <DashboardCard
-
           title="Due Today"
-
-          value={
-            summary.today
-          }
-
+          value={summary.today}
           description="Requires action today"
-
         />
-
-
       </div>
-
-
-
-
 
       {/* Smart Filters */}
-
       <div className="rounded-xl border bg-white p-6 shadow-sm">
-
-{/* Quick Action Chips */}
-
-<div className="mb-6 flex flex-wrap gap-3">
-
-  <button
-    type="button"
-    onClick={() => {
-      setStatus("");
-      setPriority("");
-      setMyFollowUps(false);
-      setPage(1);
-    }}
-    className="rounded-full border px-4 py-2 text-sm font-medium hover:bg-gray-50"
-  >
-    All
-  </button>
-
-
-  <button
-    type="button"
-    onClick={() => {
-      setStatus("OVERDUE");
-      setPage(1);
-    }}
-    className="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100"
-  >
-    🔥 Overdue
-  </button>
-
-
-  <button
-    type="button"
-    onClick={() => {
-      setStatus("PENDING");
-      setPage(1);
-    }}
-    className="rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100"
-  >
-    ⚡ Pending
-  </button>
-
-
-  <button
-    type="button"
-    onClick={() => {
-      setPriority("HIGH");
-      setPage(1);
-    }}
-    className="rounded-full border border-orange-200 bg-orange-50 px-4 py-2 text-sm font-medium text-orange-700 hover:bg-orange-100"
-  >
-    ⭐ High Priority
-  </button>
-
-
-  <button
-    type="button"
-    onClick={() => {
-      setMyFollowUps(true);
-      setPage(1);
-    }}
-    className="rounded-full border border-green-200 bg-green-50 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-100"
-  >
-    👤 My FollowUps
-  </button>
-
-
-</div>
-        <div className="mb-5 flex items-center justify-between">
-
-
-          <div>
-
-
-            <h2 className="text-lg font-semibold text-slate-900">
-
-              Smart Filters
-
-            </h2>
-
-
-            <p className="text-sm text-gray-500">
-
-              Quickly find the follow-ups you want to focus on.
-
-            </p>
-
-
-          </div>
-
-
-
+        {/* Quick Action Chips */}
+        <div className="mb-6 flex flex-wrap gap-3">
           <button
-
             type="button"
-
             onClick={() => {
-
-              setSearch("");
-
               setStatus("");
-
               setPriority("");
-
               setMyFollowUps(false);
-
               setPage(1);
-
             }}
-
-            className="text-sm text-green-700 hover:underline"
-
+            className="rounded-full border px-4 py-2 text-sm font-medium hover:bg-gray-50"
           >
-
-            Reset Filters
-
+            All
           </button>
 
+          <button
+            type="button"
+            onClick={() => {
+              setStatus("OVERDUE");
+              setPage(1);
+            }}
+            className="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100"
+          >
+            🔥 Overdue
+          </button>
 
+          <button
+            type="button"
+            onClick={() => {
+              setStatus("PENDING");
+              setPage(1);
+            }}
+            className="rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100"
+          >
+            ⚡ Pending
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setPriority("HIGH");
+              setPage(1);
+            }}
+            className="rounded-full border border-orange-200 bg-orange-50 px-4 py-2 text-sm font-medium text-orange-700 hover:bg-orange-100"
+          >
+            ⭐ High Priority
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setMyFollowUps(true);
+              setPage(1);
+            }}
+            className="rounded-full border border-green-200 bg-green-50 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-100"
+          >
+            👤 My FollowUps
+          </button>
         </div>
 
+        <div className="mb-5 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">
+              Smart Filters
+            </h2>
 
+            <p className="text-sm text-gray-500">
+              Quickly find the follow-ups you want to focus on.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setSearch("");
+              setStatus("");
+              setPriority("");
+              setMyFollowUps(false);
+              setPage(1);
+            }}
+            className="text-sm text-green-700 hover:underline"
+          >
+            Reset Filters
+          </button>
+        </div>
 
         <FollowUpFilters
-
-        
-
           search={search}
-
           status={status}
-
           priority={priority}
-
           myFollowUps={myFollowUps}
-
-
           onSearchChange={(value) => {
-
             setSearch(value);
-
           }}
-
-
           onStatusChange={(value) => {
-
             setStatus(value);
-
             setPage(1);
-
           }}
-
-
           onPriorityChange={(value) => {
-
             setPriority(value);
-
             setPage(1);
-
           }}
-
-
           onMyFollowUpsChange={(value) => {
-
             setMyFollowUps(value);
-
             setPage(1);
-
           }}
-
         />
-
-
       </div>
+
       {loading ? (
+        <div className="rounded-xl border bg-white p-12 text-center text-gray-500">
+          Loading FollowUps...
+        </div>
+      ) : (
+        <>
+          {/* FollowUp Table */}
+          <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
+            <FollowUpTable
+              followUps={followUps}
+            />
+          </div>
 
-<div className="rounded-xl border bg-white p-12 text-center text-gray-500">
+          {/* Pagination */}
+          <div className="flex flex-col gap-4 rounded-xl border bg-white px-6 py-4 md:flex-row md:items-center md:justify-between">
+            <div className="text-sm text-gray-600">
+              Showing page{" "}
+              <span className="font-semibold">
+                {pagination.page}
+              </span>{" "}
+              of{" "}
+              <span className="font-semibold">
+                {pagination.totalPages}
+              </span>{" "}
+              ({pagination.totalRecords} records)
+            </div>
 
-  Loading FollowUps...
+            <div className="flex gap-2">
+              <button
+                type="button"
+                disabled={page <= 1}
+                onClick={() =>
+                  setPage((prev) =>
+                    Math.max(
+                      prev - 1,
+                      1
+                    )
+                  )
+                }
+                className="rounded-md border px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Previous
+              </button>
 
-</div>
-
-
-) : (
-
-<>
-
-
-  {/* FollowUp Table */}
-
-  <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
-
-
-    <FollowUpTable
-
-      followUps={followUps}
-
-    />
-
-
-  </div>
-
-
-
-
-  {/* Pagination */}
-
-  <div className="flex flex-col gap-4 rounded-xl border bg-white px-6 py-4 md:flex-row md:items-center md:justify-between">
-
-
-    <div className="text-sm text-gray-600">
-
-      Showing page{" "}
-
-      <span className="font-semibold">
-
-        {pagination.page}
-
-      </span>
-
-
-      {" "}of{" "}
-
-
-      <span className="font-semibold">
-
-        {pagination.totalPages}
-
-      </span>
-
-
-      {" "}
-
-      ({pagination.totalRecords} records)
-
+              <button
+                type="button"
+                disabled={
+                  page >= pagination.totalPages
+                }
+                onClick={() =>
+                  setPage((prev) =>
+                    Math.min(
+                      prev + 1,
+                      pagination.totalPages
+                    )
+                  )
+                }
+                className="rounded-md border px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
-
-
-
-
-    <div className="flex gap-2">
-
-
-      <button
-
-        type="button"
-
-        disabled={
-          page <= 1
-        }
-
-        onClick={() =>
-          setPage(
-            (prev) =>
-              Math.max(
-                prev - 1,
-                1,
-              ),
-          )
-        }
-
-        className="rounded-md border px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-
-      >
-
-        Previous
-
-      </button>
-
-
-
-
-      <button
-
-        type="button"
-
-        disabled={
-          page >= pagination.totalPages
-        }
-
-        onClick={() =>
-          setPage(
-            (prev) =>
-              Math.min(
-                prev + 1,
-                pagination.totalPages,
-              ),
-          )
-        }
-
-        className="rounded-md border px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-
-      >
-
-        Next
-
-      </button>
-
-
-    </div>
-
-
-  </div>
-
-
-</>
-
-)}
-
-
-</div>
-
-);
-
+  );
 }

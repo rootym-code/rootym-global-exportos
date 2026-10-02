@@ -16,7 +16,6 @@ import type {
   CreateFollowUpInput,
 } from "@/lib/services/followup/types";
 
-
 export async function GET(
   request: NextRequest,
 ) {
@@ -39,54 +38,60 @@ export async function GET(
     const { searchParams } =
       new URL(request.url);
 
-      const filters: FollowUpFilters = {
-        page: Number(
-          searchParams.get("page") ?? "1",
-        ),
-      
-        limit: Number(
-          searchParams.get("limit") ?? "10",
-        ),
-      
-        search:
-          searchParams.get("search") ??
-          undefined,
-      
-        status:
-          Object.values(FollowUpStatus).includes(
-            searchParams.get("status") as FollowUpStatus,
-          )
-            ? (searchParams.get("status") as FollowUpStatus)
-            : undefined,
-      
-        priority:
-          Object.values(FollowUpPriority).includes(
-            searchParams.get("priority") as FollowUpPriority,
-          )
-            ? (searchParams.get("priority") as FollowUpPriority)
-            : undefined,
-      
-        category:
-          Object.values(FollowUpCategory).includes(
-            searchParams.get("category") as FollowUpCategory,
-          )
-            ? (searchParams.get("category") as FollowUpCategory)
-            : undefined,
-      
-        actionType:
-          Object.values(FollowUpActionType).includes(
-            searchParams.get("actionType") as FollowUpActionType,
-          )
-            ? (searchParams.get("actionType") as FollowUpActionType)
-            : undefined,
-      
-        assignedToId:
-          searchParams.get("mine") === "true"
-            ? auth.admin?.adminId
-            : searchParams.get("assignedToId") ??
-              undefined,
-      };
-      
+    const tenantId =
+      searchParams.get("tenantId") ??
+      undefined;
+
+    const filters: FollowUpFilters = {
+      tenantId,
+
+      page: Number(
+        searchParams.get("page") ?? "1",
+      ),
+
+      limit: Number(
+        searchParams.get("limit") ?? "10",
+      ),
+
+      search:
+        searchParams.get("search") ??
+        undefined,
+
+      status:
+        Object.values(FollowUpStatus).includes(
+          searchParams.get("status") as FollowUpStatus,
+        )
+          ? (searchParams.get("status") as FollowUpStatus)
+          : undefined,
+
+      priority:
+        Object.values(FollowUpPriority).includes(
+          searchParams.get("priority") as FollowUpPriority,
+        )
+          ? (searchParams.get("priority") as FollowUpPriority)
+          : undefined,
+
+      category:
+        Object.values(FollowUpCategory).includes(
+          searchParams.get("category") as FollowUpCategory,
+        )
+          ? (searchParams.get("category") as FollowUpCategory)
+          : undefined,
+
+      actionType:
+        Object.values(FollowUpActionType).includes(
+          searchParams.get("actionType") as FollowUpActionType,
+        )
+          ? (searchParams.get("actionType") as FollowUpActionType)
+          : undefined,
+
+      assignedToId:
+        searchParams.get("mine") === "true"
+          ? auth.admin?.adminId
+          : searchParams.get("assignedToId") ??
+            undefined,
+    };
+
     const result =
       await followUpService.findMany(
         filters,
@@ -102,7 +107,6 @@ export async function GET(
         totalPages: result.totalPages,
       },
     });
-
   } catch (error) {
     console.error(
       "GET /api/admin/followups error:",

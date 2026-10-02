@@ -28,6 +28,7 @@ import type {
 export class FollowUpService {
   async findMany(filters: FollowUpFilters = {}) {
     const {
+      tenantId,
       inquiryId,
       assignedToId,
       status,
@@ -42,11 +43,40 @@ export class FollowUpService {
     } = filters;
 
     const where = {
+      /**
+       * ========================================================
+       * TENANT OWNERSHIP
+       * ========================================================
+       *
+       * FollowUp does not have tenantId directly.
+       *
+       * Ownership chain:
+       *
+       * FollowUp
+       *   → Inquiry
+       *     → Website
+       *       → Tenant
+       *
+       * This is enforced at database level.
+       */
+      ...(tenantId && {
+        inquiry: {
+          website: {
+            tenantId,
+          },
+        },
+      }),
+
       ...(inquiryId && { inquiryId }),
+
       ...(assignedToId && { assignedToId }),
+
       ...(status && { status }),
+
       ...(priority && { priority }),
+
       ...(category && { category }),
+
       ...(actionType && { actionType }),
 
       ...(fromDate || toDate
@@ -218,7 +248,6 @@ export class FollowUpService {
     return followUp;
   }
 
-
   async create(data: CreateFollowUpInput) {
     const inquiry = await prisma.inquiry.findUnique({
       where: {
@@ -239,29 +268,27 @@ export class FollowUpService {
       },
     });
 
-    const followUp =
-      await prisma.followUp.create({
-        data: {
-          inquiryId: data.inquiryId,
-          sequence:
-            (lastSequence._max.sequence ?? 0) + 1,
-          title: data.title,
-          description: data.description,
-          notes: data.notes,
-          actionType: data.actionType,
-          category: data.category,
-          priority:
-            data.priority ??
-            FollowUpPriority.MEDIUM,
-          scheduledAt: data.scheduledAt,
-          dueAt: data.dueAt,
-          assignedToId: data.assignedToId,
-          estimatedMinutes:
-            data.estimatedMinutes,
-        },
-        include: followUpInclude,
-      });
-
+    const followUp = await prisma.followUp.create({
+      data: {
+        inquiryId: data.inquiryId,
+        sequence:
+          (lastSequence._max.sequence ?? 0) + 1,
+        title: data.title,
+        description: data.description,
+        notes: data.notes,
+        actionType: data.actionType,
+        category: data.category,
+        priority:
+          data.priority ??
+          FollowUpPriority.MEDIUM,
+        scheduledAt: data.scheduledAt,
+        dueAt: data.dueAt,
+        assignedToId: data.assignedToId,
+        estimatedMinutes:
+          data.estimatedMinutes,
+      },
+      include: followUpInclude,
+    });
 
     await activityService.create({
       entityType:
@@ -283,12 +310,13 @@ export class FollowUpService {
         ActivityActorType.SYSTEM,
     });
 
-
     return followUp;
   }
 
-
-  async update(id: string, data: UpdateFollowUpInput) {
+  async update(
+    id: string,
+    data: UpdateFollowUpInput
+  ) {
     await this.getById(id);
 
     return prisma.followUp.update({
@@ -302,8 +330,10 @@ export class FollowUpService {
     });
   }
 
-
-  async assign(id: string, data: AssignFollowUpInput) {
+  async assign(
+    id: string,
+    data: AssignFollowUpInput
+  ) {
     const admin = await prisma.admin.findUnique({
       where: {
         id: data.assignedToId,
@@ -327,16 +357,13 @@ export class FollowUpService {
     });
   }
 
-
   async complete(
     id: string,
     data: CompleteFollowUpInput,
     completedById: string,
   ) {
-
     const existingFollowUp =
       await this.getById(id);
-
 
     const completedFollowUp =
       await prisma.followUp.update({
@@ -366,7 +393,6 @@ export class FollowUpService {
         include: followUpInclude,
       });
 
-
     await activityService.create({
       entityType:
         ActivityEntityType.INQUIRY,
@@ -395,20 +421,17 @@ export class FollowUpService {
         completedById,
     });
 
-
     const outcome =
       await followUpOutcomeEngine.process({
         followUp: completedFollowUp,
         result: data.result,
       });
 
-
     return {
       followUp: completedFollowUp,
       outcome,
     };
   }
-
 
   async reschedule(
     id: string,
@@ -429,7 +452,6 @@ export class FollowUpService {
       include: followUpInclude,
     });
   }
-
 
   async snooze(
     id: string,
@@ -454,7 +476,6 @@ export class FollowUpService {
       include: followUpInclude,
     });
   }
-
 
   async getDashboardSummary(): Promise<FollowUpDashboardSummary> {
     const start = new Date();
@@ -521,7 +542,6 @@ export class FollowUpService {
     };
   }
 
-
   async delete(id: string) {
     await this.getById(id);
 
@@ -536,7 +556,6 @@ export class FollowUpService {
     };
   }
 }
-
 
 const followUpService =
   new FollowUpService();
