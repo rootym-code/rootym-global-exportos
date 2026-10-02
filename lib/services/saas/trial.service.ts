@@ -197,6 +197,123 @@ async function provisionDefaultWebsitePages(
 
 /**
  * ============================================================
+ * Shared customer workspace provisioning
+ * ============================================================
+ *
+ * This function assumes the User already exists.
+ *
+ * It:
+ * - Reuses the customer's existing Membership when present.
+ * - Creates the initial Tenant when no Membership exists.
+ * - Creates the tenant Website.
+ * - Provisions the standard Website pages.
+ * - Creates the OWNER Membership.
+ *
+ * No subscription or trial is created here.
+ *
+ * This function is intentionally authentication-provider
+ * agnostic so both Google OAuth and future email/password
+ * authentication can use the same workspace provisioning path.
+ * ============================================================
+ */
+export async function provisionCustomerWorkspace(
+  tx: Prisma.TransactionClient,
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  },
+) {
+  /**
+   * 1. Resolve the customer's existing workspace.
+   *
+   * Phase 1 supports the initial single-workspace
+   * model. A subsequent login reuses the existing
+   * membership instead of creating another tenant.
+   */
+  let membership =
+    await tx.membership.findFirst({
+      where: {
+        userId: user.id,
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+    });
+
+  /**
+   * 2. Create the initial workspace when this is the
+   *    customer's first SaaS login.
+   *
+   * User
+   *   ↓
+   * Tenant
+   *   ├── Website
+   *   └── OWNER membership
+   *
+   * No subscription is created here.
+   */
+  if (!membership) {
+    const tenantSlug =
+      await getUniqueTenantSlug(
+        tx,
+        user.name,
+        user.email,
+      );
+
+    const tenant =
+      await tx.tenant.create({
+        data: {
+          name: `${user.name}'s Workspace`,
+          slug: tenantSlug,
+          isActive: true,
+        },
+      });
+
+    /**
+     * 3. Provision the customer Website as part
+     *    of the same initial workspace transaction.
+     *
+     * Website is the tenant-owned root entity for
+     * Website & Marketing. It must not be created
+     * lazily by an individual Website module.
+     */
+    const website =
+      await tx.website.create({
+        data: {
+          tenantId: tenant.id,
+          name: `${tenant.name} Website`,
+          slug: tenant.slug,
+          isActive: true,
+        },
+      });
+
+    /**
+     * 4. Provision the standard Website pages in the
+     *    same transaction so every newly created
+     *    customer workspace starts with the baseline
+     *    Website structure.
+     */
+    await provisionDefaultWebsitePages(
+      tx,
+      website.id,
+    );
+
+    membership =
+      await tx.membership.create({
+        data: {
+          userId: user.id,
+          tenantId: tenant.id,
+          role: MembershipRole.OWNER,
+        },
+      });
+  }
+
+  return membership;
+}
+
+/**
+ * ============================================================
  * Resolve or create the ROOTYM customer identity only.
  * ============================================================
  *
@@ -306,6 +423,17 @@ export async function resolveCustomerIdentity(
   });
 }
 
+/**
+ * ============================================================
+ * Create / resolve customer workspace
+ * ============================================================
+ *
+ * Existing Google OAuth callers continue using this function.
+ * Authentication-provider-specific identity handling remains
+ * here, while actual workspace provisioning is delegated to
+ * the shared provisionCustomerWorkspace() helper.
+ * ============================================================
+ */
 export async function createCustomerWorkspace(
   input: {
     email: string;
@@ -415,89 +543,17 @@ export async function createCustomerWorkspace(
     }
 
     /**
-     * 5. Resolve the customer's existing workspace.
-     *
-     * Phase 1 supports the initial single-workspace
-     * model. A subsequent login reuses the existing
-     * membership instead of creating another tenant.
+     * 5. Reuse the shared workspace provisioning path.
      */
-    let membership =
-      await tx.membership.findFirst({
-        where: {
-          userId: user.id,
-        },
-        orderBy: {
-          createdAt: "asc",
-        },
-      });
-
-    /**
-     * 6. Create the initial workspace when this is the
-     *    customer's first SaaS login.
-     *
-     * User
-     *   ↓
-     * Tenant
-     *   ├── Website
-     *   └── OWNER membership
-     *
-     * No subscription is created here.
-     */
-    if (!membership) {
-      const tenantSlug =
-        await getUniqueTenantSlug(
-          tx,
-          user.name,
-          user.email,
-        );
-
-      const tenant =
-        await tx.tenant.create({
-          data: {
-            name: `${user.name}'s Workspace`,
-            slug: tenantSlug,
-            isActive: true,
-          },
-        });
-
-      /**
-       * 7. Provision the customer Website as part
-       *    of the same initial workspace transaction.
-       *
-       * Website is the tenant-owned root entity for
-       * Website & Marketing. It must not be created
-       * lazily by an individual Website module.
-       */
-      const website =
-        await tx.website.create({
-          data: {
-            tenantId: tenant.id,
-            name: `${tenant.name} Website`,
-            slug: tenant.slug,
-            isActive: true,
-          },
-        });
-
-      /**
-       * 8. Provision the standard Website pages in the
-       *    same transaction so every newly created
-       *    customer workspace starts with the baseline
-       *    Website structure.
-       */
-      await provisionDefaultWebsitePages(
+    const membership =
+      await provisionCustomerWorkspace(
         tx,
-        website.id,
+        {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+        },
       );
-
-      membership =
-        await tx.membership.create({
-          data: {
-            userId: user.id,
-            tenantId: tenant.id,
-            role: MembershipRole.OWNER,
-          },
-        });
-    }
 
     return {
       user,

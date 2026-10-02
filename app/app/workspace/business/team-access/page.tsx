@@ -6,16 +6,27 @@
  * Purpose: Displays tenant-scoped workspace members and their
  *          roles and provides authorized Owners/Admins with
  *          workspace invitation and member-management controls.
+ *
+ *          Also provides the authenticated customer with
+ *          optional password management so a Google-only
+ *          customer can create a password and subsequently
+ *          use either:
+ *
+ *          1. Email + Password
+ *          2. Continue with Google
+ *
  * ============================================================
  */
 
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import {
   ArrowLeft,
   Building2,
   CheckCircle2,
   ChevronRight,
+  KeyRound,
   Mail,
   ShieldCheck,
   UserRound,
@@ -29,6 +40,13 @@ import {
 import {
   requireWorkspaceAccess,
 } from "@/app/lib/workspace/require-workspace-access";
+
+import {
+  createCustomerPasswordHash,
+  verifyCustomerPassword,
+} from "@/lib/auth/customer-password";
+
+import prisma from "@/lib/prisma";
 
 import TeamAccessInviteForm from "./TeamAccessInviteForm";
 import TeamAccessMemberActions from "./TeamAccessMemberActions";
@@ -67,9 +85,142 @@ function getRoleDescription(role: string) {
   }
 }
 
+/**
+ * ============================================================
+ * Password Management
+ * ============================================================
+ *
+ * This action always resolves the authenticated workspace
+ * customer again through requireWorkspaceAccess().
+ *
+ * No userId is accepted from the browser.
+ *
+ * This prevents a customer from attempting to change another
+ * user's password by manipulating form data.
+ * ============================================================
+ */
+async function saveCustomerPassword(formData: FormData) {
+  "use server";
+
+  const {
+    membership,
+  } = await requireWorkspaceAccess();
+
+  const currentPasswordValue =
+    formData.get("currentPassword");
+
+  const newPasswordValue =
+    formData.get("newPassword");
+
+  const confirmPasswordValue =
+    formData.get("confirmPassword");
+
+  const currentPassword =
+    typeof currentPasswordValue === "string"
+      ? currentPasswordValue
+      : "";
+
+  const newPassword =
+    typeof newPasswordValue === "string"
+      ? newPasswordValue
+      : "";
+
+  const confirmPassword =
+    typeof confirmPasswordValue === "string"
+      ? confirmPasswordValue
+      : "";
+
+  /**
+   * Basic password validation.
+   */
+  if (newPassword.length < 8) {
+    throw new Error(
+      "Password must be at least 8 characters long.",
+    );
+  }
+
+  if (newPassword !== confirmPassword) {
+    throw new Error(
+      "New password and confirmation password do not match.",
+    );
+  }
+
+  /**
+   * Resolve the current user directly from the authenticated
+   * membership. Never trust a userId supplied by the client.
+   */
+  const user = await prisma.user.findUnique({
+    where: {
+      id: membership.userId,
+    },
+    select: {
+      id: true,
+      passwordHash: true,
+      isActive: true,
+    },
+  });
+
+  if (!user || !user.isActive) {
+    throw new Error(
+      "Your ROOTYM account is inactive or could not be found.",
+    );
+  }
+
+  /**
+   * If a password already exists, require the current password
+   * before allowing it to be changed.
+   */
+  if (user.passwordHash) {
+    if (!currentPassword) {
+      throw new Error(
+        "Please enter your current password.",
+      );
+    }
+
+    const currentPasswordValid =
+      await verifyCustomerPassword(
+        currentPassword,
+        user.passwordHash,
+      );
+
+    if (!currentPasswordValid) {
+      throw new Error(
+        "The current password is incorrect.",
+      );
+    }
+  }
+
+  /**
+   * Securely hash the new password.
+   */
+  const passwordHash =
+    await createCustomerPasswordHash(newPassword);
+
+  /**
+   * Update only the authenticated customer's password.
+   */
+  await prisma.user.update({
+    where: {
+      id: user.id,
+    },
+    data: {
+      passwordHash,
+    },
+  });
+
+  /**
+   * Reload the page after successful password creation/change.
+   */
+  redirect(
+    "/app/workspace/business/team-access?password=updated",
+  );
+}
+
 export default async function TeamAccessPage() {
-  const { tenant, membership } =
-    await requireWorkspaceAccess();
+  const {
+    tenant,
+    membership,
+  } = await requireWorkspaceAccess();
 
   const teamAccess =
     await getTeamAccess();
@@ -87,6 +238,17 @@ export default async function TeamAccessPage() {
   const canManageAccess =
     membership.role === "OWNER" ||
     membership.role === "ADMIN";
+
+  /**
+   * requireWorkspaceAccess() includes the authenticated User
+   * in the returned membership.
+   *
+   * passwordHash is only used as a boolean here.
+   *
+   * The actual password hash is never rendered.
+   */
+  const hasPassword =
+    Boolean(membership.user.passwordHash);
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
@@ -257,6 +419,231 @@ export default async function TeamAccessPage() {
                 </p>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ========================================================
+          Password & Sign-in
+          ======================================================== */}
+      <section className="mx-auto max-w-7xl px-6 pb-8">
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-200 px-6 py-5">
+            <div className="flex items-start gap-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50">
+                <KeyRound className="h-5 w-5 text-emerald-600" />
+              </div>
+
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">
+                  Password & Sign-in
+                </h2>
+
+                <p className="mt-1 text-sm leading-6 text-slate-500">
+                  Manage the optional password for your ROOTYM
+                  account. Google sign-in remains available.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="px-6 py-6">
+            {hasPassword ? (
+              <>
+                <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+
+                    <div>
+                      <p className="text-sm font-semibold text-emerald-900">
+                        Password is configured
+                      </p>
+
+                      <p className="mt-1 text-sm leading-6 text-emerald-800">
+                        You can sign in to ROOTYM using either
+                        your email and password or Continue with
+                        Google.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="max-w-2xl">
+                  <h3 className="text-sm font-semibold text-slate-900">
+                    Change your password
+                  </h3>
+
+                  <p className="mt-1 text-sm text-slate-500">
+                    Enter your current password and choose a new
+                    password.
+                  </p>
+
+                  <form
+                    action={saveCustomerPassword}
+                    className="mt-5 space-y-5"
+                  >
+                    <div>
+                      <label
+                        htmlFor="currentPassword"
+                        className="block text-sm font-medium text-slate-700"
+                      >
+                        Current password
+                      </label>
+
+                      <input
+                        id="currentPassword"
+                        name="currentPassword"
+                        type="password"
+                        autoComplete="current-password"
+                        required
+                        className="mt-2 block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                        placeholder="Enter your current password"
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="newPassword"
+                        className="block text-sm font-medium text-slate-700"
+                      >
+                        New password
+                      </label>
+
+                      <input
+                        id="newPassword"
+                        name="newPassword"
+                        type="password"
+                        autoComplete="new-password"
+                        minLength={8}
+                        required
+                        className="mt-2 block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                        placeholder="Create a new password"
+                      />
+
+                      <p className="mt-2 text-xs text-slate-500">
+                        Use at least 8 characters.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="confirmPassword"
+                        className="block text-sm font-medium text-slate-700"
+                      >
+                        Confirm new password
+                      </label>
+
+                      <input
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        type="password"
+                        autoComplete="new-password"
+                        minLength={8}
+                        required
+                        className="mt-2 block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                        placeholder="Re-enter your new password"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+                    >
+                      Change password
+                    </button>
+                  </form>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4">
+                  <div className="flex items-start gap-3">
+                    <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+
+                    <div>
+                      <p className="text-sm font-semibold text-emerald-900">
+                        Google sign-in is active
+                      </p>
+
+                      <p className="mt-1 text-sm leading-6 text-emerald-800">
+                        Your ROOTYM account does not currently
+                        have a password. Creating one is optional.
+                        You can continue using Google sign-in even
+                        if you do not create a password.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="max-w-2xl">
+                  <h3 className="text-sm font-semibold text-slate-900">
+                    Set your password
+                  </h3>
+
+                  <p className="mt-1 text-sm leading-6 text-slate-500">
+                    Your ROOTYM account is already active. Create
+                    a password so you can also sign in using your
+                    email address and password.
+                  </p>
+
+                  <form
+                    action={saveCustomerPassword}
+                    className="mt-5 space-y-5"
+                  >
+                    <div>
+                      <label
+                        htmlFor="newPassword"
+                        className="block text-sm font-medium text-slate-700"
+                      >
+                        Create password
+                      </label>
+
+                      <input
+                        id="newPassword"
+                        name="newPassword"
+                        type="password"
+                        autoComplete="new-password"
+                        minLength={8}
+                        required
+                        className="mt-2 block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                        placeholder="Create a password"
+                      />
+
+                      <p className="mt-2 text-xs text-slate-500">
+                        Use at least 8 characters.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="confirmPassword"
+                        className="block text-sm font-medium text-slate-700"
+                      >
+                        Confirm password
+                      </label>
+
+                      <input
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        type="password"
+                        autoComplete="new-password"
+                        minLength={8}
+                        required
+                        className="mt-2 block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                        placeholder="Re-enter your password"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400"
+                    >
+                      Set password
+                    </button>
+                  </form>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </section>
