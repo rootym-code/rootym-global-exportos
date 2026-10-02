@@ -13,6 +13,12 @@
  *
  * Supports optional Admin Tenant filtering.
  *
+ * Tenant filtering relationship:
+ *
+ * Inquiry
+ *   └── Website
+ *         └── Tenant
+ *
  * No database migration required.
  *
  * ============================================================
@@ -30,9 +36,15 @@ import {
 } from "@/lib/auth";
 
 export async function GET(
-  request: NextRequest
+  request: NextRequest,
 ) {
   try {
+    /**
+     * ----------------------------------------------------------
+     * Admin Authentication
+     * ----------------------------------------------------------
+     */
+
     const auth =
       await authenticateAdmin(request);
 
@@ -44,7 +56,7 @@ export async function GET(
         },
         {
           status: auth.status,
-        }
+        },
       );
     }
 
@@ -53,23 +65,36 @@ export async function GET(
      * Tenant Filter
      * ----------------------------------------------------------
      *
-     * null / missing tenantId
-     *     = All Customers
+     * No tenantId:
+     *   = All buyers
      *
-     * tenantId supplied
-     *     = Only inquiries belonging to that tenant
+     * tenantId supplied:
+     *   = Buyers whose inquiries belong to that tenant
      *
      * Relationship:
      *
      * Inquiry
-     *    -> Website
-     *       -> Tenant
+     *   -> Website
+     *      -> Tenant
      * ----------------------------------------------------------
      */
+
     const tenantId =
       request.nextUrl.searchParams
         .get("tenantId")
         ?.trim() || undefined;
+
+    /**
+     * ----------------------------------------------------------
+     * Load Inquiries
+     * ----------------------------------------------------------
+     *
+     * The buyer list is derived from existing inquiries.
+     *
+     * When tenantId is supplied, filter directly through the
+     * Inquiry -> Website -> Tenant relationship.
+     * ----------------------------------------------------------
+     */
 
     const inquiries =
       await prisma.inquiry.findMany({
@@ -90,7 +115,14 @@ export async function GET(
      * ----------------------------------------------------------
      * Build Buyer Map
      * ----------------------------------------------------------
+     *
+     * Multiple inquiries from the same company are consolidated
+     * into a single buyer record.
+     *
+     * Company name is used as the buyer aggregation key.
+     * ----------------------------------------------------------
      */
+
     const buyerMap =
       new Map<string, BuyerMapItem>();
 
@@ -131,31 +163,51 @@ export async function GET(
 
               latestInquiryNumber:
                 inquiry.inquiryNumber,
-            }
+            },
           );
-        } else {
-          const buyer =
-            buyerMap.get(key)!;
 
-          buyer.totalInquiries += 1;
-
-          if (
-            !buyer.products.includes(
-              inquiry.product
-            )
-          ) {
-            buyer.products.push(
-              inquiry.product
-            );
-          }
+          return;
         }
-      }
+
+        const buyer =
+          buyerMap.get(key)!;
+
+        /**
+         * Increment inquiry count.
+         */
+        buyer.totalInquiries += 1;
+
+        /**
+         * Add product only once.
+         */
+        if (
+          !buyer.products.includes(
+            inquiry.product,
+          )
+        ) {
+          buyer.products.push(
+            inquiry.product,
+          );
+        }
+      },
     );
+
+    /**
+     * ----------------------------------------------------------
+     * Convert Map to Array
+     * ----------------------------------------------------------
+     */
 
     const buyers =
       Array.from(
-        buyerMap.values()
+        buyerMap.values(),
       );
+
+    /**
+     * ----------------------------------------------------------
+     * API Response
+     * ----------------------------------------------------------
+     */
 
     return NextResponse.json({
       success: true,
@@ -163,8 +215,8 @@ export async function GET(
     });
   } catch (error) {
     console.error(
-      "Buyer API Error:",
-      error
+      "GET /api/admin/buyers error:",
+      error,
     );
 
     return NextResponse.json(
@@ -175,15 +227,20 @@ export async function GET(
       },
       {
         status: 500,
-      }
+      },
     );
   }
 }
 
 /**
- * Internal representation used while
- * aggregating inquiries into buyers.
+ * ============================================================
+ * Internal Buyer Representation
+ * ============================================================
+ *
+ * Used while aggregating inquiries into unique buyers.
+ * ============================================================
  */
+
 interface BuyerMapItem {
   companyName: string;
   contactPerson: string;
