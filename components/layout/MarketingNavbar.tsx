@@ -29,9 +29,8 @@ import { AnimatePresence, motion } from "framer-motion";
 
 import { Menu, X } from "lucide-react";
 
-import { SAAS_LOGIN_URL } from "@/lib/config/urls";
-
-const TRIAL_LOGIN_URL = `${SAAS_LOGIN_URL}?intent=trial`;
+const LOGIN_URL = "/login";
+const TRIAL_LOGIN_URL = "/login?intent=trial";
 
 const NAV_ITEMS = [
   { label: "Solutions", href: "#solutions" },
@@ -138,7 +137,7 @@ export default function MarketingNavbar() {
         </Link>
 
         {/* Desktop navigation */}
-        <div className="hidden items-center gap-1 lg:flex">
+        <div className="hidden items-center gap-0.5 lg:flex">
           {NAV_ITEMS.map((item, index) => (
             <motion.div
               key={item.href}
@@ -157,7 +156,7 @@ export default function MarketingNavbar() {
             >
               <Link
                 href={item.href}
-                className="group relative rounded-xl px-3 py-2 text-sm font-medium text-slate-300 transition-colors hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/50"
+                className="group relative rounded-xl px-2.5 py-2 text-sm font-medium text-slate-300 transition-colors hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/50"
               >
                 <span className="relative z-10">
                   {item.label}
@@ -168,30 +167,48 @@ export default function MarketingNavbar() {
             </motion.div>
           ))}
 
-          {/* Primary CTA */}
-          <motion.div
-            className="ml-3"
-            whileHover={{
-              scale: 1.03,
-            }}
-            whileTap={{
-              scale: 0.97,
-            }}
-          >
-            <a
-              href={TRIAL_LOGIN_URL}
-              className="group relative inline-flex overflow-hidden rounded-xl"
-              aria-label="Start your ROOTYM ExportOS free trial"
+          {/* Authentication CTAs */}
+          <div className="ml-3 flex items-center gap-2">
+            <motion.div
+              whileHover={{
+                scale: 1.03,
+              }}
+              whileTap={{
+                scale: 0.97,
+              }}
             >
-              <span className="absolute inset-0 bg-gradient-to-r from-emerald-500 via-green-500 to-cyan-500" />
+              <Link
+                href={LOGIN_URL}
+                className="inline-flex items-center justify-center rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2.5 text-sm font-semibold text-slate-200 shadow-sm transition-all hover:border-emerald-400/40 hover:bg-white/[0.08] hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/50"
+                aria-label="Sign in to ROOTYM ExportOS"
+              >
+                LOGIN
+              </Link>
+            </motion.div>
 
-              <span className="absolute -left-20 top-0 h-full w-16 -skew-x-12 bg-white/20 transition-all duration-700 group-hover:left-[120%]" />
+            <motion.div
+              whileHover={{
+                scale: 1.03,
+              }}
+              whileTap={{
+                scale: 0.97,
+              }}
+            >
+              <Link
+                href={TRIAL_LOGIN_URL}
+                className="group relative inline-flex overflow-hidden rounded-xl"
+                aria-label="Start your ROOTYM ExportOS free trial"
+              >
+                <span className="absolute inset-0 bg-gradient-to-r from-emerald-500 via-green-500 to-cyan-500" />
 
-              <span className="relative px-5 py-2.5 text-sm font-semibold text-white">
-                FREE TRIAL
-              </span>
-            </a>
-          </motion.div>
+                <span className="absolute -left-20 top-0 h-full w-16 -skew-x-12 bg-white/20 transition-all duration-700 group-hover:left-[120%]" />
+
+                <span className="relative px-5 py-2.5 text-sm font-semibold text-white">
+                  START FREE TRIAL
+                </span>
+              </Link>
+            </motion.div>
+          </div>
         </div>
 
         {/* Mobile toggle */}
@@ -290,13 +307,22 @@ export default function MarketingNavbar() {
                 </Link>
               ))}
 
-              <a
+              {/* Mobile authentication actions */}
+              <Link
+                href={LOGIN_URL}
+                onClick={handleNavigation}
+                className="mt-3 flex items-center justify-center rounded-xl border border-white/15 bg-white/[0.04] px-5 py-3.5 font-semibold text-slate-200 transition hover:border-emerald-400/40 hover:bg-white/[0.08] hover:text-white"
+              >
+                LOGIN
+              </Link>
+
+              <Link
                 href={TRIAL_LOGIN_URL}
                 onClick={handleNavigation}
-                className="mt-3 flex items-center justify-center rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 px-5 py-3.5 font-semibold text-white"
+                className="flex items-center justify-center rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 px-5 py-3.5 font-semibold text-white shadow-lg shadow-emerald-500/10"
               >
-                FREE TRIAL
-              </a>
+                START FREE TRIAL
+              </Link>
             </nav>
           </motion.div>
         )}

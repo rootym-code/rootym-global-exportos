@@ -7,6 +7,7 @@
  *          for export.rootym.com.
  * ============================================================
  */
+
 import MarketingNavbar from "@/components/layout/MarketingNavbar";
 import Hero from "@/components/sections/Hero";
 import ApplicationScreenshots from "@/components/sections/ApplicationScreenshots";
@@ -23,7 +24,7 @@ export default function Home() {
   return (
     <main
       id="top"
-      className="min-h-screen bg-slate-950"
+      className="min-h-screen overflow-x-hidden bg-slate-950 text-white"
     >
       <MarketingNavbar />
 

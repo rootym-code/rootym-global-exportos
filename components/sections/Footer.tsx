@@ -20,6 +20,7 @@ import Link from "next/link";
 import {
   ArrowUpRight,
   Mail,
+  Phone,
 } from "lucide-react";
 
 import { SAAS_LOGIN_URL } from "@/lib/config/urls";
@@ -84,13 +85,23 @@ export default function Footer() {
               organizations operate smarter and grow faster.
             </p>
 
-            <a
-              href="mailto:prem@rootym.com"
-              className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-slate-300 transition hover:text-emerald-400"
-            >
-              <Mail className="h-4 w-4 text-emerald-400" />
-              sales@rootym.com
-            </a>
+            <div className="mt-6 flex flex-col gap-3">
+              <a
+                href="mailto:info@rootym.com"
+                className="inline-flex items-center gap-2 text-sm font-medium text-slate-300 transition hover:text-emerald-400"
+              >
+                <Mail className="h-4 w-4 text-emerald-400" />
+                info@rootym.com
+              </a>
+
+              <a
+                href="tel:+919873529752"
+                className="inline-flex items-center gap-2 text-sm font-medium text-slate-300 transition hover:text-emerald-400"
+              >
+                <Phone className="h-4 w-4 text-emerald-400" />
+                +91-9873529752
+              </a>
+            </div>
           </div>
 
           <div>

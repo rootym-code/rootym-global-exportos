@@ -31,7 +31,9 @@
  */
 
 import { randomBytes } from "node:crypto";
+
 import { jwtVerify, SignJWT } from "jose";
+
 import {
   NextRequest,
   NextResponse,
@@ -422,7 +424,9 @@ async function startInvitationOAuth(
 
   let token: unknown;
 
-  if (contentType.includes("application/json")) {
+  if (
+    contentType.includes("application/json")
+  ) {
     const body =
       (await request.json()) as {
         token?: unknown;
@@ -433,9 +437,13 @@ async function startInvitationOAuth(
     contentType.includes(
       "application/x-www-form-urlencoded",
     ) ||
-    contentType.includes("multipart/form-data")
+    contentType.includes(
+      "multipart/form-data",
+    )
   ) {
-    const formData = await request.formData();
+    const formData =
+      await request.formData();
+
     token = formData.get("token");
   }
 
@@ -487,37 +495,41 @@ async function startInvitationOAuth(
     host ===
       "app.export.localhost:3000" ||
     host ===
-      "app.export.localhost"
+      "app.export.localhost" ||
+    host ===
+      "localhost:3000" ||
+    host ===
+      "localhost"
   ) {
     const appOrigin =
       getConfiguredSaaSOrigin();
-  
+
     const invitationContext =
       await createInvitationContext(
         invitation.invitationId,
         appOrigin,
       );
-  
+
     const bootstrapUrl =
       new URL(
         `http://${LOCAL_OAUTH_HOST}/api/auth/google`,
       );
-  
+
     bootstrapUrl.searchParams.set(
       "local",
       "1",
     );
-  
+
     bootstrapUrl.searchParams.set(
       "return_origin",
       appOrigin,
     );
-  
+
     bootstrapUrl.searchParams.set(
       "invitation_context",
       invitationContext,
     );
-  
+
     return NextResponse.redirect(
       bootstrapUrl,
       {
@@ -584,8 +596,9 @@ export async function GET(
       "";
 
     const intent =
-      request.nextUrl.searchParams.get("intent") ===
-      "trial"
+      request.nextUrl.searchParams.get(
+        "intent",
+      ) === "trial"
         ? TRIAL_INTENT
         : undefined;
 
@@ -610,36 +623,57 @@ export async function GET(
       host ===
         "app.export.localhost:3000" ||
       host ===
-        "app.export.localhost"
+        "app.export.localhost" ||
+      host ===
+        "localhost:3000" ||
+      host ===
+        "localhost"
     ) {
       const appOrigin =
-        getSaaSOrigin(request);
+        getConfiguredSaaSOrigin();
 
-      const bootstrapUrl =
-        new URL(
-          `http://${LOCAL_OAUTH_HOST}/api/auth/google`,
+      /**
+       * When the user is already on localhost, this bootstrap
+       * request must be explicitly marked so the next request
+       * can create the Google authorization response.
+       *
+       * When the user is on app.export.localhost, this also
+       * preserves the existing bootstrap architecture.
+       */
+      if (
+        !(
+          host === LOCAL_OAUTH_HOST &&
+          request.nextUrl.searchParams.get(
+            "local",
+          ) === "1"
+        )
+      ) {
+        const bootstrapUrl =
+          new URL(
+            `http://${LOCAL_OAUTH_HOST}/api/auth/google`,
+          );
+
+        bootstrapUrl.searchParams.set(
+          "local",
+          "1",
         );
 
-      bootstrapUrl.searchParams.set(
-        "local",
-        "1",
-      );
-
-      bootstrapUrl.searchParams.set(
-        "return_origin",
-        appOrigin,
-      );
-
-      if (intent === TRIAL_INTENT) {
         bootstrapUrl.searchParams.set(
-          "intent",
-          "trial",
+          "return_origin",
+          appOrigin,
+        );
+
+        if (intent === TRIAL_INTENT) {
+          bootstrapUrl.searchParams.set(
+            "intent",
+            "trial",
+          );
+        }
+
+        return NextResponse.redirect(
+          bootstrapUrl,
         );
       }
-
-      return NextResponse.redirect(
-        bootstrapUrl,
-      );
     }
 
     /**
