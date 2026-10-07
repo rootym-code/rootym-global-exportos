@@ -29,8 +29,8 @@ import { AnimatePresence, motion } from "framer-motion";
 
 import { Menu, X } from "lucide-react";
 
-const LOGIN_URL = "/login";
-const TRIAL_LOGIN_URL = "/login?intent=trial";
+const LOGIN_URL = "https://app.export.rootym.com/login";
+const TRIAL_LOGIN_URL = "https://app.export.rootym.com/login?intent=trial";
 
 const NAV_ITEMS = [
   { label: "Solutions", href: "#solutions" },
