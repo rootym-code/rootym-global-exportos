@@ -6,7 +6,7 @@
 
 import Link from "next/link";
 import { Fragment } from "react";
-
+import sanitizeHtml from "sanitize-html";
 import cmsPageService from "@/lib/services/cms/page.service";
 import { CmsPageTemplate } from "@/lib/generated/prisma";
 
@@ -15,6 +15,31 @@ import type {
   LandingPageSection,
 } from "@/components/admin/cms/pages/types";
 import type { SectionElement } from "@/lib/workspace/website/section-elements";
+
+
+function renderSafeCmsHtml(content: string) {
+  const sanitizedContent = sanitizeHtml(content, {
+    allowedTags: [
+      "p",
+      "br",
+      "strong",
+      "b",
+      "em",
+      "i",
+      "u",
+      "ul",
+      "ol",
+      "li",
+      "div",
+    ],
+    allowedAttributes: {},
+    disallowedTagsMode: "discard",
+  });
+
+  return {
+    __html: sanitizedContent,
+  };
+}
 
 
 function SectionHeader({
@@ -1109,9 +1134,12 @@ export function renderCmsPageContent({
           <section className="bg-gray-50 px-6 py-12">
             <div className="mx-auto max-w-6xl">
               <article className="rounded-3xl bg-white p-8 shadow-sm md:p-12">
-                <div className="whitespace-pre-wrap text-base leading-8 text-gray-700">
-                  {translation.content}
-                </div>
+
+              <div
+  className="cms-rich-content whitespace-pre-wrap text-base leading-8 text-gray-700 [&_p]:my-3 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:my-1"
+  dangerouslySetInnerHTML={renderSafeCmsHtml(translation.content)}
+/>
+
               </article>
             </div>
           </section>
@@ -1133,9 +1161,12 @@ export function renderCmsPageContent({
 
         {translation.content && (
           <article className="mt-10">
-            <div className="whitespace-pre-wrap text-base leading-8 text-gray-700">
-              {translation.content}
-            </div>
+
+<div
+  className="cms-rich-content whitespace-pre-wrap text-base leading-8 text-gray-700 [&_p]:my-3 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:my-1"
+  dangerouslySetInnerHTML={renderSafeCmsHtml(translation.content)}
+/>
+
           </article>
         )}
       </section>

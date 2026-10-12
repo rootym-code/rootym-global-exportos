@@ -13,8 +13,10 @@
 "use client";
 
 import {
+  ClipboardEvent,
   FormEvent,
   ReactNode,
+  useRef,
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
@@ -614,6 +616,147 @@ function ObjectArrayEditor({
     </div>
   );
 }
+
+function sanitizeEditorHtml(html: string): string {
+  if (typeof window === "undefined") return "";
+
+  const parsed = new DOMParser().parseFromString(html, "text/html");
+  const allowedTags = new Set([
+    "P", "BR", "STRONG", "B", "EM", "I", "U",
+    "UL", "OL", "LI", "DIV",
+  ]);
+
+  function cleanNode(node: Node): void {
+    Array.from(node.childNodes).forEach((child) => {
+      if (child.nodeType === Node.ELEMENT_NODE) {
+        const element = child as HTMLElement;
+
+        if (!allowedTags.has(element.tagName)) {
+          element.replaceWith(...Array.from(element.childNodes));
+          return;
+        }
+
+        Array.from(element.attributes).forEach((attribute) => {
+          element.removeAttribute(attribute.name);
+        });
+
+        cleanNode(element);
+      } else if (
+        child.nodeType !== Node.TEXT_NODE
+      ) {
+        child.remove();
+      }
+    });
+  }
+
+  cleanNode(parsed.body);
+  return parsed.body.innerHTML;
+}
+
+function RichTextEditor({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const editorRef = useRef<HTMLDivElement>(null);
+  const [focused, setFocused] = useState(false);
+
+  function runCommand(
+    command: "bold" | "italic" | "underline" | "insertUnorderedList" | "insertOrderedList"
+  ) {
+    editorRef.current?.focus();
+    document.execCommand(command, false);
+    onChange(
+      sanitizeEditorHtml(editorRef.current?.innerHTML ?? "")
+    );
+  }
+
+  function handleInput() {
+    onChange(
+      sanitizeEditorHtml(editorRef.current?.innerHTML ?? "")
+    );
+  }
+
+  function handlePaste(event: React.ClipboardEvent<HTMLDivElement>) {
+    event.preventDefault();
+
+    const clipboardHtml = event.clipboardData.getData("text/html");
+    const clipboardText = event.clipboardData.getData("text/plain");
+
+    const pastedContent = clipboardHtml
+      ? sanitizeEditorHtml(clipboardHtml)
+      : clipboardText
+          .split(/\r?\n/)
+          .map((line) => `<p>${line.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`)
+          .join("");
+
+    document.execCommand("insertHTML", false, pastedContent);
+    handleInput();
+  }
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-gray-300 bg-white focus-within:border-[#2E7D32] focus-within:ring-2 focus-within:ring-green-100">
+      <div
+        className="flex flex-wrap items-center gap-2 border-b border-gray-200 bg-gray-50 p-2"
+        role="toolbar"
+        aria-label="Page content formatting"
+      >
+        {[
+          { label: "Bold", command: "bold" as const, icon: <strong>B</strong> },
+          { label: "Italic", command: "italic" as const, icon: <em>I</em> },
+          { label: "Underline", command: "underline" as const, icon: <u>U</u> },
+          { label: "Bullet list", command: "insertUnorderedList" as const, icon: "• List" },
+          { label: "Numbered list", command: "insertOrderedList" as const, icon: "1. List" },
+        ].map((item) => (
+          <button
+            key={item.command}
+            type="button"
+            title={item.label}
+            aria-label={item.label}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => runCommand(item.command)}
+            className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 hover:border-green-300 hover:bg-green-50"
+          >
+            {item.icon}
+          </button>
+        ))}
+        <span className="text-xs text-gray-500">
+          Formatting is retained when you paste supported content.
+        </span>
+      </div>
+
+      <div
+        ref={editorRef}
+        contentEditable
+        suppressContentEditableWarning
+        role="textbox"
+        aria-label="Page Content"
+        aria-multiline="true"
+        onInput={handleInput}
+        onPaste={handlePaste}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        onKeyDown={(event) => {
+          if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "b") {
+            event.preventDefault();
+            runCommand("bold");
+          }
+          if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "i") {
+            event.preventDefault();
+            runCommand("italic");
+          }
+        }}
+        className="min-h-[240px] px-4 py-3 text-sm leading-7 text-gray-800 outline-none [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-2 [&_ul]:list-disc [&_ul]:pl-6"
+        dangerouslySetInnerHTML={{
+          __html: sanitizeEditorHtml(value),
+        }}
+      />
+    </div>
+  );
+}
+
 
 export default function CreateWebsitePage() {
   const router = useRouter();
@@ -1959,7 +2102,18 @@ export default function CreateWebsitePage() {
           <div className="mb-6"><h2 className="text-lg font-semibold text-gray-900">Additional Content</h2><p className="mt-1 text-sm text-gray-500">Optional plain-text content retained for compatibility with existing CMS pages.</p></div>
           <div className="space-y-5">
             <div className="space-y-2"><Label htmlFor="excerpt">Excerpt</Label><Textarea id="excerpt" value={form.excerpt} onChange={(event) => updateField("excerpt", event.target.value)} maxLength={500} rows={4} /></div>
-            <div className="space-y-2"><Label htmlFor="content">Page Content</Label><Textarea id="content" value={form.content} onChange={(event) => updateField("content", event.target.value)} rows={10} /></div>
+           
+            <div className="space-y-2">
+  <Label htmlFor="content">Page Content</Label>
+  <RichTextEditor
+    value={form.content}
+    onChange={(value) => updateField("content", value)}
+  />
+  <p className="text-xs text-gray-500">
+    Use the toolbar for formatting, or paste formatted text from Word.
+    Supported formatting includes bold, italic, underline, and lists.
+  </p>
+</div>
           </div>
         </Card>
 
