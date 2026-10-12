@@ -42,6 +42,25 @@ function renderSafeCmsHtml(content: string) {
 }
 
 
+
+function RichCmsDescription({
+  content,
+  className,
+}: {
+  content?: string | null;
+  className: string;
+}) {
+  if (!content?.trim()) return null;
+
+  return (
+    <div
+      className={`cms-rich-content [&_p]:my-2 [&_ul]:my-3 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:my-3 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:my-1 ${className}`}
+      dangerouslySetInnerHTML={renderSafeCmsHtml(content)}
+    />
+  );
+}
+
+
 function SectionHeader({
   eyebrow,
   heading,
@@ -402,11 +421,10 @@ function renderSection(section: LandingPageSection, index: number, locale: strin
                 {section.heading}
               </h1>
 
-              {section.subheading && (
-                <p className="mt-6 max-w-2xl text-lg leading-8 text-gray-600 md:text-xl">
-                  {section.subheading}
-                </p>
-              )}
+              <RichCmsDescription
+  content={section.subheading}
+  className="mt-6 max-w-2xl text-lg leading-8 text-gray-600 md:text-xl"
+/>
 
               {(section.primaryCtaText || section.secondaryCtaText) && (
                 <div className="mt-9 flex flex-wrap gap-4">
@@ -1113,7 +1131,7 @@ export function renderCmsPageContent({
     ) : (
       <main className="overflow-x-hidden bg-white">
         <section className="bg-white px-6 py-20 md:py-28">
-          <div className="mx-auto max-w-6xl">
+        <div className="w-full max-w-none">
             <span className="inline-flex rounded-full bg-green-100 px-4 py-2 text-sm font-semibold text-green-800">
               Global Market
             </span>
@@ -1131,24 +1149,24 @@ export function renderCmsPageContent({
         </section>
 
         {translation.content && (
-          <section className="bg-gray-50 px-6 py-12">
-            <div className="mx-auto max-w-6xl">
-              <article className="rounded-3xl bg-white p-8 shadow-sm md:p-12">
+  <section className="w-full bg-gray-50 px-6 py-12 md:px-10">
+    <div className="w-full max-w-none">
+      <article className="w-full max-w-none rounded-3xl bg-white p-8 shadow-sm md:p-12">
+        <div
+          className="cms-rich-content w-full max-w-none whitespace-pre-wrap text-base leading-8 text-gray-700 [&_p]:my-3 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:my-1"
+          dangerouslySetInnerHTML={renderSafeCmsHtml(translation.content)}
+        />
+      </article>
+    </div>
+  </section>
+)}
 
-              <div
-  className="cms-rich-content whitespace-pre-wrap text-base leading-8 text-gray-700 [&_p]:my-3 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:my-1"
-  dangerouslySetInnerHTML={renderSafeCmsHtml(translation.content)}
-/>
 
-              </article>
-            </div>
-          </section>
-        )}
       </main>
     )
   ) : (
-    <main className="overflow-x-hidden bg-white">
-      <section className="mx-auto max-w-6xl px-6 py-16 md:py-20">
+<main className="overflow-x-hidden bg-white">
+<section className="w-full px-6 py-16 md:px-10 md:py-20">
         <h1 className="text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
           {translation.title}
         </h1>
@@ -1159,16 +1177,15 @@ export function renderCmsPageContent({
           </p>
         )}
 
-        {translation.content && (
-          <article className="mt-10">
+{translation.content && (
+  <article className="mt-10 w-full max-w-none">
+    <div
+      className="cms-rich-content w-full max-w-none whitespace-pre-wrap text-base leading-8 text-gray-700 [&_p]:my-3 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:my-1"
+      dangerouslySetInnerHTML={renderSafeCmsHtml(translation.content)}
+    />
+  </article>
+)}
 
-<div
-  className="cms-rich-content whitespace-pre-wrap text-base leading-8 text-gray-700 [&_p]:my-3 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:my-1"
-  dangerouslySetInnerHTML={renderSafeCmsHtml(translation.content)}
-/>
-
-          </article>
-        )}
       </section>
     </main>
   );

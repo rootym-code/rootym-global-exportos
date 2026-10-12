@@ -520,6 +520,7 @@ function TextArrayEditor({
   );
 }
 
+
 function ObjectArrayEditor({
   label,
   values,
@@ -528,7 +529,9 @@ function ObjectArrayEditor({
   onChange,
   onAdd,
   onRemove,
+  richTextDescription = false,
 }: {
+
   label: string;
   values: Array<{
     title: string;
@@ -543,6 +546,7 @@ function ObjectArrayEditor({
   ) => void;
   onAdd: () => void;
   onRemove: (index: number) => void;
+  richTextDescription?: boolean;
 }) {
   return (
     <div className="space-y-3">
@@ -597,18 +601,29 @@ function ObjectArrayEditor({
                 }
               />
 
-              <Textarea
-                value={item.description}
-                placeholder={secondPlaceholder}
-                rows={3}
-                onChange={(event) =>
-                  onChange(
-                    index,
-                    "description",
-                    event.target.value
-                  )
-                }
-              />
+
+{richTextDescription ? (
+                <RichTextEditor
+                  value={item.description}
+                  onChange={(value) =>
+                    onChange(index, "description", value)
+                  }
+                />
+              ) : (
+                <Textarea
+                  value={item.description}
+                  placeholder={secondPlaceholder}
+                  rows={3}
+                  onChange={(event) =>
+                    onChange(
+                      index,
+                      "description",
+                      event.target.value
+                    )
+                  }
+                />
+              )}
+
             </div>
           </div>
         ))
@@ -1106,17 +1121,19 @@ export default function CreateWebsitePage() {
               />
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label>Subheading</Label>
-              <Textarea
+
+
+            <Label>Subheading</Label>
+              <RichTextEditor
                 value={section.subheading}
-                placeholder="Premium Indian dehydrated onion flakes for importers, distributors and food manufacturers."
-                rows={4}
-                onChange={(event) =>
+                onChange={(value) =>
                   updateSection(index, {
-                    subheading: event.target.value,
+                    subheading: value,
                   })
                 }
               />
+
+
             </div>
             <div className="space-y-2">
               <Label>Primary CTA</Label>
@@ -1168,17 +1185,21 @@ export default function CreateWebsitePage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Description</Label>
-              <Textarea
+
+
+
+            <Label>Description</Label>
+              <RichTextEditor
                 value={section.description}
-                rows={4}
-                onChange={(event) =>
+                onChange={(value) =>
                   updateSection(index, {
-                    description:
-                      event.target.value,
+                    description: value,
                   })
                 }
               />
+
+
+
             </div>
             <TextArrayEditor
               label="Key Points"
@@ -1232,16 +1253,15 @@ export default function CreateWebsitePage() {
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label>Description</Label>
-                <Textarea
+                <RichTextEditor
                   value={section.description}
-                  rows={4}
-                  onChange={(event) =>
+                  onChange={(value) =>
                     updateSection(index, {
-                      description:
-                        event.target.value,
+                      description: value,
                     })
                   }
                 />
+
               </div>
               <div className="space-y-2">
                 <Label>Product Name</Label>
@@ -1356,22 +1376,21 @@ export default function CreateWebsitePage() {
             </div>
             <div className="space-y-2">
               <Label>Description</Label>
-              <Textarea
-                value={section.description}
-                rows={4}
-                onChange={(event) =>
-                  updateSection(index, {
-                    description:
-                      event.target.value,
-                  })
-                }
-              />
+              <RichTextEditor
+                  value={section.description}
+                  onChange={(value) =>
+                    updateSection(index, {
+                      description: value,
+                    })
+                  }
+                />
             </div>
             <ObjectArrayEditor
               label="Application Items"
               values={section.items}
               firstPlaceholder="Food processing"
               secondPlaceholder="Describe the application and buyer use case."
+              richTextDescription
               onChange={(index, field, value) =>
                 updateObjectArrayItem(
                   sectionIndex,
@@ -1419,6 +1438,7 @@ export default function CreateWebsitePage() {
             </div>
             <ObjectArrayEditor
               label="Why Us Points"
+              richTextDescription
               values={section.points}
               firstPlaceholder="Quality-focused sourcing"
               secondPlaceholder="Explain the buyer benefit."
@@ -1469,16 +1489,14 @@ export default function CreateWebsitePage() {
             </div>
             <div className="space-y-2">
               <Label>Description</Label>
-              <Textarea
-                value={section.description}
-                rows={4}
-                onChange={(event) =>
-                  updateSection(index, {
-                    description:
-                      event.target.value,
-                  })
-                }
-              />
+              <RichTextEditor
+                  value={section.description}
+                  onChange={(value) =>
+                    updateSection(index, {
+                      description: value,
+                    })
+                  }
+                />
             </div>
             <TextArrayEditor
               label="Buyer Types"
@@ -1530,16 +1548,14 @@ export default function CreateWebsitePage() {
             </div>
             <div className="space-y-2">
               <Label>Description</Label>
-              <Textarea
-                value={section.description}
-                rows={4}
-                onChange={(event) =>
-                  updateSection(index, {
-                    description:
-                      event.target.value,
-                  })
-                }
-              />
+              <RichTextEditor
+                  value={section.description}
+                  onChange={(value) =>
+                    updateSection(index, {
+                      description: value,
+                    })
+                  }
+                />
             </div>
             <TextArrayEditor
               label="Packaging Options"
@@ -1591,16 +1607,14 @@ export default function CreateWebsitePage() {
             </div>
             <div className="space-y-2">
               <Label>Description</Label>
-              <Textarea
-                value={section.description}
-                rows={4}
-                onChange={(event) =>
-                  updateSection(index, {
-                    description:
-                      event.target.value,
-                  })
-                }
-              />
+              <RichTextEditor
+                  value={section.description}
+                  onChange={(value) =>
+                    updateSection(index, {
+                      description: value,
+                    })
+                  }
+                />
             </div>
             <TextArrayEditor
               label="Documents"
@@ -1652,15 +1666,14 @@ export default function CreateWebsitePage() {
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label>Description</Label>
-              <Textarea
-                value={section.description}
-                rows={4}
-                onChange={(event) =>
-                  updateSection(index, {
-                    description: event.target.value,
-                  })
-                }
-              />
+              <RichTextEditor
+                  value={section.description}
+                  onChange={(value) =>
+                    updateSection(index, {
+                      description: value,
+                    })
+                  }
+                />
             </div>
             <div className="space-y-2">
               <Label>Primary CTA</Label>
@@ -1776,19 +1789,20 @@ export default function CreateWebsitePage() {
                       </div>
                       <div className="space-y-2">
                         <Label>Answer</Label>
-                        <Textarea
+
+                        <RichTextEditor
                           value={item.answer}
-                          rows={4}
-                          onChange={(event) =>
+                          onChange={(value) =>
                             updateObjectArrayItem(
                               sectionIndex,
                               "items",
                               index,
                               "answer",
-                              event.target.value
+                              value
                             )
                           }
                         />
+
                       </div>
                     </div>
                   </div>
