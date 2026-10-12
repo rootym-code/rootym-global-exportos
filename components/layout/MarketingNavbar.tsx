@@ -27,7 +27,7 @@ import Link from "next/link";
 
 import { AnimatePresence, motion } from "framer-motion";
 
-import { Menu, X } from "lucide-react";
+import { ChevronDown, Menu, X } from "lucide-react";
 
 const LOGIN_URL = "https://app.export.rootym.com/login";
 const TRIAL_LOGIN_URL = "https://app.export.rootym.com/login?intent=trial";
@@ -44,6 +44,7 @@ const NAV_ITEMS = [
 export default function MarketingNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [elevated, setElevated] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -169,22 +170,59 @@ export default function MarketingNavbar() {
 
           {/* Authentication CTAs */}
           <div className="ml-3 flex items-center gap-2">
-            <motion.div
-              whileHover={{
-                scale: 1.03,
-              }}
-              whileTap={{
-                scale: 0.97,
-              }}
-            >
-              <Link
-                href={LOGIN_URL}
-                className="inline-flex items-center justify-center rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2.5 text-sm font-semibold text-slate-200 shadow-sm transition-all hover:border-emerald-400/40 hover:bg-white/[0.08] hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/50"
-                aria-label="Sign in to ROOTYM ExportOS"
-              >
-                LOGIN
-              </Link>
-            </motion.div>
+
+<motion.div
+  className="relative"
+  whileHover={{ scale: 1.03 }}
+  whileTap={{ scale: 0.97 }}
+>
+  <button
+    type="button"
+    onClick={() => setLoginOpen((open) => !open)}
+    aria-label="Choose login type"
+    aria-haspopup="menu"
+    aria-expanded={loginOpen}
+    className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2.5 text-sm font-semibold text-slate-200 shadow-sm transition-all hover:border-emerald-400/40 hover:bg-white/[0.08] hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/50"
+  >
+    LOGIN
+    <ChevronDown
+      className={`h-4 w-4 transition-transform ${
+        loginOpen ? "rotate-180" : ""
+      }`}
+    />
+  </button>
+
+  <AnimatePresence>
+    {loginOpen && (
+      <motion.div
+        role="menu"
+        initial={{ opacity: 0, y: -6, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: -6, scale: 0.98 }}
+        transition={{ duration: 0.15 }}
+        className="absolute right-0 top-full z-[60] mt-2 w-48 overflow-hidden rounded-xl border border-white/10 bg-slate-900 p-1.5 shadow-2xl shadow-black/30"
+      >
+        <Link
+          href="/admin/login"
+          role="menuitem"
+          onClick={() => setLoginOpen(false)}
+          className="block rounded-lg px-4 py-3 text-sm font-medium text-slate-200 transition hover:bg-white/10 hover:text-emerald-300"
+        >
+          Admin Login
+        </Link>
+
+        <Link
+          href={LOGIN_URL}
+          role="menuitem"
+          onClick={() => setLoginOpen(false)}
+          className="block rounded-lg px-4 py-3 text-sm font-medium text-slate-200 transition hover:bg-white/10 hover:text-emerald-300"
+        >
+          Customer Login
+        </Link>
+      </motion.div>
+    )}
+  </AnimatePresence>
+</motion.div>
 
             <motion.div
               whileHover={{
@@ -308,13 +346,24 @@ export default function MarketingNavbar() {
               ))}
 
               {/* Mobile authentication actions */}
-              <Link
-                href={LOGIN_URL}
-                onClick={handleNavigation}
-                className="mt-3 flex items-center justify-center rounded-xl border border-white/15 bg-white/[0.04] px-5 py-3.5 font-semibold text-slate-200 transition hover:border-emerald-400/40 hover:bg-white/[0.08] hover:text-white"
-              >
-                LOGIN
-              </Link>
+<div className="mt-3 grid grid-cols-2 gap-2">
+  <Link
+    href="/admin/login"
+    onClick={handleNavigation}
+    className="flex items-center justify-center rounded-xl border border-white/15 bg-white/[0.04] px-3 py-3.5 text-sm font-semibold text-slate-200 transition hover:border-emerald-400/40 hover:bg-white/[0.08] hover:text-white"
+  >
+    Admin Login
+  </Link>
+
+  <Link
+    href={LOGIN_URL}
+    onClick={handleNavigation}
+    className="flex items-center justify-center rounded-xl border border-white/15 bg-white/[0.04] px-3 py-3.5 text-sm font-semibold text-slate-200 transition hover:border-emerald-400/40 hover:bg-white/[0.08] hover:text-white"
+  >
+    Customer Login
+  </Link>
+</div>
+
 
               <Link
                 href={TRIAL_LOGIN_URL}
@@ -325,6 +374,7 @@ export default function MarketingNavbar() {
               </Link>
             </nav>
           </motion.div>
+
         )}
       </AnimatePresence>
     </motion.nav>
