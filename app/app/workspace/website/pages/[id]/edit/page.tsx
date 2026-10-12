@@ -16,6 +16,7 @@ import {
   FormEvent,
   ReactNode,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -653,6 +654,186 @@ function ObjectArrayEditor({
     </div>
   );
 }
+
+
+function sanitizeEditorHtml(html: string): string {
+  if (typeof window === "undefined") return "";
+
+  const parsed = new DOMParser().parseFromString(
+    html,
+    "text/html"
+  );
+
+  const allowedTags = new Set([
+    "P",
+    "BR",
+    "STRONG",
+    "B",
+    "EM",
+    "I",
+    "U",
+    "UL",
+    "OL",
+    "LI",
+    "DIV",
+  ]);
+
+  function cleanNode(node: Node): void {
+    Array.from(node.childNodes).forEach((child) => {
+      if (child.nodeType === Node.ELEMENT_NODE) {
+        const element = child as HTMLElement;
+
+        if (!allowedTags.has(element.tagName)) {
+          element.replaceWith(...Array.from(element.childNodes));
+          return;
+        }
+
+        Array.from(element.attributes).forEach((attribute) => {
+          element.removeAttribute(attribute.name);
+        });
+
+        cleanNode(element);
+      } else if (child.nodeType !== Node.TEXT_NODE) {
+        child.remove();
+      }
+    });
+  }
+
+  cleanNode(parsed.body);
+  return parsed.body.innerHTML;
+}
+
+function RichTextEditor({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const editorRef = useRef<HTMLDivElement>(null);
+
+  function runCommand(
+    command:
+      | "bold"
+      | "italic"
+      | "underline"
+      | "insertUnorderedList"
+      | "insertOrderedList"
+  ) {
+    editorRef.current?.focus();
+    document.execCommand(command, false);
+
+    onChange(
+      sanitizeEditorHtml(editorRef.current?.innerHTML ?? "")
+    );
+  }
+
+  function handleInput() {
+    onChange(
+      sanitizeEditorHtml(editorRef.current?.innerHTML ?? "")
+    );
+  }
+
+  function handlePaste(
+    event: React.ClipboardEvent<HTMLDivElement>
+  ) {
+    event.preventDefault();
+
+    const clipboardHtml = event.clipboardData.getData("text/html");
+    const clipboardText = event.clipboardData.getData("text/plain");
+
+    const escapeHtml = (text: string) =>
+      text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+
+    const pastedContent = clipboardHtml
+      ? sanitizeEditorHtml(clipboardHtml)
+      : clipboardText
+          .split(/\r?\n/)
+          .map((line) => `<p>${escapeHtml(line)}</p>`)
+          .join("");
+
+    document.execCommand("insertHTML", false, pastedContent);
+    handleInput();
+  }
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-gray-300 bg-white focus-within:border-[#2E7D32] focus-within:ring-2 focus-within:ring-green-100">
+      <div
+        className="flex flex-wrap items-center gap-2 border-b border-gray-200 bg-gray-50 p-2"
+        role="toolbar"
+        aria-label="Page content formatting"
+      >
+        {[
+          { label: "Bold", command: "bold" as const, icon: <strong>B</strong> },
+          { label: "Italic", command: "italic" as const, icon: <em>I</em> },
+          { label: "Underline", command: "underline" as const, icon: <u>U</u> },
+          {
+            label: "Bullet list",
+            command: "insertUnorderedList" as const,
+            icon: "• List",
+          },
+          {
+            label: "Numbered list",
+            command: "insertOrderedList" as const,
+            icon: "1. List",
+          },
+        ].map((item) => (
+          <button
+            key={item.command}
+            type="button"
+            title={item.label}
+            aria-label={item.label}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => runCommand(item.command)}
+            className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 hover:border-green-300 hover:bg-green-50"
+          >
+            {item.icon}
+          </button>
+        ))}
+
+        <span className="text-xs text-gray-500">
+          Formatting is retained when you paste supported content.
+        </span>
+      </div>
+
+      <div
+        ref={editorRef}
+        contentEditable
+        suppressContentEditableWarning
+        role="textbox"
+        aria-label="Page Content"
+        aria-multiline="true"
+        onInput={handleInput}
+        onPaste={handlePaste}
+        onKeyDown={(event) => {
+          if (
+            (event.ctrlKey || event.metaKey) &&
+            event.key.toLowerCase() === "b"
+          ) {
+            event.preventDefault();
+            runCommand("bold");
+          }
+
+          if (
+            (event.ctrlKey || event.metaKey) &&
+            event.key.toLowerCase() === "i"
+          ) {
+            event.preventDefault();
+            runCommand("italic");
+          }
+        }}
+        className="min-h-[240px] px-4 py-3 text-sm leading-7 text-gray-800 outline-none [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-2 [&_ul]:list-disc [&_ul]:pl-6"
+        dangerouslySetInnerHTML={{
+          __html: sanitizeEditorHtml(value),
+        }}
+      />
+    </div>
+  );
+}
+
 
 export default function EditCmsPage() {
   const router = useRouter();
@@ -1332,16 +1513,14 @@ export default function EditCmsPage() {
             </div>
             <div className="space-y-2">
               <Label>Description</Label>
-              <Textarea
-                value={valueProposition.description}
-                rows={4}
-                onChange={(event) =>
-                  updateSection(sectionIndex, {
-                    description:
-                      event.target.value,
-                  })
-                }
-              />
+              <RichTextEditor
+  value={valueProposition.description}
+  onChange={(value) =>
+    updateSection(sectionIndex, {
+      description: value,
+    })
+  }
+/>
             </div>
             <TextArrayEditor
               label="Key Points"
@@ -1390,16 +1569,14 @@ export default function EditCmsPage() {
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label>Description</Label>
-                <Textarea
-                  value={product.description}
-                  rows={4}
-                  onChange={(event) =>
-                    updateSection(sectionIndex, {
-                      description:
-                        event.target.value,
-                    })
-                  }
-                />
+                <RichTextEditor
+  value={product.description}
+  onChange={(value) =>
+    updateSection(sectionIndex, {
+      description: value,
+    })
+  }
+/>
               </div>
               <div className="space-y-2">
                 <Label>Product Name</Label>
@@ -1509,16 +1686,14 @@ export default function EditCmsPage() {
             </div>
             <div className="space-y-2">
               <Label>Description</Label>
-              <Textarea
-                value={applications.description}
-                rows={4}
-                onChange={(event) =>
-                  updateSection(sectionIndex, {
-                    description:
-                      event.target.value,
-                  })
-                }
-              />
+              <RichTextEditor
+  value={applications.description}
+  onChange={(value) =>
+    updateSection(sectionIndex, {
+      description: value,
+    })
+  }
+/>
             </div>
             <ObjectArrayEditor
               label="Application Items"
@@ -1668,16 +1843,14 @@ export default function EditCmsPage() {
             </div>
             <div className="space-y-2">
               <Label>Description</Label>
-              <Textarea
-                value={packaging.description}
-                rows={4}
-                onChange={(event) =>
-                  updateSection(sectionIndex, {
-                    description:
-                      event.target.value,
-                  })
-                }
-              />
+              <RichTextEditor
+  value={packaging.description}
+  onChange={(value) =>
+    updateSection(sectionIndex, {
+      description: value,
+    })
+  }
+/>
             </div>
             <TextArrayEditor
               label="Packaging Options"
@@ -1724,16 +1897,14 @@ export default function EditCmsPage() {
             </div>
             <div className="space-y-2">
               <Label>Description</Label>
-              <Textarea
-                value={exportDocuments.description}
-                rows={4}
-                onChange={(event) =>
-                  updateSection(sectionIndex, {
-                    description:
-                      event.target.value,
-                  })
-                }
-              />
+              <RichTextEditor
+  value={exportDocuments.description}
+  onChange={(value) =>
+    updateSection(sectionIndex, {
+      description: value,
+    })
+  }
+/>
             </div>
             <TextArrayEditor
               label="Documents"
@@ -1780,15 +1951,14 @@ export default function EditCmsPage() {
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label>Description</Label>
-              <Textarea
-                value={cta.description}
-                rows={4}
-                onChange={(event) =>
-                  updateSection(sectionIndex, {
-                    description: event.target.value,
-                  })
-                }
-              />
+              <RichTextEditor
+  value={cta.description}
+  onChange={(value) =>
+    updateSection(sectionIndex, {
+      description: value,
+    })
+  }
+/>
             </div>
             <div className="space-y-2">
               <Label>Primary CTA</Label>
@@ -2060,6 +2230,7 @@ export default function EditCmsPage() {
               form.metaDescription.trim(),
             metaKeywords:
               form.metaKeywords.trim(),
+
             translation: {
               languageId: form.languageId,
               title,
@@ -2188,6 +2359,7 @@ export default function EditCmsPage() {
         onSubmit={handleSubmit}
         className="space-y-6"
       >
+
         <Card
           hover={false}
           className="p-6"
