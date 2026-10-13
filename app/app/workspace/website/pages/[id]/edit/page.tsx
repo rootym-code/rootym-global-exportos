@@ -558,30 +558,33 @@ function TextArrayEditor({
   );
 }
 
-function ObjectArrayEditor({
-  label,
-  values,
-  firstPlaceholder,
-  secondPlaceholder,
-  onChange,
-  onAdd,
-  onRemove,
-}: {
-  label: string;
-  values: Array<{
-    title: string;
-    description: string;
-  }>;
-  firstPlaceholder: string;
-  secondPlaceholder: string;
-  onChange: (
-    index: number,
-    field: "title" | "description",
-    value: string
-  ) => void;
-  onAdd: () => void;
-  onRemove: (index: number) => void;
-}) {
+  function ObjectArrayEditor({
+    label,
+    values,
+    firstPlaceholder,
+    secondPlaceholder,
+    onChange,
+    onAdd,
+    onRemove,
+    richTextDescription = false,
+  }: {
+    label: string;
+    values: Array<{
+      title: string;
+      description: string;
+    }>;
+    firstPlaceholder: string;
+    secondPlaceholder: string;
+    onChange: (
+      index: number,
+      field: "title" | "description",
+      value: string
+    ) => void;
+    onAdd: () => void;
+    onRemove: (index: number) => void;
+    richTextDescription?: boolean;
+  }) {
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
@@ -635,18 +638,27 @@ function ObjectArrayEditor({
                 }
               />
 
-              <Textarea
-                value={item.description}
-                placeholder={secondPlaceholder}
-                rows={3}
-                onChange={(event) =>
-                  onChange(
-                    index,
-                    "description",
-                    event.target.value
-                  )
-                }
-              />
+{richTextDescription ? (
+  <RichTextEditor
+    value={item.description}
+    onChange={(value) =>
+      onChange(index, "description", value)
+    }
+  />
+) : (
+  <Textarea
+    value={item.description}
+    placeholder={secondPlaceholder}
+    rows={3}
+    onChange={(event) =>
+      onChange(
+        index,
+        "description",
+        event.target.value
+      )
+    }
+  />
+)}
             </div>
           </div>
         ))
@@ -710,7 +722,22 @@ function RichTextEditor({
   value: string;
   onChange: (value: string) => void;
 }) {
+
   const editorRef = useRef<HTMLDivElement>(null);
+  const [focused, setFocused] = useState(false);
+
+  useEffect(() => {
+    const editor = editorRef.current;
+
+    // Do not rewrite the editor DOM while the user is typing.
+    if (!editor || focused) return;
+
+    const sanitizedValue = sanitizeEditorHtml(value);
+
+    if (editor.innerHTML !== sanitizedValue) {
+      editor.innerHTML = sanitizedValue;
+    }
+  }, [value, focused]);
 
   function runCommand(
     command:
@@ -803,6 +830,8 @@ function RichTextEditor({
         ref={editorRef}
         contentEditable
         suppressContentEditableWarning
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
         role="textbox"
         aria-label="Page Content"
         aria-multiline="true"
@@ -826,9 +855,7 @@ function RichTextEditor({
           }
         }}
         className="min-h-[240px] px-4 py-3 text-sm leading-7 text-gray-800 outline-none [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-2 [&_ul]:list-disc [&_ul]:pl-6"
-        dangerouslySetInnerHTML={{
-          __html: sanitizeEditorHtml(value),
-        }}
+
       />
     </div>
   );
@@ -1456,16 +1483,15 @@ export default function EditCmsPage() {
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label>Subheading</Label>
-              <Textarea
-                value={hero.subheading}
-                placeholder="Premium Indian dehydrated onion flakes for importers, distributors and food manufacturers."
-                rows={4}
-                onChange={(event) =>
-                  updateSection(sectionIndex, {
-                    subheading: event.target.value,
-                  })
-                }
-              />
+<RichTextEditor
+  value={hero.subheading}
+  onChange={(value) =>
+    updateSection(sectionIndex, {
+      subheading: value,
+    })
+  }
+/>
+
             </div>
             <div className="space-y-2">
               <Label>Primary CTA</Label>

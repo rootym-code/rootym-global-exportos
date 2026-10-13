@@ -73,7 +73,7 @@ function SectionHeader({
   light?: boolean;
 }) {
   return (
-    <div className={light ? "max-w-3xl mx-auto text-center" : "max-w-3xl"}>
+<div className={light ? "w-full mx-auto text-center" : "w-full"}>
       {eyebrow && (
         <p
           className={
@@ -94,17 +94,18 @@ function SectionHeader({
       >
         {heading}
       </h2>
+
       {description && (
-        <p
-          className={
-            light
-              ? "mt-5 max-w-2xl text-lg leading-8 text-green-50 mx-auto"
-              : "mt-5 max-w-2xl text-lg leading-8 text-gray-600"
-          }
-        >
-          {description}
-        </p>
-      )}
+        <RichCmsDescription
+  content={description}
+  className={
+    light
+      ? "mt-5 w-full text-lg leading-8 text-green-50 mx-auto"
+      : "mt-5 w-full text-lg leading-8 text-gray-600"
+  }
+/>
+)}
+
     </div>
   );
 }

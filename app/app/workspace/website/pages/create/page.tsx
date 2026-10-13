@@ -16,6 +16,7 @@ import {
   ClipboardEvent,
   FormEvent,
   ReactNode,
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -677,6 +678,18 @@ function RichTextEditor({
 }) {
   const editorRef = useRef<HTMLDivElement>(null);
   const [focused, setFocused] = useState(false);
+  useEffect(() => {
+    const editor = editorRef.current;
+  
+    // Preserve the DOM and caret while the user is typing.
+    if (!editor || focused) return;
+  
+    const sanitizedValue = sanitizeEditorHtml(value);
+  
+    if (editor.innerHTML !== sanitizedValue) {
+      editor.innerHTML = sanitizedValue;
+    }
+  }, [value, focused]);
 
   function runCommand(
     command: "bold" | "italic" | "underline" | "insertUnorderedList" | "insertOrderedList"
@@ -764,9 +777,6 @@ function RichTextEditor({
           }
         }}
         className="min-h-[240px] px-4 py-3 text-sm leading-7 text-gray-800 outline-none [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-2 [&_ul]:list-disc [&_ul]:pl-6"
-        dangerouslySetInnerHTML={{
-          __html: sanitizeEditorHtml(value),
-        }}
       />
     </div>
   );
@@ -778,6 +788,7 @@ export default function CreateWebsitePage() {
 
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
+
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");

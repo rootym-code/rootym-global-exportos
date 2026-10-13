@@ -9,7 +9,7 @@
  * ============================================================
  */
 
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 import ApiResponse from "@/lib/api/api-response";
 import handleApiError from "@/lib/api/handle-api-error";
@@ -25,38 +25,76 @@ type RouteContext = {
 };
 
 async function getCustomerWebsite() {
-  const { tenant } = await requireWorkspaceAccess();
+  try {
+    const { tenant } = await requireWorkspaceAccess();
 
-  const website = await prisma.website.findUnique({
-    where: {
-      tenantId: tenant.id,
-    },
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      isActive: true,
-      tenantId: true,
-    },
-  });
+    const website = await prisma.website.findUnique({
+      where: {
+        tenantId: tenant.id,
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        isActive: true,
+        tenantId: true,
+      },
+    });
 
-  if (!website || !website.isActive) {
+    if (!website || !website.isActive) {
+      return {
+        website: null,
+        error: ApiResponse.error({
+          message: "Customer Website is not available.",
+          code: "WEBSITE_NOT_AVAILABLE",
+          status: 404,
+        }),
+      };
+    }
+
     return {
-      website: null,
-      error: ApiResponse.error({
-        message:
-          "Customer Website is not available.",
-        code: "WEBSITE_NOT_AVAILABLE",
-        status: 404,
-      }),
+      website,
+      error: null,
     };
-  }
+  } catch (error) {
+    const digest =
+      typeof error === "object" &&
+      error !== null &&
+      "digest" in error &&
+      typeof error.digest === "string"
+        ? error.digest
+        : "";
 
-  return {
-    website,
-    error: null,
-  };
+    if (digest.startsWith("NEXT_REDIRECT;")) {
+      const redirectTarget = digest.split(";")[2] ?? "";
+
+      if (redirectTarget.startsWith("/login?")) {
+        return {
+          website: null,
+          error: ApiResponse.error({
+            message: "Authentication is required to access this website.",
+            code: "AUTHENTICATION_REQUIRED",
+            status: 401,
+          }),
+        };
+      }
+
+      if (redirectTarget.startsWith("/app/billing?")) {
+        return {
+          website: null,
+          error: ApiResponse.error({
+            message: "An active subscription is required.",
+            code: "SUBSCRIPTION_REQUIRED",
+            status: 403,
+          }),
+        };
+      }
+    }
+
+    throw error;
+  }
 }
+
 
 export async function GET(
   _request: NextRequest,
