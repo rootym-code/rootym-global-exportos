@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/Button";
 import {
   getProductBySlug,
 } from "@/lib/services/product.service";
+import { ProductStatus } from "@/lib/generated/prisma";
 
 import {
   getActiveProductPrice,
@@ -112,9 +113,11 @@ export default async function ProductPage({
     slug
   );
 
-  if (!product) {
+
+  if (!product || product.status !== ProductStatus.PUBLISHED) {
     notFound();
   }
+  
 
   const activePricing = await getActiveProductPrice(
     website.id,

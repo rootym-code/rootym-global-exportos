@@ -25,6 +25,7 @@ import {
 
 import { Button } from "@/components/ui/Button";
 import { getProductBySlug } from "@/lib/services/product.service";
+import { ProductStatus } from "@/lib/generated/prisma";
 import { getActiveProductPrice } from "@/lib/services/product-pricing.service";
 import prisma from "@/lib/prisma";
 import { getSubscriptionAccessStatus } from "@/lib/services/billing/subscription-access.service";
@@ -85,7 +86,7 @@ export async function generateMetadata({
 
   const product = await getProductBySlug(website.id, slug);
 
-  if (!product) {
+  if (!product || product.status !== ProductStatus.PUBLISHED) {
     return {};
   }
 
@@ -271,9 +272,11 @@ export default async function CustomerWebsiteProductPage({
     slug,
   );
 
-  if (!product) {
+
+  if (!product || product.status !== ProductStatus.PUBLISHED) {
     notFound();
   }
+  
 
   /**
    * ------------------------------------------------------------

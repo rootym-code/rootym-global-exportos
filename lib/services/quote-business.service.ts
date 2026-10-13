@@ -45,6 +45,7 @@ import {
     ActivityEntityType,
     InquiryStatus,
     Prisma,
+    ProductStatus,
     Quote,
     QuoteStatus,
     SalesStage,
@@ -312,6 +313,36 @@ import {
               this.calculateTotals(input);
   
           return prisma.$transaction(async (tx) => {
+
+
+            
+      // Ensure every product added to a new quotation is published.
+      const productIds = [
+        ...new Set(input.items.map((item) => item.productId)),
+      ];
+
+      const unavailableProducts = await tx.product.findMany({
+        where: {
+          id: { in: productIds },
+          status: { not: ProductStatus.PUBLISHED },
+        },
+        select: {
+          name: true,
+          status: true,
+        },
+      });
+
+      if (unavailableProducts.length > 0) {
+        const productNames = unavailableProducts
+          .map((product) => product.name)
+          .join(", ");
+
+        throw new Error(
+          `Only published products can be added to a new quotation. ` +
+            `Please remove or reactivate: ${productNames}.`
+        );
+      }
+
   
               /* ================================================================
                * Generate Quote Number
@@ -557,6 +588,33 @@ import {
                       input.items
                   );
   
+
+                  const productIds = [
+                    ...new Set(input.items.map((item) => item.productId)),
+                  ];
+                  
+                  const unavailableProducts = await tx.product.findMany({
+                    where: {
+                      id: { in: productIds },
+                      status: { not: ProductStatus.PUBLISHED },
+                    },
+                    select: {
+                      name: true,
+                      status: true,
+                    },
+                  });
+                  
+                  if (unavailableProducts.length > 0) {
+                    const productNames = unavailableProducts
+                      .map((product) => product.name)
+                      .join(", ");
+                  
+                    throw new Error(
+                      `Only published products can be added to a quotation. ` +
+                        `Please remove or reactivate: ${productNames}.`
+                    );
+                  }
+                  
                   totals =
                       this.calculateTotals({
   

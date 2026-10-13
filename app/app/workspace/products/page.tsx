@@ -15,6 +15,8 @@ import Image from "next/image";
 import Link from "next/link";
 
 import {
+  Archive,
+  RotateCcw,
   ChevronLeft,
   ChevronRight,
   Filter,
@@ -142,6 +144,9 @@ export default function WorkspaceProductsPage() {
 
   const [deleteLoading, setDeleteLoading] =
     useState<string | null>(null);
+
+    const [statusLoading, setStatusLoading] =
+  useState<string | null>(null);
 
   const [error, setError] = useState("");
 
@@ -339,6 +344,74 @@ export default function WorkspaceProductsPage() {
       setDeleteLoading(null);
     }
   }
+
+
+  
+async function handleToggleStatus(product: Product) {
+  const nextStatus: ProductStatus =
+    product.status === "ARCHIVED"
+      ? "PUBLISHED"
+      : "ARCHIVED";
+
+  const actionLabel =
+    nextStatus === "ARCHIVED" ? "archive" : "reactivate";
+
+  const confirmed = window.confirm(
+    nextStatus === "ARCHIVED"
+      ? `Archive "${product.name}"? It will no longer be available in the public product catalogue. Existing quotations will be preserved.`
+      : `Reactivate "${product.name}"? It will be published in the public product catalogue again.`
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    setStatusLoading(product.id);
+    setError("");
+    setMessage("");
+
+    const response = await fetch(
+      `/api/workspace/products/${product.id}`,
+      {
+        method: "PUT",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: nextStatus,
+        }),
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok || result.success === false) {
+      throw new Error(
+        result.message ??
+          `Unable to ${actionLabel} product.`
+      );
+    }
+
+    setMessage(
+      nextStatus === "ARCHIVED"
+        ? "Product archived successfully. Existing quotations are preserved."
+        : "Product reactivated successfully."
+    );
+
+    await fetchProducts();
+  } catch (statusError) {
+    setError(
+      statusError instanceof Error
+        ? statusError.message
+        : `Unable to ${actionLabel} product.`
+    );
+  } finally {
+    setStatusLoading(null);
+  }
+}
+
 
   const hasPreviousPage =
     pagination.page > 1;
@@ -668,6 +741,42 @@ export default function WorkspaceProductsPage() {
                       {/* Actions */}
                       <td className="whitespace-nowrap px-6 py-4">
                         <div className="flex justify-end gap-2">
+
+
+
+                        <Button
+  variant="ghost"
+  size="sm"
+  disabled={
+    statusLoading === product.id ||
+    deleteLoading === product.id
+  }
+  onClick={() =>
+    void handleToggleStatus(product)
+  }
+  className={
+    product.status === "ARCHIVED"
+      ? "text-emerald-700 hover:text-emerald-800"
+      : "text-slate-600 hover:text-slate-800"
+  }
+>
+  {statusLoading === product.id ? (
+    "Saving..."
+  ) : product.status === "ARCHIVED" ? (
+    <>
+      <RotateCcw className="mr-2 h-4 w-4" />
+      Reactivate
+    </>
+  ) : (
+    <>
+      <Archive className="mr-2 h-4 w-4" />
+      Archive
+    </>
+  )}
+</Button>
+
+
+
                           <Link
                             href={`/app/workspace/products/${product.id}/edit`}
                           >
