@@ -90,9 +90,14 @@ export const createProductSchema = z.object({
     .nonnegative()
     .optional(),
 
-  status: productStatusSchema.default(
-    "DRAFT"
-  ),
+    status: productStatusSchema.default(
+      "DRAFT"
+    ),
+  
+    // Online selling is opt-in for every product.
+    onlinePurchaseEnabled: z
+      .boolean()
+      .default(false),
 
   featuredImageId: z
     .string()

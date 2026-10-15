@@ -239,6 +239,7 @@ model Product {
   minOrderQty             Decimal?              @db.Decimal(18, 3)
   maxOrderQty             Decimal?              @db.Decimal(18, 3)
   status                  ProductStatus         @default(DRAFT)
+  onlinePurchaseEnabled   Boolean               @default(false)
   createdAt               DateTime              @default(now())
   updatedAt               DateTime              @updatedAt
   featuredImageId         String?
@@ -982,6 +983,8 @@ model Website {
   branding         WebsiteBranding?
   configuration    WebsiteConfiguration?
   domains          WebsiteDomain[]
+  storeSettings    StoreSettings?
+  storePayment     StorePaymentConfiguration?
 }
 
 /// *
@@ -2018,4 +2021,44 @@ enum BillingWebhookStatus {
   RECEIVED
   PROCESSED
   FAILED
+}
+
+
+/// Website-scoped online store settings.
+/// Online sales remain disabled until explicitly activated.
+model StoreSettings {
+  id                    String   @id @default(cuid())
+  websiteId             String   @unique
+  storeEnabled          Boolean  @default(false)
+  cartEnabled           Boolean  @default(false)
+  guestCheckoutEnabled  Boolean  @default(true)
+  defaultCurrency       String   @default("INR")
+  shippingMode          String   @default("MANUAL")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  website Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+
+  @@index([storeEnabled])
+}
+
+/// Separate merchant payment configuration for storefront transactions.
+/// Secret fields store encrypted values only, never plaintext credentials.
+model StorePaymentConfiguration {
+  id                      String   @id @default(cuid())
+  websiteId               String   @unique
+  provider                String   @default("RAZORPAY")
+  environment             String   @default("TEST")
+  publicKeyId              String?
+  encryptedKeySecret      String?
+  encryptedWebhookSecret  String?
+  paymentsEnabled         Boolean  @default(false)
+  verifiedAt              DateTime?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  website Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+
+  @@index([provider, environment])
+  @@index([paymentsEnabled])
 }

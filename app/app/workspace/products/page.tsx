@@ -43,6 +43,7 @@ interface Product {
   slug: string;
   category: string | null;
   status: ProductStatus;
+  onlinePurchaseEnabled: boolean;
   updatedAt: string;
 
   featuredImage: {
@@ -146,6 +147,9 @@ export default function WorkspaceProductsPage() {
     useState<string | null>(null);
 
     const [statusLoading, setStatusLoading] =
+  useState<string | null>(null);
+
+  const [onlinePurchaseLoading, setOnlinePurchaseLoading] =
   useState<string | null>(null);
 
   const [error, setError] = useState("");
@@ -413,6 +417,66 @@ async function handleToggleStatus(product: Product) {
 }
 
 
+async function handleToggleOnlinePurchase(product: Product) {
+  const nextValue = !product.onlinePurchaseEnabled;
+
+  try {
+    setOnlinePurchaseLoading(product.id);
+    setError("");
+    setMessage("");
+
+    const response = await fetch(
+      `/api/workspace/products/${product.id}`,
+      {
+        method: "PUT",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          onlinePurchaseEnabled: nextValue,
+        }),
+      },
+    );
+
+    const result = await response.json();
+
+    if (!response.ok || result.success === false) {
+      throw new Error(
+        result.message ??
+          result.error ??
+          "Unable to update online purchase setting.",
+      );
+    }
+
+    setProducts((previous) =>
+      previous.map((item) =>
+        item.id === product.id
+          ? {
+              ...item,
+              onlinePurchaseEnabled: nextValue,
+            }
+          : item,
+      ),
+    );
+
+    setMessage(
+      nextValue
+        ? `Online purchase preference enabled for "${product.name}".`
+        : `Online purchase preference disabled for "${product.name}".`,
+    );
+  } catch (toggleError) {
+    setError(
+      toggleError instanceof Error
+        ? toggleError.message
+        : "Unable to update online purchase setting.",
+    );
+  } finally {
+    setOnlinePurchaseLoading(null);
+  }
+}
+
+
   const hasPreviousPage =
     pagination.page > 1;
 
@@ -608,6 +672,10 @@ async function handleToggleStatus(product: Product) {
                 </th>
 
                 <th className="px-6 py-4">
+  Online Purchase
+</th>
+
+                <th className="px-6 py-4">
                   Updated
                 </th>
 
@@ -621,7 +689,7 @@ async function handleToggleStatus(product: Product) {
               {loading ? (
                 <tr>
                   <td
-                    colSpan={5}
+                 colSpan={6}
                     className="px-6 py-16 text-center text-sm text-slate-500"
                   >
                     Loading products...
@@ -631,7 +699,7 @@ async function handleToggleStatus(product: Product) {
                 0 ? (
                 <tr>
                   <td
-                    colSpan={5}
+                  colSpan={6}
                     className="px-6 py-20"
                   >
                     <div className="mx-auto flex max-w-lg flex-col items-center text-center">
@@ -729,6 +797,41 @@ async function handleToggleStatus(product: Product) {
                             product.status,
                           )}
                         </span>
+                      </td>
+
+                      {/* Online Purchase */}
+                      <td className="whitespace-nowrap px-6 py-4">
+                        <div className="flex flex-col items-start gap-1">
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={product.onlinePurchaseEnabled}
+                            aria-label={`Online purchase for ${product.name}`}
+                            disabled={
+                              onlinePurchaseLoading === product.id
+                            }
+                            onClick={() =>
+                              void handleToggleOnlinePurchase(product)
+                            }
+                            className={`inline-flex min-w-20 items-center justify-center rounded-full px-3 py-1.5 text-xs font-semibold ring-1 transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                              product.onlinePurchaseEnabled
+                                ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+                                : "bg-slate-100 text-slate-600 ring-slate-200"
+                            }`}
+                          >
+                            {onlinePurchaseLoading === product.id
+                              ? "Saving..."
+                              : product.onlinePurchaseEnabled
+                                ? "ON"
+                                : "OFF"}
+                          </button>
+
+                          <span className="text-xs text-slate-500">
+                            {product.status !== "PUBLISHED"
+                              ? "Publish product first"
+                              : "Preference only"}
+                          </span>
+                        </div>
                       </td>
 
                       {/* Updated */}

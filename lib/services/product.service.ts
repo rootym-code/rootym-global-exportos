@@ -443,8 +443,11 @@ export async function createProduct(
           ? new Prisma.Decimal(data.maxOrderQty)
           : null,
 
-      status:
-        data.status,
+          status:
+          data.status,
+  
+        onlinePurchaseEnabled:
+          data.onlinePurchaseEnabled ?? false,
 
       featuredImage:
         data.featuredImageId
@@ -611,6 +614,11 @@ export async function updateProduct(
       ...(data.status !== undefined && {
         status:
           data.status,
+      }),
+
+      ...(data.onlinePurchaseEnabled !== undefined && {
+        onlinePurchaseEnabled:
+          data.onlinePurchaseEnabled,
       }),
 
       ...(data.featuredImageId !== undefined && {

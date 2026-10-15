@@ -31,6 +31,7 @@ import {
   Sparkles,
   Users,
   X,
+  ShoppingBag
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { ComponentType } from "react";
@@ -117,6 +118,11 @@ const navGroups: NavGroup[] = [
         label: "Website Settings",
         href: "/app/workspace/website/settings",
         icon: Settings,
+      },
+      {
+        label: "Online Store",
+        href: "/app/workspace/website/store-settings",
+        icon: ShoppingBag,
       },
     ],
   },
