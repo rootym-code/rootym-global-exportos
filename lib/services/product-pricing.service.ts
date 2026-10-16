@@ -117,62 +117,64 @@ export async function getProductPricingById(
   });
 }
 
+
+function getUtcStartOfDate(value: string): Date {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return new Date(`${value}T00:00:00.000Z`);
+  }
+
+  return new Date(value);
+}
+
 export async function getActiveProductPrice(
   websiteId: string,
   productId: string
 ) {
-  await getWebsiteProduct(
-    websiteId,
-    productId
-  );
+  await getWebsiteProduct(websiteId, productId);
 
   const now = new Date();
+  const startOfTodayUtc = new Date(now);
+  startOfTodayUtc.setUTCHours(0, 0, 0, 0);
+
+  // Legacy date-only end dates are stored at UTC midnight.
+  // Match only that midnight value for today's date, while
+  // still rejecting genuinely expired timestamps from earlier today.
+  const midnightBoundary = new Date(
+    startOfTodayUtc.getTime() + 1
+  );
 
   return prisma.productPricing.findFirst({
     where: {
       productId,
-      product: {
-        websiteId,
-      },
+      product: { websiteId },
       isActive: true,
-      OR: [
+      AND: [
         {
-          validFrom: null,
-          validTo: null,
+          OR: [
+            { validFrom: null },
+            { validFrom: { lte: now } },
+          ],
         },
         {
-          validFrom: {
-            lte: now,
-          },
-          validTo: null,
-        },
-        {
-          validFrom: null,
-          validTo: {
-            gte: now,
-          },
-        },
-        {
-          validFrom: {
-            lte: now,
-          },
-          validTo: {
-            gte: now,
-          },
+          OR: [
+            { validTo: null },
+            { validTo: { gte: now } },
+            {
+              validTo: {
+                gte: startOfTodayUtc,
+                lt: midnightBoundary,
+              },
+            },
+          ],
         },
       ],
     },
     orderBy: [
-      {
-        validFrom: "desc",
-      },
-      {
-        createdAt: "desc",
-      },
+      { validFrom: "desc" },
+      { createdAt: "desc" },
     ],
   });
 }
-
 export async function createProductPricing(
   websiteId: string,
   data: CreateProductPricingInput
@@ -225,16 +227,12 @@ export async function createProductPricing(
 
           validFrom:
             data.validFrom
-              ? new Date(
-                  data.validFrom
-                )
+              ? getUtcStartOfDate(data.validFrom)
               : null,
 
           validTo:
             data.validTo
-              ? new Date(
-                  data.validTo
-                )
+              ? getUtcStartOfDate(data.validTo)
               : null,
 
           isActive:
@@ -329,21 +327,17 @@ export async function updateProductPricing(
 
           ...(data.validFrom !==
             undefined && {
-            validFrom:
+              validFrom:
               data.validFrom
-                ? new Date(
-                    data.validFrom
-                  )
+                ? getUtcStartOfDate(data.validFrom)
                 : null,
           }),
 
           ...(data.validTo !==
             undefined && {
-            validTo:
+              validTo:
               data.validTo
-                ? new Date(
-                    data.validTo
-                  )
+                ? getUtcStartOfDate(data.validTo)
                 : null,
           }),
 
