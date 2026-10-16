@@ -254,6 +254,7 @@ model Product {
   pricing                 ProductPricing[]
   proformaInvoiceItems    ProformaInvoiceItem[]
   quoteItems              QuoteItem[]
+  storeOrderItems         StoreOrderItem[]
 
   @@unique([websiteId, sku])
   @@unique([websiteId, slug])
@@ -963,23 +964,24 @@ model Tenant {
 }
 
 model Website {
-  id               String                @id @default(cuid())
-  tenantId         String                @unique
+  id               String                     @id @default(cuid())
+  tenantId         String                     @unique
   name             String
-  slug             String                @unique
-  isActive         Boolean               @default(true)
-  createdAt        DateTime              @default(now())
-  updatedAt        DateTime              @updatedAt
+  slug             String                     @unique
+  isActive         Boolean                    @default(true)
+  createdAt        DateTime                   @default(now())
+  updatedAt        DateTime                   @updatedAt
   cmsPages         CmsPage[]
   inquiries        Inquiry[]
   media            Media[]
   mediaFolders     MediaFolder[]
   navigation       Menu?
   products         Product[]
+  storeOrders      StoreOrder[]
   proformaInvoices ProformaInvoice[]
   quotes           Quote[]
   supportTickets   SupportTicket[]
-  tenant           Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant           Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   branding         WebsiteBranding?
   configuration    WebsiteConfiguration?
   domains          WebsiteDomain[]
@@ -2023,19 +2025,36 @@ enum BillingWebhookStatus {
   FAILED
 }
 
+enum StoreOrderStatus {
+  PENDING_PAYMENT
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum StoreOrderPaymentStatus {
+  CREATED
+  AUTHORIZED
+  CAPTURED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
 
 /// Website-scoped online store settings.
 /// Online sales remain disabled until explicitly activated.
 model StoreSettings {
-  id                    String   @id @default(cuid())
-  websiteId             String   @unique
-  storeEnabled          Boolean  @default(false)
-  cartEnabled           Boolean  @default(false)
-  guestCheckoutEnabled  Boolean  @default(true)
-  defaultCurrency       String   @default("INR")
-  shippingMode          String   @default("MANUAL")
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  websiteId            String   @unique
+  storeEnabled         Boolean  @default(false)
+  cartEnabled          Boolean  @default(false)
+  guestCheckoutEnabled Boolean  @default(true)
+  defaultCurrency      String   @default("INR")
+  shippingMode         String   @default("MANUAL")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   website Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
 
@@ -2045,20 +2064,86 @@ model StoreSettings {
 /// Separate merchant payment configuration for storefront transactions.
 /// Secret fields store encrypted values only, never plaintext credentials.
 model StorePaymentConfiguration {
-  id                      String   @id @default(cuid())
-  websiteId               String   @unique
-  provider                String   @default("RAZORPAY")
-  environment             String   @default("TEST")
-  publicKeyId              String?
-  encryptedKeySecret      String?
-  encryptedWebhookSecret  String?
-  paymentsEnabled         Boolean  @default(false)
-  verifiedAt              DateTime?
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
+  id                     String    @id @default(cuid())
+  websiteId              String    @unique
+  provider               String    @default("RAZORPAY")
+  environment            String    @default("TEST")
+  publicKeyId            String?
+  encryptedKeySecret     String?
+  encryptedWebhookSecret String?
+  paymentsEnabled        Boolean   @default(false)
+  verifiedAt             DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
 
   website Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
 
   @@index([provider, environment])
   @@index([paymentsEnabled])
+}
+
+model StoreOrder {
+  id                String                  @id @default(cuid())
+  websiteId         String
+  orderNumber       String                  @unique
+  checkoutRequestId String?
+  status            StoreOrderStatus        @default(PENDING_PAYMENT)
+  paymentStatus     StoreOrderPaymentStatus @default(CREATED)
+  currency          String                  @default("INR")
+
+  subtotal       Decimal @db.Decimal(18, 2)
+  shippingAmount Decimal @default(0) @db.Decimal(18, 2)
+  discountAmount Decimal @default(0) @db.Decimal(18, 2)
+  taxAmount      Decimal @default(0) @db.Decimal(18, 2)
+  totalAmount    Decimal @db.Decimal(18, 2)
+
+  customerName  String
+  customerEmail String
+  customerPhone String?
+
+  shippingAddress1   String
+  shippingAddress2   String?
+  shippingCity       String
+  shippingState      String?
+  shippingPostalCode String
+  shippingCountry    String
+
+  provider                    String    @default("RAZORPAY")
+  providerOrderId             String?   @unique
+  providerPaymentId           String?   @unique
+  providerSignatureVerifiedAt DateTime?
+  paidAt                      DateTime?
+  paymentFailureReason        String?
+  metadata                    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  website Website          @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  items   StoreOrderItem[]
+
+  @@unique([websiteId, checkoutRequestId])
+  @@index([websiteId, createdAt])
+  @@index([websiteId, status])
+  @@index([websiteId, paymentStatus])
+}
+
+model StoreOrderItem {
+  id          String   @id @default(cuid())
+  orderId     String
+  productId   String?
+  productName String
+  productSku  String
+  unit        String
+  quantity    Decimal  @db.Decimal(18, 3)
+  unitPrice   Decimal  @db.Decimal(18, 2)
+  lineTotal   Decimal  @db.Decimal(18, 2)
+  pricingId   String?
+  createdAt   DateTime @default(now())
+
+  order   StoreOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product?   @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([productId])
 }
