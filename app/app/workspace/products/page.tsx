@@ -426,9 +426,9 @@ async function handleToggleOnlinePurchase(product: Product) {
     setMessage("");
 
     const response = await fetch(
-      `/api/workspace/products/${product.id}`,
+`/api/workspace/products/${encodeURIComponent(product.id)}/online-purchase`,
       {
-        method: "PUT",
+        method: "PATCH",
         credentials: "include",
         headers: {
           "Content-Type": "application/json",

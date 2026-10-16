@@ -1162,7 +1162,22 @@ export default function WorkspaceEditProductPage() {
                 </thead>
 
                 <tbody className="divide-y divide-slate-200 bg-white">
-                  {pricing.map((item) => (
+                {pricing.map((item) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const validFrom = item.validFrom ? new Date(item.validFrom) : null;
+  const validTo = item.validTo ? new Date(item.validTo) : null;
+
+  if (validFrom) validFrom.setHours(0, 0, 0, 0);
+  if (validTo) validTo.setHours(0, 0, 0, 0);
+
+  const isCurrentlyValid =
+    item.isActive &&
+    (!validFrom || validFrom <= today) &&
+    (!validTo || validTo >= today);
+
+  return (
                     <tr key={item.id}>
                       <td className="px-4 py-4 text-sm font-medium text-slate-900">
                         {item.pricingType}
@@ -1180,17 +1195,18 @@ export default function WorkspaceEditProductPage() {
                       </td>
                       <td className="px-4 py-4">
                         <span
-                          className={
-                            item.isActive
-                              ? "inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700"
-                              : "inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-500"
-                          }
-                        >
-                          {item.isActive ? "Active" : "Inactive"}
-                        </span>
+className={
+  isCurrentlyValid
+    ? "inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700"
+    : "inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-500"
+}
+>
+  {isCurrentlyValid ? "Active" : "Inactive"}
+</span>
                       </td>
                     </tr>
-                  ))}
+                  );
+                })}
                 </tbody>
               </table>
             </div>
