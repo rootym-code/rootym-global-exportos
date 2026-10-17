@@ -50,13 +50,14 @@ export function handleApiError(error: unknown) {
     };
 
     switch (prismaError.code) {
+
       case "P2002":
         return ApiResponse.error({
           message: "A unique constraint was violated.",
           code: "DUPLICATE",
           status: 409,
-          details: prismaError.meta,
         });
+
 
       case "P2025":
         return ApiResponse.error({
