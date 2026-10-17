@@ -109,45 +109,125 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let body: RazorpayWebhookBody;
+  const signature = request.headers.get("x-razorpay-signature");
 
-  try {
-    body = JSON.parse(rawBody) as RazorpayWebhookBody;
-  } catch {
+  if (!signature) {
     return NextResponse.json(
-      { success: false, message: "Invalid JSON." },
-      { status: 400 },
-    );
-  }
-
-  const event = body.event;
-  const supportedEvents = new Set([
-    "payment.captured",
-    "payment.failed",
-    "order.paid",
-  ]);
-
-  if (!isNonEmptyString(event)) {
-    return NextResponse.json(
-      { success: false, message: "Missing event type." },
-      { status: 400 },
-    );
-  }
-
-  const razorpayOrderId = getOrderId(body);
-
-  if (!razorpayOrderId) {
-    return NextResponse.json(
-      { success: false, message: "Missing Razorpay order ID." },
+      { success: false, message: "Missing webhook signature." },
       { status: 400 },
     );
   }
 
   try {
-    // Resolve the storefront order and its website-scoped webhook secret.
-    // No payment state is changed until the signature is verified.
+    // Resolve TEST-mode storefront secrets without trusting the request
+    // payload. The matching website will be used to scope the order lookup.
+    const configurations =
+      await prisma.storePaymentConfiguration.findMany({
+        where: {
+          provider: "RAZORPAY",
+          environment: "TEST",
+          encryptedWebhookSecret: { not: null },
+        },
+        select: {
+          websiteId: true,
+          encryptedWebhookSecret: true,
+        },
+      });
+
+    if (configurations.length === 0) {
+      console.error(
+        "No TEST-mode storefront webhook configurations are available.",
+      );
+
+      return NextResponse.json(
+        { success: false, message: "Webhook configuration unavailable." },
+        { status: 503 },
+      );
+    }
+
+    let matchedWebsiteId: string | null = null;
+
+    // Verify the signature against configured TEST secrets before parsing
+    // the JSON or looking up an order. Never log or return secret values.
+    for (const configuration of configurations) {
+      if (!configuration.encryptedWebhookSecret) {
+        continue;
+      }
+
+      try {
+        const secret = decryptSecret(
+          configuration.encryptedWebhookSecret,
+        );
+
+        if (isValidSignature(rawBody, signature, secret)) {
+          matchedWebsiteId = configuration.websiteId;
+          break;
+        }
+      } catch {
+        // A damaged or undecryptable configuration cannot authenticate
+        // this request. Continue checking other independent configurations.
+        console.error(
+          "A storefront webhook secret could not be checked.",
+        );
+      }
+    }
+
+    if (!matchedWebsiteId) {
+      return NextResponse.json(
+        { success: false, message: "Invalid webhook signature." },
+        { status: 400 },
+      );
+    }
+
+    // Only parse and trust event data after authenticating the raw body.
+    let body: RazorpayWebhookBody;
+
+    try {
+      body = JSON.parse(rawBody) as RazorpayWebhookBody;
+    } catch {
+      return NextResponse.json(
+        { success: false, message: "Invalid JSON." },
+        { status: 400 },
+      );
+    }
+
+    const event = body.event;
+
+    if (!isNonEmptyString(event)) {
+      return NextResponse.json(
+        { success: false, message: "Missing event type." },
+        { status: 400 },
+      );
+    }
+
+    const supportedEvents = new Set([
+      "payment.captured",
+      "payment.failed",
+      "order.paid",
+    ]);
+
+    // A correctly signed but unsupported event does not change payment data.
+    if (!supportedEvents.has(event)) {
+      return NextResponse.json({
+        success: true,
+        message: "Event acknowledged.",
+      });
+    }
+
+    const razorpayOrderId = getOrderId(body);
+
+    if (!razorpayOrderId) {
+      return NextResponse.json(
+        { success: false, message: "Missing Razorpay order ID." },
+        { status: 400 },
+      );
+    }
+
+    // Scope the order lookup to the website whose secret authenticated
+    // this webhook. An order from another website cannot be updated.
     const order = await prisma.storeOrder.findFirst({
       where: {
+        websiteId: matchedWebsiteId,
         provider: "RAZORPAY",
         providerOrderId: razorpayOrderId,
       },
@@ -161,65 +241,11 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Unknown orders are acknowledged without changing any data.
+    // Validly signed events for unknown orders are safely acknowledged.
     if (!order) {
       return NextResponse.json({
         success: true,
         message: "Unknown storefront order ignored.",
-      });
-    }
-
-    const configuration =
-      await prisma.storePaymentConfiguration.findUnique({
-        where: { websiteId: order.websiteId },
-        select: {
-          provider: true,
-          environment: true,
-          encryptedWebhookSecret: true,
-        },
-      });
-
-    if (
-      !configuration ||
-      configuration.provider !== "RAZORPAY" ||
-      configuration.environment !== "TEST" ||
-      !configuration.encryptedWebhookSecret
-    ) {
-      console.error(
-        "Storefront webhook configuration is unavailable.",
-      );
-
-      return NextResponse.json(
-        { success: false, message: "Webhook configuration unavailable." },
-        { status: 503 },
-      );
-    }
-
-    const signature = request.headers.get("x-razorpay-signature");
-
-    if (!signature) {
-      return NextResponse.json(
-        { success: false, message: "Missing webhook signature." },
-        { status: 400 },
-      );
-    }
-
-    const webhookSecret = decryptSecret(
-      configuration.encryptedWebhookSecret,
-    );
-
-    if (!isValidSignature(rawBody, signature, webhookSecret)) {
-      return NextResponse.json(
-        { success: false, message: "Invalid webhook signature." },
-        { status: 400 },
-      );
-    }
-
-    // Valid but unsupported events are acknowledged without mutation.
-    if (!supportedEvents.has(event)) {
-      return NextResponse.json({
-        success: true,
-        message: "Event acknowledged.",
       });
     }
 
@@ -273,12 +299,10 @@ export async function POST(request: NextRequest) {
         .slice(0, 500);
 
       // Never downgrade a captured payment to FAILED.
-      // A later successful attempt can still capture a previously
-      // failed order because FAILED is included in this condition.
       await prisma.storeOrder.updateMany({
         where: {
           id: order.id,
-          websiteId: order.websiteId,
+          websiteId: matchedWebsiteId,
           providerOrderId: razorpayOrderId,
           status: "PENDING_PAYMENT",
           paymentStatus: {
@@ -297,13 +321,12 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Conditional update makes repeated captured/paid events safe.
-    // It also prevents an out-of-order failure event from downgrading
-    // an already captured order.
+    // Conditional update makes repeated captured/paid events safe and
+    // prevents an out-of-order failure from downgrading a captured order.
     await prisma.storeOrder.updateMany({
       where: {
         id: order.id,
-        websiteId: order.websiteId,
+        websiteId: matchedWebsiteId,
         providerOrderId: razorpayOrderId,
         status: "PENDING_PAYMENT",
         paymentStatus: {
@@ -330,7 +353,6 @@ export async function POST(request: NextRequest) {
       error instanceof Error ? error.message : "Unknown error",
     );
 
-    // Return a retryable response for infrastructure or database errors.
     return NextResponse.json(
       { success: false, message: "Webhook processing failed." },
       { status: 500 },
