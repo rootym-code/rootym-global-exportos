@@ -6,6 +6,7 @@ import {
   timingSafeEqual,
 } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
+import Razorpay from "razorpay";
 
 import { Prisma } from "@/lib/generated/prisma";
 import prisma from "@/lib/prisma";
@@ -19,6 +20,7 @@ type RazorpayEntity = {
   order_id?: unknown;
   status?: unknown;
   amount?: unknown;
+  amount_paid?: unknown;
   currency?: unknown;
   error_description?: unknown;
   error_reason?: unknown;
@@ -119,8 +121,6 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // Resolve TEST-mode storefront secrets without trusting the request
-    // payload. The matching website will be used to scope the order lookup.
     const configurations =
       await prisma.storePaymentConfiguration.findMany({
         where: {
@@ -130,6 +130,8 @@ export async function POST(request: NextRequest) {
         },
         select: {
           websiteId: true,
+          publicKeyId: true,
+          encryptedKeySecret: true,
           encryptedWebhookSecret: true,
         },
       });
@@ -145,10 +147,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let matchedWebsiteId: string | null = null;
+    let matchedConfiguration:
+      (typeof configurations)[number] | null = null;
 
-    // Verify the signature against configured TEST secrets before parsing
-    // the JSON or looking up an order. Never log or return secret values.
+    // Authenticate the raw request before parsing its JSON.
     for (const configuration of configurations) {
       if (!configuration.encryptedWebhookSecret) {
         continue;
@@ -160,26 +162,23 @@ export async function POST(request: NextRequest) {
         );
 
         if (isValidSignature(rawBody, signature, secret)) {
-          matchedWebsiteId = configuration.websiteId;
+          matchedConfiguration = configuration;
           break;
         }
       } catch {
-        // A damaged or undecryptable configuration cannot authenticate
-        // this request. Continue checking other independent configurations.
         console.error(
           "A storefront webhook secret could not be checked.",
         );
       }
     }
 
-    if (!matchedWebsiteId) {
+    if (!matchedConfiguration) {
       return NextResponse.json(
         { success: false, message: "Invalid webhook signature." },
         { status: 400 },
       );
     }
 
-    // Only parse and trust event data after authenticating the raw body.
     let body: RazorpayWebhookBody;
 
     try {
@@ -206,7 +205,6 @@ export async function POST(request: NextRequest) {
       "order.paid",
     ]);
 
-    // A correctly signed but unsupported event does not change payment data.
     if (!supportedEvents.has(event)) {
       return NextResponse.json({
         success: true,
@@ -223,11 +221,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Scope the order lookup to the website whose secret authenticated
-    // this webhook. An order from another website cannot be updated.
+    // An authenticated webhook can only update an order belonging
+    // to the website whose webhook secret verified the request.
     const order = await prisma.storeOrder.findFirst({
       where: {
-        websiteId: matchedWebsiteId,
+        websiteId: matchedConfiguration.websiteId,
         provider: "RAZORPAY",
         providerOrderId: razorpayOrderId,
       },
@@ -236,12 +234,9 @@ export async function POST(request: NextRequest) {
         websiteId: true,
         currency: true,
         totalAmount: true,
-        status: true,
-        paymentStatus: true,
       },
     });
 
-    // Validly signed events for unknown orders are safely acknowledged.
     if (!order) {
       return NextResponse.json({
         success: true,
@@ -249,11 +244,152 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const payment = body.payload?.payment?.entity;
+    let payment: RazorpayEntity | undefined;
+
+    if (event === "order.paid") {
+      // order.paid carries an order entity, not necessarily a payment
+      // entity. Verify the order, then fetch its actual payment records.
+      const orderEntity = body.payload?.order?.entity;
+
+      if (
+        !orderEntity ||
+        orderEntity.id !== razorpayOrderId ||
+        orderEntity.status !== "paid" ||
+        !isValidMoney(
+          orderEntity.amount,
+          orderEntity.currency,
+          order.totalAmount,
+          order.currency,
+        ) ||
+        !isValidMoney(
+          orderEntity.amount_paid,
+          orderEntity.currency,
+          order.totalAmount,
+          order.currency,
+        )
+      ) {
+        return NextResponse.json(
+          { success: false, message: "Paid order details mismatch." },
+          { status: 400 },
+        );
+      }
+
+      const paymentConfiguration =
+      await prisma.storePaymentConfiguration.findUnique({
+        where: {
+          websiteId: matchedConfiguration.websiteId,
+        },
+        select: {
+          provider: true,
+          environment: true,
+          publicKeyId: true,
+          encryptedKeySecret: true,
+          paymentsEnabled: true,
+          verifiedAt: true,
+        },
+      });
+    
+    if (
+      !paymentConfiguration ||
+      paymentConfiguration.provider !== "RAZORPAY" ||
+      paymentConfiguration.environment !== "TEST" ||
+      !paymentConfiguration.publicKeyId ||
+      !paymentConfiguration.encryptedKeySecret ||
+      !paymentConfiguration.verifiedAt
+    ) {
+      console.error(
+        "Razorpay TEST credentials are not configured and verified.",
+      );
+    
+      return NextResponse.json(
+        { success: false, message: "Payment verification unavailable." },
+        { status: 503 },
+      );
+    }
+    
+    const publicKeyId = paymentConfiguration.publicKeyId;
+    const encryptedKeySecret =
+      paymentConfiguration.encryptedKeySecret;
+
+      let razorpay: Razorpay;
+
+      try {
+        razorpay = new Razorpay({
+          key_id: publicKeyId,
+          key_secret: decryptSecret(encryptedKeySecret),
+        });
+      } catch {
+        console.error(
+          "Razorpay API credentials could not be prepared for reconciliation.",
+        );
+
+        return NextResponse.json(
+          { success: false, message: "Payment verification unavailable." },
+          { status: 503 },
+        );
+      }
+
+      let gatewayPayments;
+
+      try {
+        gatewayPayments =
+          await razorpay.orders.fetchPayments(razorpayOrderId);
+      } catch (error) {
+        console.error(
+          "Could not fetch Razorpay payments for a paid order.",
+          error instanceof Error ? error.message : "Unknown error",
+        );
+
+        return NextResponse.json(
+          { success: false, message: "Payment verification temporarily unavailable." },
+          { status: 503 },
+        );
+      }
+
+      const capturedPayments = gatewayPayments.items.filter(
+        (candidate) =>
+          candidate.status === "captured" &&
+          candidate.order_id === razorpayOrderId &&
+          isNonEmptyString(candidate.id) &&
+          isValidMoney(
+            candidate.amount,
+            candidate.currency,
+            order.totalAmount,
+            order.currency,
+          ),
+      );
+
+      if (capturedPayments.length !== 1) {
+        console.error(
+          "Paid order did not resolve to exactly one matching captured payment.",
+        );
+
+        return NextResponse.json(
+          {
+            success: false,
+            message: "Captured payment could not be uniquely verified.",
+          },
+          { status: 503 },
+        );
+      }
+
+      const capturedPayment = capturedPayments[0];
+
+      payment = {
+        id: capturedPayment.id,
+        order_id: capturedPayment.order_id,
+        status: capturedPayment.status,
+        amount: capturedPayment.amount,
+        currency: capturedPayment.currency,
+      };
+    } else {
+      payment = body.payload?.payment?.entity;
+    }
 
     if (
       !payment ||
       !isNonEmptyString(payment.id) ||
+      payment.order_id !== razorpayOrderId ||
       !isValidMoney(
         payment.amount,
         payment.currency,
@@ -302,7 +438,7 @@ export async function POST(request: NextRequest) {
       await prisma.storeOrder.updateMany({
         where: {
           id: order.id,
-          websiteId: matchedWebsiteId,
+          websiteId: matchedConfiguration.websiteId,
           providerOrderId: razorpayOrderId,
           status: "PENDING_PAYMENT",
           paymentStatus: {
@@ -321,12 +457,12 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Conditional update makes repeated captured/paid events safe and
-    // prevents an out-of-order failure from downgrading a captured order.
+    // Conditional update makes repeated events safe and prevents a
+    // late failure event from downgrading an already captured order.
     await prisma.storeOrder.updateMany({
       where: {
         id: order.id,
-        websiteId: matchedWebsiteId,
+        websiteId: matchedConfiguration.websiteId,
         providerOrderId: razorpayOrderId,
         status: "PENDING_PAYMENT",
         paymentStatus: {

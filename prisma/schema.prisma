@@ -2043,6 +2043,13 @@ enum StoreOrderPaymentStatus {
   PARTIALLY_REFUNDED
 }
 
+enum StoreOrderCreationStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  CREATED
+  UNKNOWN
+}
+
 /// Website-scoped online store settings.
 /// Online sales remain disabled until explicitly activated.
 model StoreSettings {
@@ -2108,9 +2115,13 @@ model StoreOrder {
   shippingPostalCode String
   shippingCountry    String
 
-  provider                    String    @default("RAZORPAY")
-  providerOrderId             String?   @unique
-  providerPaymentId           String?   @unique
+provider                    String    @default("RAZORPAY")
+providerOrderId             String?   @unique
+
+providerOrderCreationStatus StoreOrderCreationStatus @default(NOT_STARTED)
+providerOrderCreationStartedAt DateTime?
+
+providerPaymentId           String?   @unique
   providerSignatureVerifiedAt DateTime?
   paidAt                      DateTime?
   paymentFailureReason        String?

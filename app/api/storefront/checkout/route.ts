@@ -8,6 +8,12 @@ import {
   createStoreOrder,
   type CreateCheckoutInput,
 } from "@/lib/services/storefront-checkout.service";
+import prisma from "@/lib/prisma";
+
+import {
+  StorefrontPaymentError,
+  createRazorpayTestOrder,
+} from "@/lib/services/storefront-payment.service";
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,14 +41,56 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const order = await createStoreOrder(body as CreateCheckoutInput);
+    const checkoutInput = body as CreateCheckoutInput;
+    const order = await createStoreOrder(checkoutInput);
+
+    const website = await prisma.website.findFirst({
+      where: {
+        slug: checkoutInput.websiteSlug,
+        isActive: true,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!website) {
+      return ApiResponse.error({
+        message: "This store is unavailable.",
+        code: "STORE_NOT_FOUND",
+        status: 404,
+      });
+    }
+
+    const payment = await createRazorpayTestOrder({
+      websiteId: website.id,
+      storeOrderId: order.id,
+    });
+
+    const amountInPaise = Math.round(Number(payment.amount) * 100);
 
     return ApiResponse.created({
-      message:
-        "Order created. Payment has not been initiated; checkout is not complete until the Razorpay flow is implemented.",
-      data: order,
+      message: "Order created. Continue to Razorpay TEST checkout.",
+      data: {
+        orderId: payment.orderId,
+        orderNumber: payment.orderNumber,
+        razorpayOrderId: payment.razorpayOrderId,
+        publicKeyId: payment.publicKeyId,
+        amount: amountInPaise,
+        currency: payment.currency,
+      },
     });
   } catch (error) {
+
+    if (error instanceof StorefrontPaymentError) {
+      return ApiResponse.error({
+        message: error.message,
+        code: error.code,
+        status: error.status,
+      });
+    }
+
+
     if (error instanceof CheckoutError) {
       return ApiResponse.error({
         message: error.message,

@@ -293,20 +293,15 @@ export async function PATCH(request: NextRequest) {
       });
     }
 
-    // Until a real server-side Razorpay verification flow exists,
-    // this endpoint must not activate online payments or checkout.
-    if (
-      body.paymentsEnabled === true ||
-      body.storeEnabled === true ||
-      body.cartEnabled === true
-    ) {
-      return ApiResponse.error({
-        message:
-          "Online store activation is not available yet. Payment verification and checkout safeguards must be implemented first.",
-        code: "STORE_ACTIVATION_NOT_READY",
-        status: 409,
-      });
-    }
+// Saving store preferences is allowed, but payment activation remains locked.
+if (body.paymentsEnabled === true) {
+  return ApiResponse.error({
+    message:
+      "Online payments cannot be enabled yet. Complete checkout safeguards first.",
+    code: "PAYMENTS_NOT_READY",
+    status: 409,
+  });
+}
 
     await prisma.$transaction(async (tx) => {
       const currentSettings = await tx.storeSettings.findUnique({
