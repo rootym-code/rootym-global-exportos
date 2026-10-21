@@ -334,13 +334,16 @@ export async function POST(request: NextRequest) {
       try {
         gatewayPayments =
           await razorpay.orders.fetchPayments(razorpayOrderId);
-      } catch (error) {
-        console.error(
-          "Could not fetch Razorpay payments for a paid order.",
-          error instanceof Error ? error.message : "Unknown error",
-        );
-
-        return NextResponse.json(
+        } catch (error) {
+          console.error(
+            "Could not fetch Razorpay payments for a paid order.",
+            {
+              errorType:
+                error instanceof Error ? error.name : "UnknownError",
+            },
+          );
+        
+          return NextResponse.json(
           { success: false, message: "Payment verification temporarily unavailable." },
           { status: 503 },
         );
@@ -486,9 +489,12 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error(
       "Storefront Razorpay webhook processing failed.",
-      error instanceof Error ? error.message : "Unknown error",
+      {
+        errorType:
+          error instanceof Error ? error.name : "UnknownError",
+      },
     );
-
+  
     return NextResponse.json(
       { success: false, message: "Webhook processing failed." },
       { status: 500 },
