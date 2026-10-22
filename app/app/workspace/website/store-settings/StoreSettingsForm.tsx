@@ -21,6 +21,44 @@ interface StoreSettingsData {
   shippingMode: string;
 }
 
+type ShippingPricingType = "FLAT_RATE" | "WEIGHT_BASED";
+
+interface ShippingRule {
+  id: string;
+  name: string;
+  zoneName: string | null;
+  countryCode: string;
+  stateCode: string | null;
+  postalCode: string | null;
+  postalCodePrefix: string | null;
+  pricingType: ShippingPricingType;
+  currency: string;
+  flatRate: number | string;
+  baseCharge: number | string;
+  includedWeightKg: number | string | null;
+  additionalPerKg: number | string | null;
+  isActive: boolean;
+  effectiveFrom: string | null;
+  effectiveTo: string | null;
+}
+
+interface ShippingRulesResponse {
+  success: boolean;
+  message?: string;
+  data?: {
+    website: {
+      name: string;
+      slug: string;
+    };
+    settings: {
+      shippingEnabled: boolean;
+      shippingMode: string;
+      defaultCurrency: string;
+    };
+    rules: ShippingRule[];
+  };
+}
+
 interface StorePaymentData {
   id?: string;
   provider: string;
@@ -78,6 +116,17 @@ export default function StoreSettingsForm({
   const [webhookSecretConfigured, setWebhookSecretConfigured] =
     useState(false);
   const [paymentsEnabled, setPaymentsEnabled] = useState(false);
+
+  const [shippingRules, setShippingRules] = useState<ShippingRule[]>([]);
+const [shippingEnabled, setShippingEnabled] = useState(false);
+const [shippingLoading, setShippingLoading] = useState(true);
+const [shippingError, setShippingError] = useState("");
+const [shippingSuccess, setShippingSuccess] = useState("");
+const [shippingSaving, setShippingSaving] = useState(false);
+const [showShippingForm, setShowShippingForm] = useState(false);
+
+const [shippingPricingType, setShippingPricingType] =
+  useState<ShippingPricingType>("FLAT_RATE");
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -153,7 +202,46 @@ export default function StoreSettingsForm({
     void loadSettings();
   }, [loadSettings]);
 
-  const handleSave = async () => {
+const loadShippingRules = useCallback(async () => {
+  try {
+    setShippingLoading(true);
+    setShippingError("");
+
+    const response = await fetch(
+      "/api/workspace/website/shipping-rules",
+      {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
+      },
+    );
+
+    const result: ShippingRulesResponse = await response.json();
+
+    if (!response.ok || !result.success || !result.data) {
+      throw new Error(
+        result.message ?? "Unable to load shipping rules.",
+      );
+    }
+
+    setShippingRules(result.data.rules);
+    setShippingEnabled(result.data.settings.shippingEnabled);
+  } catch (err) {
+    setShippingError(
+      err instanceof Error
+        ? err.message
+        : "Unable to load shipping rules.",
+    );
+  } finally {
+    setShippingLoading(false);
+  }
+}, []);
+
+useEffect(() => {
+  void loadShippingRules();
+}, [loadShippingRules]);
+
+const handleSave = async () => {
     if (!canEdit || saving) return;
 
     try {
@@ -222,7 +310,112 @@ export default function StoreSettingsForm({
     }
   };
 
-  if (loading) {
+const handleShippingRuleSave = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault();
+
+    if (!canEdit || shippingSaving) return;
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const pricingType = String(
+      formData.get("pricingType") ?? "FLAT_RATE",
+    ) as ShippingPricingType;
+
+    const payload = {
+      name: String(formData.get("name") ?? "").trim(),
+      zoneName: String(formData.get("zoneName") ?? "").trim() || null,
+      countryCode: String(formData.get("countryCode") ?? "IN")
+        .trim()
+        .toUpperCase(),
+      stateCode: String(formData.get("stateCode") ?? "").trim() || null,
+      postalCode: String(formData.get("postalCode") ?? "").trim() || null,
+      postalCodePrefix:
+        String(formData.get("postalCodePrefix") ?? "").trim() || null,
+      pricingType,
+      currency: defaultCurrency,
+      flatRate: Number(formData.get("flatRate") ?? 0),
+      baseCharge: Number(formData.get("baseCharge") ?? 0),
+      includedWeightKg:
+        pricingType === "WEIGHT_BASED"
+          ? Number(formData.get("includedWeightKg"))
+          : null,
+      additionalPerKg:
+        pricingType === "WEIGHT_BASED"
+          ? Number(formData.get("additionalPerKg"))
+          : null,
+      isActive: formData.get("isActive") === "on",
+    };
+
+    if (!payload.name) {
+      setShippingError("Enter a name for this shipping rule.");
+      return;
+    }
+
+    if (
+      !Number.isFinite(payload.flatRate) ||
+      payload.flatRate < 0 ||
+      !Number.isFinite(payload.baseCharge) ||
+      payload.baseCharge < 0
+    ) {
+      setShippingError("Shipping charges must be valid non-negative numbers.");
+      return;
+    }
+
+    if (
+      pricingType === "WEIGHT_BASED" &&
+      (!Number.isFinite(payload.includedWeightKg) ||
+        payload.includedWeightKg === null ||
+        payload.includedWeightKg < 0 ||
+        !Number.isFinite(payload.additionalPerKg) ||
+        payload.additionalPerKg === null ||
+        payload.additionalPerKg < 0)
+    ) {
+      setShippingError(
+        "Enter valid included weight and additional charge per kg.",
+      );
+      return;
+    }
+
+    try {
+      setShippingSaving(true);
+      setShippingError("");
+      setShippingSuccess("");
+
+      const response = await fetch(
+        "/api/workspace/website/shipping-rules",
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
+
+      const result: ShippingRulesResponse = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message ?? "Unable to save shipping rule.");
+      }
+
+      setShippingSuccess("Shipping rule created successfully.");
+      setShowShippingForm(false);
+      form.reset();
+
+      await loadShippingRules();
+    } catch (err) {
+      setShippingError(
+        err instanceof Error
+          ? err.message
+          : "Unable to save shipping rule.",
+      );
+    } finally {
+      setShippingSaving(false);
+    }
+  };
+
+if (loading) {
     return (
       <section className="rounded-3xl bg-white p-7 shadow-sm ring-1 ring-slate-200 sm:p-8">
         <div className="flex min-h-[240px] items-center justify-center gap-2 text-sm text-slate-500">
@@ -387,8 +580,7 @@ export default function StoreSettingsForm({
             </div>
           </section>
 
-
-          <section className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-5 sm:p-6">
+<section className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-5 sm:p-6">
   <div className="flex items-start gap-3">
     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100">
       <ShieldCheck className="h-5 w-5 text-emerald-700" />
@@ -546,8 +738,7 @@ export default function StoreSettingsForm({
   </div>
 </section>
 
-
-          <section className="space-y-5 border-t border-slate-200 pt-8">
+<section className="space-y-5 border-t border-slate-200 pt-8">
             <div className="flex items-start gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100">
                 <CreditCard className="h-5 w-5 text-slate-700" />
@@ -680,10 +871,342 @@ export default function StoreSettingsForm({
                 validation and webhook handling are implemented.
               </p>
             </div>
-          </section>
-        </fieldset>
 
-        <div className="flex flex-col gap-4 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
+            </section>
+
+<section className="space-y-5 border-t border-slate-200 pt-8">
+  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div>
+      <h3 className="text-lg font-bold text-slate-900">
+        Shipping rules
+      </h3>
+      <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
+        Configure shipping rates and delivery zones for your
+        store. Shipping charges will not be applied at checkout
+        until shipping calculation and checkout integration are
+        implemented and tested.
+      </p>
+    </div>
+
+    <Button
+      type="button"
+      disabled={!canEdit || shippingLoading}
+      onClick={() => setShowShippingForm(true)}
+    >
+      Add shipping rule
+    </Button>
+  </div>
+
+  <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+    <p className="text-sm font-semibold text-amber-900">
+      {shippingEnabled
+        ? "Shipping is marked as enabled in settings"
+        : "Shipping is currently disabled"}
+    </p>
+    <p className="mt-1 text-sm leading-6 text-amber-800">
+      This status does not activate shipping charges at checkout.
+      Keep shipping disabled until the complete calculation flow
+      is ready.
+    </p>
+  </div>
+
+  {shippingError && (
+    <div
+      role="alert"
+      className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+    >
+      {shippingError}
+    </div>
+  )}
+
+{shippingSuccess && (
+              <div
+                role="status"
+                className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"
+              >
+                {shippingSuccess}
+              </div>
+            )}
+
+            {showShippingForm && (
+              <form
+                onSubmit={handleShippingRuleSave}
+                className="space-y-5 rounded-2xl border border-slate-200 bg-slate-50 p-5"
+              >
+                <div>
+                  <h4 className="text-base font-bold text-slate-900">
+                    Create shipping rule
+                  </h4>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Define where this rule applies and how its charge is calculated.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="text-sm font-semibold text-slate-700">
+                      Rule name *
+                    </label>
+                    <input
+                      name="name"
+                      required
+                      maxLength={100}
+                      placeholder="e.g. Maharashtra delivery"
+                      className={inputClass}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-semibold text-slate-700">
+                      Delivery zone name
+                    </label>
+                    <input
+                      name="zoneName"
+                      maxLength={100}
+                      placeholder="e.g. Local delivery"
+                      className={inputClass}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-semibold text-slate-700">
+                      Country code *
+                    </label>
+                    <input
+                      name="countryCode"
+                      required
+                      defaultValue="IN"
+                      minLength={2}
+                      maxLength={2}
+                      pattern="[A-Za-z]{2}"
+                      title="Enter a two-letter country code, such as IN or DE."
+                      className={inputClass}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-semibold text-slate-700">
+                      State code
+                    </label>
+                    <input
+                      name="stateCode"
+                      maxLength={20}
+                      placeholder="e.g. MH"
+                      className={inputClass}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-semibold text-slate-700">
+                      Exact postal code
+                    </label>
+                    <input
+                      name="postalCode"
+                      maxLength={20}
+                      placeholder="Optional"
+                      className={inputClass}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-semibold text-slate-700">
+                      Postal-code prefix
+                    </label>
+                    <input
+                      name="postalCodePrefix"
+                      maxLength={20}
+                      placeholder="e.g. 411"
+                      className={inputClass}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-semibold text-slate-700">
+                      Pricing method *
+                    </label>
+<select
+  name="pricingType"
+  value={shippingPricingType}
+  className={inputClass}
+  onChange={(event) =>
+    setShippingPricingType(
+      event.target.value as ShippingPricingType,
+    )
+  }
+>
+  <option value="FLAT_RATE">Flat rate</option>
+  <option value="WEIGHT_BASED">Weight-based</option>
+</select>
+
+</div>
+                </div>
+                <div className={shippingPricingType === "FLAT_RATE" ? "" : "hidden"}>
+                  <label className="text-sm font-semibold text-slate-700">
+                    Flat shipping charge ({defaultCurrency}) *
+                  </label>
+                  <input
+                    name="flatRate"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    defaultValue="0"
+                    required
+                    className={inputClass}
+                  />
+                </div>
+
+                <div className={shippingPricingType === "WEIGHT_BASED" ? "" : "hidden"}>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <div>
+                      <label className="text-sm font-semibold text-slate-700">
+                        Base charge ({defaultCurrency}) *
+                      </label>
+                      <input
+                        name="baseCharge"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        defaultValue="0"
+                        className={inputClass}
+                        disabled={shippingPricingType !== "WEIGHT_BASED"}
+                        required={shippingPricingType === "WEIGHT_BASED"}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-semibold text-slate-700">
+                        Included weight (kg) *
+                      </label>
+                      <input
+                        name="includedWeightKg"
+                        type="number"
+                        min="0"
+                        step="0.001"
+                        defaultValue="1"
+                        className={inputClass}
+                        disabled={shippingPricingType !== "WEIGHT_BASED"}
+                        required={shippingPricingType === "WEIGHT_BASED"}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-semibold text-slate-700">
+                        Additional charge per kg ({defaultCurrency}) *
+                      </label>
+                      <input
+                        name="additionalPerKg"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        defaultValue="0"
+                        className={inputClass}
+                        disabled={shippingPricingType !== "WEIGHT_BASED"}
+                        required={shippingPricingType === "WEIGHT_BASED"}
+                      />
+                    </div>
+                  </div>
+                  <p className="mt-2 text-xs text-slate-500">
+                    Weight-based fields will be enabled when that pricing method is selected.
+                  </p>
+                </div>
+
+                <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-3">
+                  <input
+                    type="checkbox"
+                    name="isActive"
+                    className="mt-1 h-4 w-4 accent-emerald-600"
+                  />
+                  <span>
+                    <span className="block text-sm font-semibold text-slate-800">
+                      Create as active rule
+                    </span>
+                    <span className="mt-1 block text-xs leading-5 text-slate-500">
+                      Active here means the rule is configured as active; it does not enable checkout shipping.
+                    </span>
+                  </span>
+                </label>
+
+                <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                  <Button
+                    type="button"
+                    disabled={shippingSaving}
+                    onClick={() => {
+                      setShowShippingForm(false);
+                      setShippingError("");
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={shippingSaving || !canEdit}>
+                    {shippingSaving ? "Saving rule..." : "Save shipping rule"}
+                  </Button>
+                </div>
+              </form>
+            )}
+
+  {shippingLoading ? (
+    <div className="flex items-center gap-2 py-6 text-sm text-slate-500">
+      <Loader2 className="h-4 w-4 animate-spin" />
+      Loading shipping rules...
+    </div>
+  ) : shippingRules.length === 0 ? (
+    <div className="rounded-2xl border border-dashed border-slate-300 px-5 py-8 text-center">
+      <p className="font-semibold text-slate-800">
+        No shipping rules configured
+      </p>
+      <p className="mt-1 text-sm text-slate-500">
+        Add a rule to define rates for your delivery areas.
+      </p>
+    </div>
+  ) : (
+    <div className="space-y-3">
+      {shippingRules.map((rule) => (
+        <article
+          key={rule.id}
+          className="rounded-2xl border border-slate-200 p-4"
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h4 className="font-semibold text-slate-900">
+                {rule.name}
+              </h4>
+              <p className="mt-1 text-sm text-slate-500">
+                {rule.zoneName || "General delivery zone"}
+                {" · "}
+                {rule.countryCode}
+                {rule.stateCode ? ` · ${rule.stateCode}` : ""}
+              </p>
+              <p className="mt-2 text-sm text-slate-700">
+                {rule.pricingType === "FLAT_RATE"
+                  ? `Flat rate: ${rule.currency} ${Number(rule.flatRate).toFixed(2)}`
+                  : `Base charge: ${rule.currency} ${Number(rule.baseCharge).toFixed(2)}; included weight: ${rule.includedWeightKg ?? "—"} kg; additional per kg: ${rule.additionalPerKg ?? "—"}`}
+              </p>
+              {(rule.postalCode || rule.postalCodePrefix) && (
+                <p className="mt-1 text-xs text-slate-500">
+                  Postal restriction:{" "}
+                  {rule.postalCode || `Prefix ${rule.postalCodePrefix}`}
+                </p>
+              )}
+            </div>
+
+            <span
+              className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold ${
+                rule.isActive
+                  ? "bg-emerald-50 text-emerald-700"
+                  : "bg-slate-100 text-slate-600"
+              }`}
+            >
+              {rule.isActive ? "Active rule" : "Inactive rule"}
+            </span>
+          </div>
+        </article>
+      ))}
+    </div>
+  )}
+</section>
+</fieldset>
+
+<div className="flex flex-col gap-4 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-xs leading-5 text-slate-500">
             {canEdit
               ? "Changes apply only to this customer website."

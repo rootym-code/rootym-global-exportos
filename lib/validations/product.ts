@@ -4,7 +4,8 @@
  * ============================================================
  * Author: Prem Singh
  * Purpose: Validates Website-scoped Product create and update
- *          data, including optional specification documents.
+ *          data, including optional specification documents
+ *          and packed-unit shipping measurements.
  * ============================================================
  */
 
@@ -20,6 +21,13 @@ export const pricingTypeSchema = z.enum([
   "FIXED",
   "MARKET",
 ]);
+
+const optionalNonNegativeMeasurement = z
+  .number()
+  .finite()
+  .nonnegative()
+  .nullable()
+  .optional();
 
 export const createProductSchema = z.object({
   sku: z
@@ -74,6 +82,12 @@ export const createProductSchema = z.object({
     .optional()
     .or(z.literal("")),
 
+  // Shipping measurements for one packed selling unit.
+  weightKg: optionalNonNegativeMeasurement,
+  lengthCm: optionalNonNegativeMeasurement,
+  widthCm: optionalNonNegativeMeasurement,
+  heightCm: optionalNonNegativeMeasurement,
+
   defaultUnit: z
     .string()
     .trim()
@@ -90,14 +104,12 @@ export const createProductSchema = z.object({
     .nonnegative()
     .optional(),
 
-    status: productStatusSchema.default(
-      "DRAFT"
-    ),
-  
-    // Online selling is opt-in for every product.
-    onlinePurchaseEnabled: z
-      .boolean()
-      .default(false),
+  status: productStatusSchema.default("DRAFT"),
+
+  // Online selling is opt-in for every product.
+  onlinePurchaseEnabled: z
+    .boolean()
+    .default(false),
 
   featuredImageId: z
     .string()

@@ -33,6 +33,7 @@ import {
 } from "@/lib/services/product-pricing.service";
 
 import prisma from "@/lib/prisma";
+import AddToCartButton from "@/components/storefront/AddToCartButton";
 
 type PageProps = {
   params: Promise<{
@@ -254,6 +255,21 @@ export default async function ProductPage({
             </div>
 
             <div className="mt-12 flex flex-col gap-4 sm:flex-row">
+            {activePricing?.pricingType === "FIXED" &&
+  activePricing.price !== null &&
+  activePricing.price !== undefined &&
+  Number.isFinite(Number(activePricing.price)) &&
+  Number(activePricing.price) > 0 && (
+    <AddToCartButton
+      websiteSlug={ROOTYM_WEBSITE_SLUG}
+      productId={product.id}
+      productSlug={slug}
+      productName={product.name}
+      price={Number(activePricing.price)}
+      currency={activePricing.currency}
+      unit={product.defaultUnit ?? "unit"}
+    />
+  )}
               <Link href={`/${locale}/request-quote`}>
                 <Button>
                   Request Quotation

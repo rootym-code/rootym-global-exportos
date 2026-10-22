@@ -237,6 +237,24 @@ export async function POST(
       );
     }
 
+    // Only link gateway orders in recognized unpaid states.
+if (
+  gatewayOrder.status !== "created" &&
+  gatewayOrder.status !== "attempted"
+) {
+  return NextResponse.json(
+    {
+      success: false,
+      code: "GATEWAY_ORDER_STATUS_UNSUPPORTED",
+      result: "MANUAL_REVIEW_REQUIRED",
+      message:
+        "The Razorpay order has an unsupported status. Verify its payment records before linking it.",
+      orderNumber: order.orderNumber,
+    },
+    { status: 409 },
+  );
+}
+
     // Atomic compare-and-set prevents overwriting a concurrent update.
     const linked = await prisma.storeOrder.updateMany({
       where: {

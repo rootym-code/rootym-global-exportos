@@ -44,12 +44,15 @@ interface ProductFormData {
   category: string;
   origin: string;
   hsCode: string;
+  weightKg: string;
+  lengthCm: string;
+  widthCm: string;
+  heightCm: string;
   defaultUnit: string;
   minOrderQty: string;
   maxOrderQty: string;
   status: ProductStatus;
 }
-
 
 interface MediaResponse {
   success?: boolean;
@@ -351,6 +354,10 @@ const initialForm: ProductFormData = {
   category: "",
   origin: "",
   hsCode: "",
+  weightKg: "",
+  lengthCm: "",
+  widthCm: "",
+  heightCm: "",
   defaultUnit: "KG",
   minOrderQty: "",
   maxOrderQty: "",
@@ -404,6 +411,22 @@ export default function NewWorkspaceProductPage() {
        */
       const payload = {
         ...form,
+
+        weightKg: form.weightKg.trim() === ""
+        ? null
+        : Number(form.weightKg),
+
+      lengthCm: form.lengthCm.trim() === ""
+        ? null
+        : Number(form.lengthCm),
+
+      widthCm: form.widthCm.trim() === ""
+        ? null
+        : Number(form.widthCm),
+
+      heightCm: form.heightCm.trim() === ""
+        ? null
+        : Number(form.heightCm),
 
         featuredImageId:
           featuredImage?.id ?? null,
@@ -824,6 +847,117 @@ export default function NewWorkspaceProductPage() {
         </div>
       </Card>
 
+      {/* Shipping Measurements */}
+
+      <Card
+        hover={false}
+        className="p-6"
+      >
+        <h2 className="mb-2 text-xl font-semibold text-slate-900">
+          Shipping Measurements
+        </h2>
+
+        <p className="mb-6 text-sm text-slate-600">
+          Enter the weight and packed dimensions of one selling unit.
+          Leave fields blank if measurements are not yet available.
+          Weight is in kilograms (kg); dimensions are in centimetres (cm).
+        </p>
+
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div>
+            <label
+              htmlFor="weightKg"
+              className="mb-2 block text-sm font-medium text-slate-700"
+            >
+              Weight (kg)
+            </label>
+
+            <input
+              id="weightKg"
+              name="weightKg"
+              type="number"
+              min="0"
+              step="0.001"
+              value={form.weightKg}
+              onChange={(event) =>
+                updateField("weightKg", event.target.value)
+              }
+              placeholder="e.g. 25"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-green-600 focus:ring-2 focus:ring-green-100"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="lengthCm"
+              className="mb-2 block text-sm font-medium text-slate-700"
+            >
+              Length (cm)
+            </label>
+
+            <input
+              id="lengthCm"
+              name="lengthCm"
+              type="number"
+              min="0"
+              step="0.01"
+              value={form.lengthCm}
+              onChange={(event) =>
+                updateField("lengthCm", event.target.value)
+              }
+              placeholder="e.g. 40"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-green-600 focus:ring-2 focus:ring-green-100"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="widthCm"
+              className="mb-2 block text-sm font-medium text-slate-700"
+            >
+              Width (cm)
+            </label>
+
+            <input
+              id="widthCm"
+              name="widthCm"
+              type="number"
+              min="0"
+              step="0.01"
+              value={form.widthCm}
+              onChange={(event) =>
+                updateField("widthCm", event.target.value)
+              }
+              placeholder="e.g. 30"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-green-600 focus:ring-2 focus:ring-green-100"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="heightCm"
+              className="mb-2 block text-sm font-medium text-slate-700"
+            >
+              Height (cm)
+            </label>
+
+            <input
+              id="heightCm"
+              name="heightCm"
+              type="number"
+              min="0"
+              step="0.01"
+              value={form.heightCm}
+              onChange={(event) =>
+                updateField("heightCm", event.target.value)
+              }
+              placeholder="e.g. 25"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-green-600 focus:ring-2 focus:ring-green-100"
+            />
+          </div>
+        </div>
+      </Card>
+      
       {/* Order Configuration */}
 
       <Card

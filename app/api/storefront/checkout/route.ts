@@ -42,7 +42,8 @@ export async function POST(request: NextRequest) {
     }
 
     const checkoutInput = body as CreateCheckoutInput;
-    const order = await createStoreOrder(checkoutInput);
+
+const order = await createStoreOrder(checkoutInput);
 
     const website = await prisma.website.findFirst({
       where: {
@@ -51,9 +52,15 @@ export async function POST(request: NextRequest) {
       },
       select: {
         id: true,
+        storePayment: {
+          select: {
+            paymentsEnabled: true,
+            verifiedAt: true,
+          },
+        },
       },
     });
-
+    
     if (!website) {
       return ApiResponse.error({
         message: "This store is unavailable.",
@@ -61,14 +68,31 @@ export async function POST(request: NextRequest) {
         status: 404,
       });
     }
-
+    
+    // Local order creation is complete. Do not initiate payment
+    // unless payment activation and verification are both present.
+    if (
+      !website.storePayment?.paymentsEnabled ||
+      !website.storePayment?.verifiedAt
+    ) {
+      return ApiResponse.created({
+        message:
+          "Order created successfully. Online payment is not enabled yet.",
+        data: {
+          orderId: order.id,
+          orderNumber: order.orderNumber,
+          paymentStatus: "NOT_INITIATED",
+        },
+      });
+    }
+    
     const payment = await createRazorpayTestOrder({
       websiteId: website.id,
       storeOrderId: order.id,
     });
-
+    
     const amountInPaise = Math.round(Number(payment.amount) * 100);
-
+    
     return ApiResponse.created({
       message: "Order created. Continue to Razorpay TEST checkout.",
       data: {
@@ -80,7 +104,8 @@ export async function POST(request: NextRequest) {
         currency: payment.currency,
       },
     });
-  } catch (error) {
+
+} catch (error) {
 
     if (error instanceof StorefrontPaymentError) {
       return ApiResponse.error({
@@ -90,8 +115,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-
-    if (error instanceof CheckoutError) {
+if (error instanceof CheckoutError) {
       return ApiResponse.error({
         message: error.message,
         code: error.code,

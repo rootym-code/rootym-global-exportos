@@ -224,17 +224,24 @@ model FollowUp {
 ///  * are independently configurable by each tenant.
 ///  * ============================================================
 model Product {
-  id                      String                @id @default(cuid())
+  id               String  @id @default(cuid())
   /// SKU is unique within a Website, not globally.
-  sku                     String
-  name                    String
+  sku              String
+  name             String
   /// Public URL slug is unique within a Website.
-  slug                    String
-  shortDescription        String?
-  description             String?
-  category                String?
-  origin                  String?
-  hsCode                  String?
+  slug             String
+  shortDescription String?
+  description      String?
+  category         String?
+  origin           String?
+  hsCode           String?
+
+  // Shipping measurements for one packed selling unit
+  weightKg Decimal? @db.Decimal(10, 3)
+  lengthCm Decimal? @db.Decimal(10, 2)
+  widthCm  Decimal? @db.Decimal(10, 2)
+  heightCm Decimal? @db.Decimal(10, 2)
+
   defaultUnit             String
   minOrderQty             Decimal?              @db.Decimal(18, 3)
   maxOrderQty             Decimal?              @db.Decimal(18, 3)
@@ -255,6 +262,8 @@ model Product {
   proformaInvoiceItems    ProformaInvoiceItem[]
   quoteItems              QuoteItem[]
   storeOrderItems         StoreOrderItem[]
+  /// Optional GST rate for domestic storefront sales; configure after classification.
+  storeGstRate            Decimal?              @db.Decimal(5, 2)
 
   @@unique([websiteId, sku])
   @@unique([websiteId, slug])
@@ -964,20 +973,24 @@ model Tenant {
 }
 
 model Website {
-  id               String                     @id @default(cuid())
-  tenantId         String                     @unique
-  name             String
-  slug             String                     @unique
-  isActive         Boolean                    @default(true)
-  createdAt        DateTime                   @default(now())
-  updatedAt        DateTime                   @updatedAt
-  cmsPages         CmsPage[]
-  inquiries        Inquiry[]
-  media            Media[]
-  mediaFolders     MediaFolder[]
-  navigation       Menu?
-  products         Product[]
-  storeOrders      StoreOrder[]
+  id           String        @id @default(cuid())
+  tenantId     String        @unique
+  name         String
+  slug         String        @unique
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  cmsPages     CmsPage[]
+  inquiries    Inquiry[]
+  media        Media[]
+  mediaFolders MediaFolder[]
+  navigation   Menu?
+  products     Product[]
+  storeOrders  StoreOrder[]
+
+  storeShippingRules StoreShippingRule[]
+  storeTaxProfile    StoreTaxProfile?
+
   proformaInvoices ProformaInvoice[]
   quotes           Quote[]
   supportTickets   SupportTicket[]
@@ -2050,6 +2063,11 @@ enum StoreOrderCreationStatus {
   UNKNOWN
 }
 
+enum StoreShippingPricingType {
+  FLAT_RATE
+  WEIGHT_BASED
+}
+
 /// Website-scoped online store settings.
 /// Online sales remain disabled until explicitly activated.
 model StoreSettings {
@@ -2060,6 +2078,10 @@ model StoreSettings {
   guestCheckoutEnabled Boolean  @default(true)
   defaultCurrency      String   @default("INR")
   shippingMode         String   @default("MANUAL")
+  /// Configuration only; no calculations are activated by this flag.
+  shippingEnabled      Boolean  @default(false)
+  /// Configuration only; no tax calculations are activated by this flag.
+  taxEnabled           Boolean  @default(false)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
@@ -2090,19 +2112,35 @@ model StorePaymentConfiguration {
 }
 
 model StoreOrder {
-  id                String                  @id @default(cuid())
-  websiteId         String
-  orderNumber       String                  @unique
-  checkoutRequestId String?
-  status            StoreOrderStatus        @default(PENDING_PAYMENT)
-  paymentStatus     StoreOrderPaymentStatus @default(CREATED)
-  currency          String                  @default("INR")
+  id                  String                  @id @default(cuid())
+  websiteId           String
+  orderNumber         String                  @unique
+  checkoutRequestId   String?
+  checkoutRequestHash String?
+  checkoutRequestFingerprint String?
+  status              StoreOrderStatus        @default(PENDING_PAYMENT)
+  paymentStatus       StoreOrderPaymentStatus @default(CREATED)
+  currency            String                  @default("INR")
 
   subtotal       Decimal @db.Decimal(18, 2)
   shippingAmount Decimal @default(0) @db.Decimal(18, 2)
   discountAmount Decimal @default(0) @db.Decimal(18, 2)
   taxAmount      Decimal @default(0) @db.Decimal(18, 2)
   totalAmount    Decimal @db.Decimal(18, 2)
+
+  /// Historical snapshot of the shipping rule used, not a live relation.
+  shippingRuleId   String?
+  shippingRuleName String?
+
+  /// Historical GST calculation snapshot.
+  taxType       BillingTaxType @default(NONE)
+  taxableAmount Decimal        @default(0) @db.Decimal(18, 2)
+  cgstRate      Decimal        @default(0) @db.Decimal(5, 2)
+  cgstAmount    Decimal        @default(0) @db.Decimal(18, 2)
+  sgstRate      Decimal        @default(0) @db.Decimal(5, 2)
+  sgstAmount    Decimal        @default(0) @db.Decimal(18, 2)
+  igstRate      Decimal        @default(0) @db.Decimal(5, 2)
+  igstAmount    Decimal        @default(0) @db.Decimal(18, 2)
 
   customerName  String
   customerEmail String
@@ -2115,13 +2153,13 @@ model StoreOrder {
   shippingPostalCode String
   shippingCountry    String
 
-provider                    String    @default("RAZORPAY")
-providerOrderId             String?   @unique
+  provider        String  @default("RAZORPAY")
+  providerOrderId String? @unique
 
-providerOrderCreationStatus StoreOrderCreationStatus @default(NOT_STARTED)
-providerOrderCreationStartedAt DateTime?
+  providerOrderCreationStatus    StoreOrderCreationStatus @default(NOT_STARTED)
+  providerOrderCreationStartedAt DateTime?
 
-providerPaymentId           String?   @unique
+  providerPaymentId           String?   @unique
   providerSignatureVerifiedAt DateTime?
   paidAt                      DateTime?
   paymentFailureReason        String?
@@ -2140,21 +2178,83 @@ providerPaymentId           String?   @unique
 }
 
 model StoreOrderItem {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   orderId     String
   productId   String?
   productName String
   productSku  String
   unit        String
-  quantity    Decimal  @db.Decimal(18, 3)
-  unitPrice   Decimal  @db.Decimal(18, 2)
-  lineTotal   Decimal  @db.Decimal(18, 2)
-  pricingId   String?
-  createdAt   DateTime @default(now())
+  quantity    Decimal @db.Decimal(18, 3)
+  unitPrice   Decimal @db.Decimal(18, 2)
+  lineTotal   Decimal @db.Decimal(18, 2)
+
+  /// Product tax snapshot captured when the order is calculated.
+  taxRate       Decimal @default(0) @db.Decimal(5, 2)
+  taxableAmount Decimal @default(0) @db.Decimal(18, 2)
+  cgstRate      Decimal @default(0) @db.Decimal(5, 2)
+  cgstAmount    Decimal @default(0) @db.Decimal(18, 2)
+  sgstRate      Decimal @default(0) @db.Decimal(5, 2)
+  sgstAmount    Decimal @default(0) @db.Decimal(18, 2)
+  igstRate      Decimal @default(0) @db.Decimal(5, 2)
+  igstAmount    Decimal @default(0) @db.Decimal(18, 2)
+
+  pricingId String?
+  createdAt DateTime @default(now())
 
   order   StoreOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product?   @relation(fields: [productId], references: [id], onDelete: SetNull)
 
   @@index([orderId])
   @@index([productId])
+}
+
+/// Website-specific domestic shipping rules.
+/// This model stores configuration only; it does not calculate shipping.
+model StoreShippingRule {
+  id               String                   @id @default(cuid())
+  websiteId        String
+  name             String
+  zoneName         String?
+  countryCode      String                   @default("IN")
+  stateCode        String?
+  postalCode       String?
+  postalCodePrefix String?
+  pricingType      StoreShippingPricingType @default(FLAT_RATE)
+  currency         String                   @default("INR")
+  flatRate         Decimal                  @default(0) @db.Decimal(18, 2)
+  baseCharge       Decimal                  @default(0) @db.Decimal(18, 2)
+  includedWeightKg Decimal?                 @db.Decimal(10, 3)
+  additionalPerKg  Decimal?                 @db.Decimal(18, 2)
+  isActive         Boolean                  @default(false)
+  effectiveFrom    DateTime?
+  effectiveTo      DateTime?
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+
+  website Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+
+  @@index([websiteId, isActive])
+  @@index([websiteId, countryCode, stateCode])
+  @@index([websiteId, postalCode])
+  @@index([websiteId, postalCodePrefix])
+}
+
+/// Seller tax registration for domestic storefront sales.
+/// Separate from ROOTYM platform subscription billing.
+model StoreTaxProfile {
+  id                     String   @id @default(cuid())
+  websiteId              String   @unique
+  legalName              String?
+  gstin                  String?
+  registeredState        String?
+  registeredStateCode    String?
+  registeredAddressLine1 String?
+  registeredAddressLine2 String?
+  registeredCity         String?
+  registeredPostalCode   String?
+  registeredCountry      String   @default("IN")
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  website Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
 }

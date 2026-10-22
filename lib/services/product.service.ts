@@ -427,8 +427,29 @@ export async function createProduct(
       origin:
         data.origin || null,
 
-      hsCode:
+        hsCode:
         data.hsCode || null,
+
+      // Shipping measurements for one packed selling unit.
+      weightKg:
+        data.weightKg != null
+          ? new Prisma.Decimal(data.weightKg)
+          : null,
+
+      lengthCm:
+        data.lengthCm != null
+          ? new Prisma.Decimal(data.lengthCm)
+          : null,
+
+      widthCm:
+        data.widthCm != null
+          ? new Prisma.Decimal(data.widthCm)
+          : null,
+
+      heightCm:
+        data.heightCm != null
+          ? new Prisma.Decimal(data.heightCm)
+          : null,
 
       defaultUnit:
         data.defaultUnit,
@@ -586,6 +607,34 @@ export async function updateProduct(
       ...(data.hsCode !== undefined && {
         hsCode:
           data.hsCode || null,
+      }),
+
+      ...(data.weightKg !== undefined && {
+        weightKg:
+          data.weightKg === null
+            ? null
+            : new Prisma.Decimal(data.weightKg),
+      }),
+
+      ...(data.lengthCm !== undefined && {
+        lengthCm:
+          data.lengthCm === null
+            ? null
+            : new Prisma.Decimal(data.lengthCm),
+      }),
+
+      ...(data.widthCm !== undefined && {
+        widthCm:
+          data.widthCm === null
+            ? null
+            : new Prisma.Decimal(data.widthCm),
+      }),
+
+      ...(data.heightCm !== undefined && {
+        heightCm:
+          data.heightCm === null
+            ? null
+            : new Prisma.Decimal(data.heightCm),
       }),
 
       ...(data.defaultUnit !== undefined && {

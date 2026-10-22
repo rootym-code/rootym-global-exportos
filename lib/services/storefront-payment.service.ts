@@ -276,7 +276,8 @@ export async function createRazorpayTestOrder({
     console.error("Razorpay storefront order creation failed.", {
       websiteId,
       storeOrderId: order.id,
-      error,
+      errorType:
+        error instanceof Error ? error.name : "UnknownError",
     });
 
     throw new StorefrontPaymentError(

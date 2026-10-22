@@ -29,6 +29,7 @@ import { ProductStatus } from "@/lib/generated/prisma";
 import { getActiveProductPrice } from "@/lib/services/product-pricing.service";
 import prisma from "@/lib/prisma";
 import { getSubscriptionAccessStatus } from "@/lib/services/billing/subscription-access.service";
+import AddToCartButton from "@/components/storefront/AddToCartButton";
 
 type PageProps = {
   params: Promise<{
@@ -486,12 +487,28 @@ export default async function CustomerWebsiteProductPage({
                 ACTIONS
                 ================================================== */}
 
-            <div className="mt-12 flex flex-col gap-4 sm:flex-row">
-              <Link href={requestQuoteHref}>
-                <Button>
-                  Request Quotation
-                </Button>
-              </Link>
+<div className="mt-12 flex flex-col gap-4 sm:flex-row">
+  {activePricing?.pricingType === "FIXED" &&
+    activePricing.price !== null &&
+    activePricing.price !== undefined &&
+    Number.isFinite(Number(activePricing.price)) &&
+    Number(activePricing.price) > 0 && (
+      <AddToCartButton
+        websiteSlug={websiteSlug}
+        productId={product.id}
+        productSlug={slug}
+        productName={product.name}
+        price={Number(activePricing.price)}
+        currency={activePricing.currency}
+        unit={product.defaultUnit ?? "unit"}
+      />
+    )}
+
+  <Link href={requestQuoteHref}>
+    <Button>
+      Request Quotation
+    </Button>
+  </Link>
 
               {specificationDocument && (
                 <a
