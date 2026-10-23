@@ -117,6 +117,10 @@ export default function StoreSettingsForm({
     useState(false);
   const [paymentsEnabled, setPaymentsEnabled] = useState(false);
 
+  const [verifyingPayment, setVerifyingPayment] = useState(false);
+const [paymentVerifiedAt, setPaymentVerifiedAt] = useState<string | null>(
+  null,
+);
   const [shippingRules, setShippingRules] = useState<ShippingRule[]>([]);
 const [shippingEnabled, setShippingEnabled] = useState(false);
 const [shippingLoading, setShippingLoading] = useState(true);
@@ -255,10 +259,6 @@ const handleSave = async () => {
         guestCheckoutEnabled,
         defaultCurrency,
         shippingMode: "MANUAL",
-        provider: "RAZORPAY",
-        environment,
-        publicKeyId: publicKeyId.trim() || null,
-        paymentsEnabled,
       };
 
       // Empty secret fields mean keep the existing encrypted credentials.
@@ -304,6 +304,100 @@ const handleSave = async () => {
         err instanceof Error
           ? err.message
           : "Unable to save store settings.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleVerifyPayment = async () => {
+    if (!canEdit || saving || verifyingPayment) return;
+  
+    try {
+      setVerifyingPayment(true);
+      setError("");
+      setSuccessMessage("");
+  
+      const response = await fetch(
+        "/api/workspace/website/store-settings/verify-payment",
+        {
+          method: "POST",
+          credentials: "include",
+        },
+      );
+  
+      const result = await response.json();
+  
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.message ?? "Unable to verify Razorpay credentials.",
+        );
+      }
+  
+      setPaymentVerifiedAt(result.data?.verifiedAt ?? null);
+      setPaymentsEnabled(false);
+  
+      setSuccessMessage(
+        "Razorpay TEST API credentials verified successfully. Online payments remain disabled.",
+      );
+  
+      await loadSettings();
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to verify Razorpay credentials.",
+      );
+    } finally {
+      setVerifyingPayment(false);
+    }
+  };
+
+  const handleEnableTestPayments = async () => {
+    if (
+      !canEdit ||
+      saving ||
+      verifyingPayment ||
+      environment !== "TEST" ||
+      !paymentVerifiedAt
+    ) {
+      return;
+    }
+  
+    try {
+      setSaving(true);
+      setError("");
+      setSuccessMessage("");
+  
+      const response = await fetch(
+        "/api/workspace/website/store-settings",
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            paymentsEnabled: true,
+          }),
+        },
+      );
+  
+      const result: StoreSettingsResponse = await response.json();
+  
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.message ?? "Unable to enable Razorpay TEST payments.",
+        );
+      }
+  
+      setSuccessMessage("Razorpay TEST payments enabled successfully.");
+      await loadSettings();
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to enable Razorpay TEST payments.",
       );
     } finally {
       setSaving(false);
@@ -860,18 +954,89 @@ if (loading) {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-              <p className="text-sm font-semibold text-amber-900">
-                Payment activation is intentionally locked
-              </p>
-              <p className="mt-1 text-sm leading-6 text-amber-800">
-                Credentials can be saved, but payments and online
-                checkout remain disabled until server-side Razorpay
-                verification, secure order creation, payment signature
-                validation and webhook handling are implemented.
-              </p>
-            </div>
+            <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+  <div>
+    <p className="text-sm font-semibold text-slate-900">
+      Verify Razorpay TEST credentials
+    </p>
 
+    <p className="mt-1 text-sm leading-6 text-slate-600">
+      Save your credentials first, then verify the API connection.
+      Verification does not enable online payments automatically.
+    </p>
+  </div>
+
+  {paymentVerifiedAt && (
+    <p className="text-sm font-medium text-emerald-700">
+      Credentials verified successfully.
+    </p>
+  )}
+
+  <Button
+    type="button"
+    onClick={handleVerifyPayment}
+    disabled={
+      !canEdit ||
+      saving ||
+      verifyingPayment ||
+      environment !== "TEST" ||
+      !publicKeyId.trim() ||
+      !keySecretConfigured ||
+      !webhookSecretConfigured
+    }
+  >
+    {verifyingPayment ? (
+      <>
+        <Loader2 className="h-4 w-4 animate-spin" />
+        Verifying credentials...
+      </>
+    ) : (
+      <>
+        <ShieldCheck className="h-4 w-4" />
+        Verify Razorpay TEST Credentials
+      </>
+    )}
+  </Button>
+
+
+</div>
+              {paymentVerifiedAt && environment === "TEST" && (
+                <div className="border-t border-slate-200 pt-4">
+                  <p className="mb-3 text-sm text-slate-600">
+                    Your Razorpay TEST API credentials are verified. You can now
+                    enable TEST payments for customer checkout.
+                  </p>
+
+                  <Button
+                    type="button"
+                    onClick={handleEnableTestPayments}
+                    disabled={
+                      !canEdit ||
+                      saving ||
+                      verifyingPayment ||
+                      paymentsEnabled
+                    }
+                  >
+                    {saving ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Enabling TEST payments...
+                      </>
+                    ) : paymentsEnabled ? (
+                      <>
+                        <CheckCircle2 className="h-4 w-4" />
+                        TEST Payments Enabled
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard className="h-4 w-4" />
+                        Enable TEST Payments
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+              
             </section>
 
 <section className="space-y-5 border-t border-slate-200 pt-8">

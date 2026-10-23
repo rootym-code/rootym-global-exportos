@@ -44,6 +44,8 @@ interface ProductFormData {
   category: string;
   origin: string;
   hsCode: string;
+  gstApplicable: boolean;
+  gstRate: string;
   defaultUnit: string;
   minOrderQty: string;
   maxOrderQty: string;
@@ -58,6 +60,8 @@ const initialForm: ProductFormData = {
   category: "",
   origin: "",
   hsCode: "",
+  gstApplicable: true,
+  gstRate: "",
   defaultUnit: "KG",
   minOrderQty: "",
   maxOrderQty: "",

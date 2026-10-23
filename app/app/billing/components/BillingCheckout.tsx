@@ -464,8 +464,11 @@ export default function BillingCheckout({
       const subscription =
         await createSubscription();
 
+        const Razorpay =
+        window.Razorpay as unknown as RazorpayConstructor;
+
       const razorpay =
-        new window.Razorpay({
+        new Razorpay({
           key:
             subscription.checkoutKey,
           subscription_id:

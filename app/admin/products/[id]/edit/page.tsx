@@ -49,6 +49,8 @@ interface ProductFormData {
   category: string;
   origin: string;
   hsCode: string;
+  gstApplicable: boolean;
+  gstRate: string;
   defaultUnit: string;
   minOrderQty: string;
   maxOrderQty: string;
@@ -67,6 +69,9 @@ interface ProductResponse {
     category: string | null;
     origin: string | null;
     hsCode: string | null;
+    gstApplicable: boolean | null;
+    gstRate: number | string | null;
+
     defaultUnit: string;
     minOrderQty: number | null;
     maxOrderQty: number | null;
@@ -112,6 +117,8 @@ const emptyForm: ProductFormData = {
   category: "",
   origin: "",
   hsCode: "",
+  gstApplicable: true,
+  gstRate: "",
   defaultUnit: "KG",
   minOrderQty: "",
   maxOrderQty: "",
@@ -233,6 +240,13 @@ export default function EditProductPage() {
             result.data.hsCode ?? "",
           defaultUnit:
             result.data.defaultUnit,
+            gstApplicable:
+            result.data.gstApplicable ?? true,
+          gstRate:
+            result.data.gstRate != null
+              ? String(result.data.gstRate)
+              : "",
+
           minOrderQty:
             result.data.minOrderQty?.toString() ??
             "",

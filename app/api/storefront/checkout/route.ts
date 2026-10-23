@@ -9,7 +9,7 @@ import {
   type CreateCheckoutInput,
 } from "@/lib/services/storefront-checkout.service";
 import prisma from "@/lib/prisma";
-
+import { createGuestOrderAccessToken } from "@/lib/services/guest-order-access.service";
 import {
   StorefrontPaymentError,
   createRazorpayTestOrder,
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
 
     const checkoutInput = body as CreateCheckoutInput;
 
-const order = await createStoreOrder(checkoutInput);
+    const order = await createStoreOrder(checkoutInput);
 
     const website = await prisma.website.findFirst({
       where: {
@@ -60,7 +60,7 @@ const order = await createStoreOrder(checkoutInput);
         },
       },
     });
-    
+
     if (!website) {
       return ApiResponse.error({
         message: "This store is unavailable.",
@@ -68,7 +68,12 @@ const order = await createStoreOrder(checkoutInput);
         status: 404,
       });
     }
-    
+
+    const guestAccessToken = createGuestOrderAccessToken(
+      order.id,
+      website.id,
+    );
+
     // Local order creation is complete. Do not initiate payment
     // unless payment activation and verification are both present.
     if (
@@ -82,17 +87,24 @@ const order = await createStoreOrder(checkoutInput);
           orderId: order.id,
           orderNumber: order.orderNumber,
           paymentStatus: "NOT_INITIATED",
+          currency: order.currency,
+          guestAccessToken,
+          subtotal: order.subtotal.toString(),
+          shippingAmount: order.shippingAmount.toString(),
+          taxAmount: order.taxAmount.toString(),
+          discountAmount: order.discountAmount.toString(),
+          totalAmount: order.totalAmount.toString(),
         },
       });
     }
-    
+
     const payment = await createRazorpayTestOrder({
       websiteId: website.id,
       storeOrderId: order.id,
     });
-    
+
     const amountInPaise = Math.round(Number(payment.amount) * 100);
-    
+
     return ApiResponse.created({
       message: "Order created. Continue to Razorpay TEST checkout.",
       data: {
@@ -102,11 +114,10 @@ const order = await createStoreOrder(checkoutInput);
         publicKeyId: payment.publicKeyId,
         amount: amountInPaise,
         currency: payment.currency,
+        guestAccessToken,
       },
     });
-
-} catch (error) {
-
+  } catch (error) {
     if (error instanceof StorefrontPaymentError) {
       return ApiResponse.error({
         message: error.message,
@@ -115,7 +126,7 @@ const order = await createStoreOrder(checkoutInput);
       });
     }
 
-if (error instanceof CheckoutError) {
+    if (error instanceof CheckoutError) {
       return ApiResponse.error({
         message: error.message,
         code: error.code,

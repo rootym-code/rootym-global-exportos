@@ -102,6 +102,8 @@ export async function POST(_request: NextRequest) {
 
     // Only mark the credentials as verified if the configuration has not
     // changed while the Razorpay verification request was in progress.
+    const verifiedAt = new Date();
+
     const result = await prisma.storePaymentConfiguration.updateMany({
       where: {
         websiteId: website.id,
@@ -112,7 +114,7 @@ export async function POST(_request: NextRequest) {
         encryptedWebhookSecret: payment.encryptedWebhookSecret,
       },
       data: {
-        verifiedAt: new Date(),
+        verifiedAt,
         paymentsEnabled: false,
       },
     });
@@ -131,7 +133,7 @@ export async function POST(_request: NextRequest) {
         verified: true,
         environment: "TEST",
         paymentsEnabled: false,
-        verifiedAt: new Date().toISOString(),
+        verifiedAt: verifiedAt.toISOString(),
         webhookSecretConfigured: true,
         webhookSecretIndependentlyVerified: false,
       },

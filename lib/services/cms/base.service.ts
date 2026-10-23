@@ -85,16 +85,21 @@ export abstract class BaseCmsService {
   ): Promise<T> {
     try {
       return await operation();
+
     } catch (error) {
       if (error instanceof AppError) {
         throw error;
       }
+
+      // Preserve the original error in the development terminal.
+      console.error("[BaseCmsService.execute] Original error:", error);
 
       throw AppError.internal(
         "Unexpected service error.",
         error
       );
     }
+
   }
 }
 

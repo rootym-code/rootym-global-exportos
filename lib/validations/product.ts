@@ -82,6 +82,15 @@ export const createProductSchema = z.object({
     .optional()
     .or(z.literal("")),
 
+      // Optional GST rate for domestic storefront sales.
+  storeGstRate: z
+  .number()
+  .finite()
+  .min(0)
+  .max(100)
+  .nullable()
+  .optional(),
+
   // Shipping measurements for one packed selling unit.
   weightKg: optionalNonNegativeMeasurement,
   lengthCm: optionalNonNegativeMeasurement,

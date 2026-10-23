@@ -45,6 +45,7 @@ interface ProductFormData {
   category: string;
   origin: string;
   hsCode: string;
+  storeGstRate: string;
   weightKg: string;
   lengthCm: string;
   widthCm: string;
@@ -112,6 +113,7 @@ const emptyForm: ProductFormData = {
   category: "",
   origin: "",
   hsCode: "",
+  storeGstRate: "",
   weightKg: "",
   lengthCm: "",
   widthCm: "",
@@ -533,6 +535,10 @@ export default function WorkspaceEditProductPage() {
           category: payload.category ?? "",
           origin: payload.origin ?? "",
           hsCode: payload.hsCode ?? "",
+          storeGstRate:
+            payload.storeGstRate == null
+              ? ""
+              : String(payload.storeGstRate),
           weightKg:
           payload.weightKg == null ? "" : String(payload.weightKg),
         lengthCm:
@@ -590,6 +596,12 @@ export default function WorkspaceEditProductPage() {
           },
           body: JSON.stringify({
             ...form,
+
+            storeGstRate:
+            form.storeGstRate.trim() === ""
+              ? null
+              : Number(form.storeGstRate),
+
             weightKg:
             form.weightKg.trim() === ""
               ? null
@@ -1201,6 +1213,49 @@ export default function WorkspaceEditProductPage() {
           </div>
         </Card>
         
+      {/* Tax Configuration */}
+
+      <Card hover={false} className="p-6">
+        <h2 className="mb-2 text-xl font-semibold text-slate-900">
+          Tax Configuration
+        </h2>
+
+        <p className="mb-6 text-sm text-slate-600">
+          Configure the GST rate for domestic storefront sales.
+          Leave blank if the applicable rate has not yet been confirmed.
+        </p>
+
+        <div className="max-w-sm">
+          <label
+            htmlFor="storeGstRate"
+            className="mb-2 block text-sm font-medium text-slate-700"
+          >
+            GST Rate (%)
+          </label>
+
+          <input
+            id="storeGstRate"
+            name="storeGstRate"
+            type="number"
+            min="0"
+            max="100"
+            step="0.01"
+            value={form.storeGstRate}
+            onChange={(event) =>
+              updateField("storeGstRate", event.target.value)
+            }
+            placeholder="e.g. 5"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-green-600 focus:ring-2 focus:ring-green-100"
+          />
+
+          <p className="mt-2 text-xs text-slate-500">
+            Enter a percentage from 0 to 100. Confirm the applicable GST
+            classification and rate before using it for customer orders.
+          </p>
+        </div>
+      </Card>
+
+
         <Card hover={false} className="p-6">
           <h2 className="mb-6 text-xl font-semibold text-slate-900">
             Order Configuration

@@ -255,10 +255,13 @@ export async function PATCH(request: NextRequest) {
       await prisma.storePaymentConfiguration.findUnique({
         where: { websiteId: website.id },
         select: {
+          provider: true,
+          environment: true,
+          publicKeyId: true,
           encryptedKeySecret: true,
           encryptedWebhookSecret: true,
-          publicKeyId: true,
-          environment: true,
+          paymentsEnabled: true,
+          verifiedAt: true,
         },
       });
 
@@ -293,14 +296,32 @@ export async function PATCH(request: NextRequest) {
       });
     }
 
-// Saving store preferences is allowed, but payment activation remains locked.
+// TEST payments require complete, previously verified credentials.
+// Do not allow enabling payments while changing the configuration.
 if (body.paymentsEnabled === true) {
-  return ApiResponse.error({
-    message:
-      "Online payments cannot be enabled yet. Complete checkout safeguards first.",
-    code: "PAYMENTS_NOT_READY",
-    status: 409,
-  });
+  const credentialsReady =
+    (body.provider ?? existingPayment?.provider) === "RAZORPAY" &&
+    (body.environment ?? existingPayment?.environment) === "TEST" &&
+    Boolean(nextPublicKey) &&
+    Boolean(nextKeySecret) &&
+    Boolean(nextWebhookSecret);
+
+  const verificationStillValid =
+    existingPayment?.verifiedAt != null &&
+    body.provider === undefined &&
+    body.environment === undefined &&
+    body.publicKeyId === undefined &&
+    body.keySecret === undefined &&
+    body.webhookSecret === undefined;
+
+  if (!credentialsReady || !verificationStillValid) {
+    return ApiResponse.error({
+      message:
+        "Configure Razorpay TEST credentials, verify them, and save no payment configuration changes before enabling payments.",
+      code: "PAYMENT_VERIFICATION_REQUIRED",
+      status: 409,
+    });
+  }
 }
 
     await prisma.$transaction(async (tx) => {
@@ -376,9 +397,17 @@ if (body.paymentsEnabled === true) {
           },
           update: {
             ...paymentData,
-            // Configuration changes invalidate previous verification.
-            verifiedAt: null,
-            paymentsEnabled: false,
+            // Changing credentials invalidates verification.
+            ...(body.provider !== undefined ||
+            body.environment !== undefined ||
+            body.publicKeyId !== undefined ||
+            body.keySecret !== undefined ||
+            body.webhookSecret !== undefined
+              ? {
+                  verifiedAt: null,
+                  paymentsEnabled: false,
+                }
+              : {}),
           },
         });
       }

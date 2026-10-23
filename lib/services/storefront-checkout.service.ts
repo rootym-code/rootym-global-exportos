@@ -275,6 +275,7 @@ export async function validateCheckout(input: CreateCheckoutInput) {
     quantity: Prisma.Decimal;
     unitPrice: Prisma.Decimal;
     lineTotal: Prisma.Decimal;
+    storeGstRate: Prisma.Decimal | null;
   }> = [];
   
   let shipmentMeasurements:
@@ -385,17 +386,22 @@ export async function validateCheckout(input: CreateCheckoutInput) {
       quantity,
       unitPrice,
       lineTotal,
+      storeGstRate:
+      product.storeGstRate == null
+        ? null
+        : new Prisma.Decimal(product.storeGstRate.toString()),
     });
   }
 
-return {
-  website,
-  settings,
-  customer,
-  items: eligibleItems,
-  shipmentMeasurements,
-  subtotal: subtotal.toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP),
-};
+  return {
+    website,
+    settings,
+    customer,
+    items: eligibleItems,
+    shipmentMeasurements,
+    subtotal: subtotal.toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP),
+    taxRate: eligibleItems[0]?.storeGstRate ?? null,
+  };
 }
 
 function createCheckoutRequestHash(
@@ -606,11 +612,23 @@ if (validated.settings.defaultCurrency.trim().toUpperCase() !== "INR") {
   }
 
   const zero = new Prisma.Decimal(0);
+
   const shippingAmount = new Prisma.Decimal(
     shippingQuote.amount,
   ).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
-
-  const totalAmount = validated.subtotal.plus(shippingAmount);
+  
+  // GST applies to the product subtotal only, excluding shipping.
+  const taxAmount =
+    validated.taxRate == null
+      ? zero
+      : validated.subtotal
+          .mul(validated.taxRate)
+          .div(100)
+          .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+  
+  const totalAmount = validated.subtotal
+    .plus(shippingAmount)
+    .plus(taxAmount);
 
 const orderNumber = `RTM-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${randomUUID()
     .replace(/-/g, "")
@@ -630,7 +648,7 @@ const orderNumber = `RTM-${new Date().toISOString().slice(0, 10).replace(/-/g, "
       shippingAmount,
       shippingRuleName: "Delhivery",
       discountAmount: zero,
-      taxAmount: zero,
+      taxAmount,
       totalAmount,
       
 metadata: {

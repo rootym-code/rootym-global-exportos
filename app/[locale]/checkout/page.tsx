@@ -46,12 +46,60 @@ const CHECKOUT_ATTEMPT_STORAGE_KEY = "rootym_checkout_attempt_v1";
 type CheckoutOrderResult = {
   orderId: string;
   orderNumber: string;
-  paymentStatus: "NOT_INITIATED" | "PENDING";
+  paymentStatus: "NOT_INITIATED" | "PENDING" | "CAPTURED";
   razorpayOrderId?: string;
   publicKeyId?: string;
   amount?: number;
   currency?: string;
+  subtotal?: string;
+shippingAmount?: string;
+taxAmount?: string;
+discountAmount?: string;
+totalAmount?: string;
+guestAccessToken?: string;
 };
+
+type RazorpayCheckoutOptions = {
+  key: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description: string;
+  order_id: string;
+  prefill?: {
+    name?: string;
+    email?: string;
+    contact?: string;
+  };
+  handler: (response: {
+    razorpay_payment_id: string;
+    razorpay_order_id: string;
+    razorpay_signature: string;
+  }) => void | Promise<void>;
+  modal?: {
+    ondismiss?: () => void;
+  };
+  theme?: {
+    color?: string;
+  };
+};
+
+type RazorpayCheckoutInstance = {
+  open: () => void;
+  on: (
+    event: string,
+    callback: (response: {
+      error?: {
+        description?: string;
+        reason?: string;
+      };
+    }) => void,
+  ) => void;
+};
+
+type RazorpayConstructor = new (
+  options: RazorpayCheckoutOptions,
+) => RazorpayCheckoutInstance;
 
 const inputClassName =
   "mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-green-700 focus:ring-2 focus:ring-green-100";
@@ -159,9 +207,197 @@ export default function CheckoutPage() {
 const [orderResult, setOrderResult] =
   useState<CheckoutOrderResult | null>(null);
 
+  const [razorpayReady, setRazorpayReady] = useState(false);
+
+  
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
+
+  async function handlePayNow() {
+    if (!orderResult || orderResult.paymentStatus !== "PENDING") {
+      setNotice("Create an eligible order before starting payment.");
+      return;
+    }
+
+    if (
+      !razorpayReady ||
+      !orderResult.publicKeyId ||
+      !orderResult.razorpayOrderId ||
+      typeof orderResult.amount !== "number" ||
+      !orderResult.currency
+    ) {
+      setNotice("Razorpay is not ready. Please refresh and retry.");
+      return;
+    }
+
+    if (paymentProcessing) return;
+
+    const getRazorpay = () =>
+      (window as unknown as {
+        Razorpay?: RazorpayConstructor;
+      }).Razorpay;
+
+    const RazorpayCheckout = getRazorpay();
+
+    if (!RazorpayCheckout) {
+      setNotice("The Razorpay checkout window could not be loaded.");
+      return;
+    }
+
+    setPaymentProcessing(true);
+    setNotice("");
+
+    try {
+      const checkout = new RazorpayCheckout({
+        key: orderResult.publicKeyId,
+        amount: orderResult.amount,
+        currency: orderResult.currency,
+        name: "ROOTYM",
+        description: `Order ${orderResult.orderNumber}`,
+        order_id: orderResult.razorpayOrderId,
+        prefill: {
+          name: form.fullName.trim(),
+          email: form.email.trim(),
+          contact: form.mobile.trim(),
+        },
+        theme: { color: "#15803d" },
+
+        handler: async (response) => {
+          try {
+            const verificationResponse = await fetch(
+              "/api/storefront/checkout/verify-payment",
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  orderId: orderResult.orderId,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_signature: response.razorpay_signature,
+                }),
+              },
+            );
+
+            const verificationBody = await verificationResponse
+              .json()
+              .catch(() => null);
+
+            if (!verificationResponse.ok || verificationBody?.success !== true) {
+              setNotice(
+                verificationBody?.message ??
+                  "Payment was submitted, but confirmation is pending. Do not pay again; retry verification or contact the store.",
+              );
+              return;
+            }
+
+            if (!orderResult.guestAccessToken) {
+              setNotice(
+                "Payment was verified, but the secure order confirmation link is unavailable. Do not pay again. Please contact the store with your order number.",
+              );
+              return;
+            }
+            
+            setOrderResult((current) =>
+              current
+                ? { ...current, paymentStatus: "CAPTURED" }
+                : current,
+            );
+            
+            localStorage.removeItem(CART_STORAGE_KEY);
+            setCart([]);
+            
+            const confirmationUrl = new URL(
+              `/${locale}/order-confirmation`,
+              window.location.origin,
+            );
+            
+            confirmationUrl.searchParams.set("orderId", orderResult.orderId);
+            confirmationUrl.searchParams.set(
+              "token",
+              orderResult.guestAccessToken,
+            );
+            
+            window.location.assign(confirmationUrl.toString());
+
+          } catch {
+            setNotice(
+              "Payment was submitted, but confirmation could not be retrieved. Do not pay again; retry verification or contact the store.",
+            );
+          } finally {
+            setPaymentProcessing(false);
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setPaymentProcessing(false);
+            setNotice(
+              "Payment window closed. Your order is still unpaid unless payment is verified.",
+            );
+          },
+        },
+      });
+
+      checkout.on("payment.failed", (event) => {
+        setPaymentProcessing(false);
+        setNotice(
+          event.error?.description ??
+            "Payment failed. You can retry using Pay Now.",
+        );
+      });
+
+      checkout.open();
+    } catch {
+      setPaymentProcessing(false);
+      setNotice("Unable to open Razorpay. Please try again.");
+    }
+  }
+
   useEffect(() => {
     setCart(readCart());
   }, []);
+
+
+  useEffect(() => {
+    const scriptId = "razorpay-checkout-script";
+    const existingScript = document.getElementById(
+      scriptId,
+    ) as HTMLScriptElement | null;
+
+    const getRazorpay = () =>
+      (window as Window & {
+        Razorpay?: RazorpayConstructor;
+      }).Razorpay;
+
+    if (getRazorpay()) {
+      setRazorpayReady(true);
+      return;
+    }
+
+    const script = existingScript ?? document.createElement("script");
+
+    const handleLoad = () => {
+      setRazorpayReady(Boolean(getRazorpay()));
+    };
+
+    const handleError = () => {
+      setRazorpayReady(false);
+    };
+
+    script.addEventListener("load", handleLoad);
+    script.addEventListener("error", handleError);
+
+    if (!existingScript) {
+      script.id = scriptId;
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.async = true;
+      document.body.appendChild(script);
+    }
+
+    return () => {
+      script.removeEventListener("load", handleLoad);
+      script.removeEventListener("error", handleError);
+    };
+  }, []);
+
 
   const itemCount = useMemo(
     () => cart.reduce((total, item) => total + item.quantity, 0),
@@ -401,16 +637,25 @@ const [orderResult, setOrderResult] =
           return;
         }
   
+
         // Local order created; payment has not been initiated.
         if (data.paymentStatus === "NOT_INITIATED") {
           setOrderResult({
             orderId: data.orderId,
             orderNumber: data.orderNumber,
             paymentStatus: "NOT_INITIATED",
+            currency: data.currency,
+            subtotal: data.subtotal,
+            shippingAmount: data.shippingAmount,
+            taxAmount: data.taxAmount,
+            discountAmount: data.discountAmount,
+            totalAmount: data.totalAmount,
+            guestAccessToken: data.guestAccessToken,
           });
           setNotice("");
           return;
         }
+
   
         // Preserve the existing Razorpay TEST response validation.
         if (
@@ -433,6 +678,7 @@ const [orderResult, setOrderResult] =
           publicKeyId: data.publicKeyId,
           amount: data.amount,
           currency: data.currency,
+          guestAccessToken: data.guestAccessToken,
         });
   
         setNotice("");
@@ -712,43 +958,125 @@ const [orderResult, setOrderResult] =
       Order created successfully
     </div>
 
+
     <p className="mt-2">
-      Order number: <strong>{orderResult.orderNumber}</strong>
+  Order number: <strong>{orderResult.orderNumber}</strong>
+</p>
+
+{orderResult.totalAmount !== undefined && (
+  <div className="mt-4 space-y-2 border-t border-green-200 pt-3">
+    <div className="flex justify-between gap-4">
+      <span>Subtotal</span>
+      <span>
+        {formatMoney(
+          Number(orderResult.subtotal ?? 0),
+          orderResult.currency ?? "INR"
+        )}
+      </span>
+    </div>
+
+    <div className="flex justify-between gap-4">
+      <span>Delhivery Shipping</span>
+      <span>
+        {formatMoney(
+          Number(orderResult.shippingAmount ?? 0),
+          orderResult.currency ?? "INR"
+        )}
+      </span>
+    </div>
+
+    <div className="flex justify-between gap-4">
+      <span>Tax</span>
+      <span>
+        {formatMoney(
+          Number(orderResult.taxAmount ?? 0),
+          orderResult.currency ?? "INR"
+        )}
+      </span>
+    </div>
+
+    {Number(orderResult.discountAmount ?? 0) > 0 && (
+      <div className="flex justify-between gap-4">
+        <span>Discount</span>
+        <span>
+          -
+          {formatMoney(
+            Number(orderResult.discountAmount),
+            orderResult.currency ?? "INR"
+          )}
+        </span>
+      </div>
+    )}
+
+    <div className="flex justify-between gap-4 border-t border-green-200 pt-2 font-bold">
+      <span>Order Total</span>
+      <span>
+        {formatMoney(
+          Number(orderResult.totalAmount),
+          orderResult.currency ?? "INR"
+        )}
+      </span>
+    </div>
+  </div>
+)}
+
+
+
+{orderResult.paymentStatus === "CAPTURED" ? (
+  <div className="mt-4 rounded-lg border border-green-300 bg-white p-4">
+    <p className="flex items-center gap-2 font-semibold text-green-800">
+      <CheckCircle2 size={20} />
+      Payment confirmed successfully
+    </p>
+    <p className="mt-2 text-sm text-green-900">
+      Your payment has been verified by the server. Your order number is{" "}
+      <strong>{orderResult.orderNumber}</strong>.
+    </p>
+  </div>
+) : orderResult.paymentStatus === "NOT_INITIATED" ? (
+  <p className="mt-3 text-sm text-amber-900">
+    Your order has been recorded, but online payment has not been initiated.
+    No payment has been made. Please contact the store for the next steps.
+  </p>
+) : (
+  <>
+    {typeof orderResult.amount === "number" && orderResult.currency && (
+      <p className="mt-1">
+        Order amount:{" "}
+        <strong>
+          {formatMoney(
+            orderResult.amount / 100,
+            orderResult.currency,
+          )}
+        </strong>
+      </p>
+    )}
+
+    {orderResult.razorpayOrderId && (
+      <p className="mt-1 break-all text-xs">
+        Razorpay TEST order ID: {orderResult.razorpayOrderId}
+      </p>
+    )}
+
+    <p className="mt-3 text-sm text-gray-700">
+      Payment is not confirmed until server verification succeeds.
     </p>
 
-    {orderResult.paymentStatus === "NOT_INITIATED" ? (
-      <p className="mt-3">
-        Your order has been recorded, but online payment has not been
-        initiated. No payment has been made. Please contact the store
-        for the next steps.
-      </p>
-    ) : (
-      <>
-        {typeof orderResult.amount === "number" &&
-          orderResult.currency && (
-            <p className="mt-1">
-              Order amount:{" "}
-              <strong>
-                {formatMoney(
-                  orderResult.amount / 100,
-                  orderResult.currency,
-                )}
-              </strong>
-            </p>
-          )}
+    <button
+      type="button"
+      onClick={handlePayNow}
+      disabled={paymentProcessing || !razorpayReady}
+      className="mt-4 inline-flex w-full items-center justify-center rounded-lg bg-green-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+    >
+      {paymentProcessing
+        ? "Processing Payment..."
+        : !razorpayReady
+          ? "Loading Secure Payment..."
+          : "Pay Now"}
+    </button>
+  </>
+)}
 
-        {orderResult.razorpayOrderId && (
-          <p className="mt-1 break-all">
-            Razorpay TEST order ID: {orderResult.razorpayOrderId}
-          </p>
-        )}
-
-        <p className="mt-3">
-          Payment has not yet been confirmed. Do not consider this
-          order paid until payment verification succeeds.
-        </p>
-      </>
-    )}
   </div>
 )}
      

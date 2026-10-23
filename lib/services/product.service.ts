@@ -430,6 +430,11 @@ export async function createProduct(
         hsCode:
         data.hsCode || null,
 
+        storeGstRate:
+        data.storeGstRate != null
+          ? new Prisma.Decimal(data.storeGstRate)
+          : null,
+
       // Shipping measurements for one packed selling unit.
       weightKg:
         data.weightKg != null
@@ -607,6 +612,13 @@ export async function updateProduct(
       ...(data.hsCode !== undefined && {
         hsCode:
           data.hsCode || null,
+      }),
+
+      ...(data.storeGstRate !== undefined && {
+        storeGstRate:
+          data.storeGstRate === null
+            ? null
+            : new Prisma.Decimal(data.storeGstRate),
       }),
 
       ...(data.weightKg !== undefined && {
