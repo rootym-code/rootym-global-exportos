@@ -281,11 +281,15 @@ export default function WorkspaceOrdersPage() {
           }),
         },
       );
-
       const data = await response.json() as {
         success?: boolean;
         message?: string;
         error?: string;
+        emailNotification?: {
+          status?: "sent" | "failed" | "skipped";
+          message?: string;
+          recipient?: string;
+        };
         shipment?: {
           courierName: string;
           trackingNumber: string;
@@ -293,7 +297,6 @@ export default function WorkspaceOrdersPage() {
           shippedAt: string;
         };
       };
-
       if (!response.ok || !data.success || !data.shipment) {
         throw new Error(
           response.status === 401
@@ -303,7 +306,6 @@ export default function WorkspaceOrdersPage() {
               : data.message || data.error || "Unable to save shipment details.",
         );
       }
-
       setSelectedOrder((current) => {
         if (!current || current.id !== selectedOrder.id) return current;
 
@@ -315,14 +317,35 @@ export default function WorkspaceOrdersPage() {
           shippedAt: data.shipment!.shippedAt,
         };
       });
-
       setCourierName(data.shipment.courierName);
       setTrackingNumber(data.shipment.trackingNumber);
       setTrackingUrl(data.shipment.trackingUrl);
-      setShipmentFeedback({
-        type: "success",
-        message: "Shipment details saved successfully.",
-      });
+
+      const notification = data.emailNotification;
+
+      if (notification?.status === "sent") {
+        setShipmentFeedback({
+          type: "success",
+          message: "Shipment details saved and customer email sent successfully.",
+        });
+      } else if (notification?.status === "failed") {
+        setShipmentFeedback({
+          type: "error",
+          message: "Shipment details were saved, but the customer email failed. " +
+            (notification.message || "Check the email configuration before retrying."),
+        });
+      } else if (notification?.status === "skipped") {
+        setShipmentFeedback({
+          type: "success",
+          message: "Shipment details saved. No changes detected, so no duplicate email was sent.",
+        });
+      } else {
+        setShipmentFeedback({
+          type: "success",
+          message: data.message || "Shipment details saved successfully.",
+        });
+      }
+
     } catch (err) {
       setShipmentFeedback({
         type: "error",

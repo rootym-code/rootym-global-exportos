@@ -2146,11 +2146,15 @@ model StoreOrder {
   customerEmail String
   customerPhone String?
 
-    // Manual shipment tracking information
-  courierName   String?
-  trackingNumber String?
-  trackingUrl    String?
-  shippedAt      DateTime?
+  // Manual shipment tracking information
+  courierName          String?
+  trackingNumber       String?
+  trackingUrl          String?
+  shippedAt            DateTime?
+
+  // Shipment email notification tracking
+  shipmentEmailSentAt  DateTime?
+  shipmentEmailError   String?
 
   shippingAddress1   String
   shippingAddress2   String?
