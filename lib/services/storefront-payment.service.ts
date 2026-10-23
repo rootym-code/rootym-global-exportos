@@ -32,7 +32,7 @@ function payableOrderError() {
 
 function creationInProgressError() {
   return new StorefrontPaymentError(
-    "Payment order creation is already in progress. Please retry shortly.",
+    "Razorpay order creation is still marked as in progress. Wait briefly and retry the request. If the issue persists, reconcile the existing Razorpay order before attempting payment again.",
     "RAZORPAY_ORDER_CREATION_IN_PROGRESS",
     409,
   );
@@ -120,6 +120,7 @@ export async function createRazorpayTestOrder({
       totalAmount: true,
       providerOrderId: true,
       providerOrderCreationStatus: true,
+      providerOrderCreationStartedAt: true,
       paymentStatus: true,
       status: true,
     },
@@ -158,9 +159,60 @@ export async function createRazorpayTestOrder({
     throw reconciliationRequiredError();
   }
 
+
   if (order.providerOrderCreationStatus === "IN_PROGRESS") {
+    const staleBefore = new Date(Date.now() - 5 * 60 * 1000);
+  
+
+    const recovered = await prisma.storeOrder.updateMany({
+      where: {
+        id: order.id,
+        websiteId,
+        status: "PENDING_PAYMENT",
+        paymentStatus: "CREATED",
+        providerOrderId: null,
+        providerOrderCreationStatus: "IN_PROGRESS",
+        OR: [
+          { providerOrderCreationStartedAt: null },
+          { providerOrderCreationStartedAt: { lt: staleBefore } },
+        ],
+      },
+      data: {
+        providerOrderCreationStatus: "UNKNOWN",
+      },
+    });
+
+  
+    if (recovered.count === 1) {
+      throw reconciliationRequiredError();
+    }
+  
+    // Another request may have changed the state while we were recovering.
+    const latest = await prisma.storeOrder.findFirst({
+      where: {
+        id: order.id,
+        websiteId,
+      },
+      select: {
+        providerOrderId: true,
+        providerOrderCreationStatus: true,
+      },
+    });
+  
+    if (
+      latest?.providerOrderCreationStatus === "UNKNOWN" ||
+      latest?.providerOrderCreationStatus === "CREATED"
+    ) {
+      throw reconciliationRequiredError();
+    }
+  
+    if (latest?.providerOrderId) {
+      throw reconciliationRequiredError();
+    }
+  
     throw creationInProgressError();
   }
+  
 
   if (order.providerOrderCreationStatus === "CREATED") {
     throw reconciliationRequiredError();
@@ -292,8 +344,12 @@ export async function createRazorpayTestOrder({
       where: {
         id: order.id,
         websiteId,
+        status: "PENDING_PAYMENT",
+        paymentStatus: "CREATED",
         providerOrderId: null,
-        providerOrderCreationStatus: "IN_PROGRESS",
+        providerOrderCreationStatus: {
+          in: ["IN_PROGRESS", "UNKNOWN"],
+        },
       },
       data: {
         providerOrderId: gatewayOrder.id,
@@ -303,9 +359,31 @@ export async function createRazorpayTestOrder({
     });
 
     if (saved.count !== 1) {
-      throw new Error(
-        "Gateway order was created but could not be saved to the expected ROOTYM order.",
-      );
+      // Reconciliation may have linked this same gateway order concurrently.
+      // Treat that outcome as success only if the local order is still payable
+      // and the exact gateway order ID has been saved.
+      const latest = await prisma.storeOrder.findFirst({
+        where: {
+          id: order.id,
+          websiteId,
+        },
+        select: {
+          providerOrderId: true,
+          status: true,
+          paymentStatus: true,
+        },
+      });
+
+      const alreadyLinkedToSameOrder =
+        latest?.providerOrderId === gatewayOrder.id &&
+        latest.status === "PENDING_PAYMENT" &&
+        latest.paymentStatus === "CREATED";
+
+      if (!alreadyLinkedToSameOrder) {
+        throw new Error(
+          "Gateway order was created but could not be saved to the expected ROOTYM order.",
+        );
+      }
     }
   } catch (error) {
     // Razorpay may have an order even though ROOTYM could not persist its ID.

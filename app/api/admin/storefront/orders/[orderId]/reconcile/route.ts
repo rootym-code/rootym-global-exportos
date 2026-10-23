@@ -54,6 +54,7 @@ export async function POST(
         provider: true,
         providerOrderId: true,
         providerOrderCreationStatus: true,
+        providerOrderCreationStartedAt: true,
         paymentStatus: true,
         status: true,
       },
@@ -185,22 +186,34 @@ export async function POST(
       );
     }
 
+
     if (receiptOrders.length === 0) {
-      // Deliberately do not reset the state to NOT_STARTED.
+      // A missing search result does not prove that Razorpay
+      // failed to create the order. Keep automatic creation blocked.
       return NextResponse.json(
         {
           success: false,
           code: "GATEWAY_ORDER_NOT_FOUND",
           result: "UNRESOLVED",
           message:
-            "No matching Razorpay order was found. The order remains blocked from automatic retry.",
-          orderNumber: order.orderNumber,
-          providerOrderCreationStatus:
-            order.providerOrderCreationStatus,
+            "No matching Razorpay order was found. The creation outcome remains uncertain, and no local order state was reset.",
+            orderNumber: order.orderNumber,
+            providerOrderCreationStatus:
+              order.providerOrderCreationStatus,
+            providerOrderCreationStartedAt:
+              order.providerOrderCreationStartedAt,
+            recovery: {
+            automaticOrderCreationAllowed: false,
+            paymentRetryAllowed: false,
+            reconciliationRetryAllowed: true,
+            recommendedAction:
+              "Wait briefly, then run reconciliation again. If the order remains unresolved, inspect Razorpay TEST-mode orders using the receipt and ROOTYM order references before taking further action.",
+          },
         },
         { status: 409 },
       );
     }
+    
 
     const gatewayOrder = receiptOrders[0];
 

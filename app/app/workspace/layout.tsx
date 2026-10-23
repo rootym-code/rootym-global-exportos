@@ -31,7 +31,8 @@ import {
   Sparkles,
   Users,
   X,
-  ShoppingBag
+  ShoppingBag,
+  ReceiptText,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { ComponentType } from "react";
@@ -65,6 +66,13 @@ const navGroups: NavGroup[] = [
         icon: Search,
         href: "/app/workspace/inquiries",
       },
+
+      {
+        label: "Orders",
+        icon: ReceiptText,
+        href: "/app/workspace/orders",
+      },
+
       {
         label: "FollowUps",
         icon: Link2,

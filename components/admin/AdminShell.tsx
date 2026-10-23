@@ -136,6 +136,14 @@ const navigationGroups: NavigationGroup[] = [
         icon: Users,
       },
 
+      
+{
+  title: "Orders",
+  href: "/admin/storefront/orders",
+  icon: ReceiptText,
+  mobileVisible: true,
+},
+
 
       {
         title: "FollowUps",
