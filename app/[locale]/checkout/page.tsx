@@ -670,6 +670,7 @@ const [orderResult, setOrderResult] =
           return;
         }
   
+
         setOrderResult({
           orderId: data.orderId,
           orderNumber: data.orderNumber,
@@ -678,8 +679,14 @@ const [orderResult, setOrderResult] =
           publicKeyId: data.publicKeyId,
           amount: data.amount,
           currency: data.currency,
+          subtotal: data.subtotal,
+          shippingAmount: data.shippingAmount,
+          taxAmount: data.taxAmount,
+          discountAmount: data.discountAmount,
+          totalAmount: data.totalAmount,
           guestAccessToken: data.guestAccessToken,
         });
+
   
         setNotice("");
   

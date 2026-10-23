@@ -139,6 +139,16 @@ export async function createRazorpayTestOrder({
     order.paymentStatus !== "CREATED" ||
     order.totalAmount.lte(0)
   ) {
+    console.error("[Storefront payment eligibility check failed]", {
+      websiteId,
+      storeOrderId,
+      status: order.status,
+      paymentStatus: order.paymentStatus,
+      totalAmount: order.totalAmount.toString(),
+      providerOrderCreationStatus: order.providerOrderCreationStatus,
+      hasProviderOrderId: Boolean(order.providerOrderId),
+    });
+  
     throw payableOrderError();
   }
 

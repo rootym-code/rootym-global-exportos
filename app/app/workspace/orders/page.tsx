@@ -10,6 +10,7 @@ import {
   Search,
   ShoppingBag,
   UserRound,
+  Truck,
   X,
 } from "lucide-react";
 
@@ -44,6 +45,10 @@ type WorkspaceOrderDetail = WorkspaceOrder & {
   shippingAmount: string | number;
   discountAmount: string | number;
   taxAmount: string | number;
+  courierName: string | null;
+  trackingNumber: string | null;
+  trackingUrl: string | null;
+  shippedAt: string | null;
   shippingRuleName: string | null;
   taxType: string;
   taxableAmount: string | number;
@@ -162,9 +167,20 @@ export default function WorkspaceOrdersPage() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
   const [selectedOrder, setSelectedOrder] = useState<WorkspaceOrderDetail | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsError, setDetailsError] = useState("");
+
+  const [courierName, setCourierName] = useState("");
+  const [trackingNumber, setTrackingNumber] = useState("");
+  const [trackingUrl, setTrackingUrl] = useState("");
+  const [savingShipment, setSavingShipment] = useState(false);
+  const [shipmentFeedback, setShipmentFeedback] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
+
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -231,10 +247,91 @@ export default function WorkspaceOrdersPage() {
         );
       }
       setSelectedOrder(data.order);
+      setCourierName(data.order.courierName ?? "");
+      setTrackingNumber(data.order.trackingNumber ?? "");
+      setTrackingUrl(data.order.trackingUrl ?? "");
+      setShipmentFeedback(null);
     } catch (err) {
       setDetailsError(err instanceof Error ? err.message : "Unable to load order details.");
     } finally {
       setDetailsLoading(false);
+    }
+  }
+  async function handleSaveShipment(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!selectedOrder || savingShipment) return;
+
+    setSavingShipment(true);
+    setShipmentFeedback(null);
+
+    try {
+      const response = await fetch(
+        `/api/workspace/orders/${encodeURIComponent(selectedOrder.id)}`,
+        {
+          method: "PATCH",
+          credentials: "same-origin",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            courierName: courierName.trim(),
+            trackingNumber: trackingNumber.trim(),
+            trackingUrl: trackingUrl.trim(),
+          }),
+        },
+      );
+
+      const data = await response.json() as {
+        success?: boolean;
+        message?: string;
+        error?: string;
+        shipment?: {
+          courierName: string;
+          trackingNumber: string;
+          trackingUrl: string;
+          shippedAt: string;
+        };
+      };
+
+      if (!response.ok || !data.success || !data.shipment) {
+        throw new Error(
+          response.status === 401
+            ? "Your session has expired. Please sign in again."
+            : response.status === 403
+              ? "You do not have permission to manage shipment details."
+              : data.message || data.error || "Unable to save shipment details.",
+        );
+      }
+
+      setSelectedOrder((current) => {
+        if (!current || current.id !== selectedOrder.id) return current;
+
+        return {
+          ...current,
+          courierName: data.shipment!.courierName,
+          trackingNumber: data.shipment!.trackingNumber,
+          trackingUrl: data.shipment!.trackingUrl,
+          shippedAt: data.shipment!.shippedAt,
+        };
+      });
+
+      setCourierName(data.shipment.courierName);
+      setTrackingNumber(data.shipment.trackingNumber);
+      setTrackingUrl(data.shipment.trackingUrl);
+      setShipmentFeedback({
+        type: "success",
+        message: "Shipment details saved successfully.",
+      });
+    } catch (err) {
+      setShipmentFeedback({
+        type: "error",
+        message: err instanceof Error
+          ? err.message
+          : "Unable to save shipment details.",
+      });
+    } finally {
+      setSavingShipment(false);
     }
   }
 
@@ -242,6 +339,7 @@ export default function WorkspaceOrdersPage() {
     setSelectedOrder(null);
     setDetailsError("");
     setDetailsLoading(false);
+    setShipmentFeedback(null);
   }
 
   function clearFilters() {
@@ -443,16 +541,151 @@ export default function WorkspaceOrdersPage() {
                   </tr>)}</tbody>
                 </table></div>
               </section>
+
+              <section className="rounded-xl border border-slate-200 p-4 sm:p-5">
+                <div className="mb-4 flex items-center gap-2">
+                  <Truck className="h-5 w-5 text-emerald-700" />
+                  <div>
+                    <h3 className="font-bold text-slate-900">
+                      Shipment management
+                    </h3>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Enter the courier and tracking details for this order.
+                    </p>
+                  </div>
+                </div>
+
+                {selectedOrder.shippedAt && (
+                  <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                    <p className="text-sm font-semibold text-emerald-900">
+                      Shipment details saved
+                    </p>
+                    <p className="mt-1 text-sm text-emerald-800">
+                      Saved on: {formatDate(selectedOrder.shippedAt)}
+                    </p>
+
+                    {selectedOrder.trackingUrl && (
+                      <a
+                        href={selectedOrder.trackingUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-2 inline-flex break-all text-sm font-semibold text-emerald-800 underline underline-offset-2 hover:text-emerald-950"
+                      >
+                        Open courier tracking page
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                <form onSubmit={handleSaveShipment} className="space-y-4">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div>
+                      <label
+                        htmlFor="shipment-courier-name"
+                        className="mb-1.5 block text-sm font-semibold text-slate-700"
+                      >
+                        Courier name
+                      </label>
+                      <input
+                        id="shipment-courier-name"
+                        type="text"
+                        value={courierName}
+                        onChange={(event) => setCourierName(event.target.value)}
+                        placeholder="e.g. Blue Dart, Delhivery"
+                        maxLength={120}
+                        required
+                        disabled={savingShipment}
+                        className="min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 disabled:bg-slate-100"
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="shipment-tracking-number"
+                        className="mb-1.5 block text-sm font-semibold text-slate-700"
+                      >
+                        Tracking number
+                      </label>
+                      <input
+                        id="shipment-tracking-number"
+                        type="text"
+                        value={trackingNumber}
+                        onChange={(event) => setTrackingNumber(event.target.value)}
+                        placeholder="Enter courier tracking number"
+                        maxLength={200}
+                        required
+                        disabled={savingShipment}
+                        className="min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 disabled:bg-slate-100"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="shipment-tracking-url"
+                      className="mb-1.5 block text-sm font-semibold text-slate-700"
+                    >
+                      Tracking URL
+                    </label>
+                    <input
+                      id="shipment-tracking-url"
+                      type="url"
+                      value={trackingUrl}
+                      onChange={(event) => setTrackingUrl(event.target.value)}
+                      placeholder="https://courier.example/track"
+                      maxLength={2048}
+                      required
+                      disabled={savingShipment}
+                      className="min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 disabled:bg-slate-100"
+                    />
+                    <p className="mt-1.5 text-xs text-slate-500">
+                      Enter the complete tracking URL, including https://
+                    </p>
+                  </div>
+
+                  {shipmentFeedback && (
+                    <div
+                      role={shipmentFeedback.type === "error" ? "alert" : "status"}
+                      className={
+                        shipmentFeedback.type === "success"
+                          ? "rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800"
+                          : "rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+                      }
+                    >
+                      {shipmentFeedback.message}
+                    </div>
+                  )}
+
+                  <div className="flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-xs leading-5 text-slate-500">
+                      Saving shipment details does not change the order or payment status.
+                    </p>
+                    <button
+                      type="submit"
+                      disabled={savingShipment}
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {savingShipment && (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      )}
+                      {savingShipment ? "Saving shipment…" : "Save shipment details"}
+                    </button>
+                  </div>
+                </form>
+              </section>
+
               <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                 <section className="rounded-xl border border-slate-200 p-4"><h3 className="mb-2 font-bold">Order amount breakdown</h3>
+                  
                   <DetailLine label="Subtotal" value={formatMoney(selectedOrder.subtotal, selectedOrder.currency)} />
                   <DetailLine label="Shipping" value={formatMoney(selectedOrder.shippingAmount, selectedOrder.currency)} />
                   <DetailLine label="Discount" value={formatMoney(selectedOrder.discountAmount, selectedOrder.currency)} />
-                  <DetailLine label="Taxable amount" value={formatMoney(selectedOrder.taxableAmount, selectedOrder.currency)} />
-                  <DetailLine label="Tax type" value={selectedOrder.taxType} />
-                  <DetailLine label={`CGST (${selectedOrder.cgstRate}%)`} value={formatMoney(selectedOrder.cgstAmount, selectedOrder.currency)} />
-                  <DetailLine label={`SGST (${selectedOrder.sgstRate}%)`} value={formatMoney(selectedOrder.sgstAmount, selectedOrder.currency)} />
-                  <DetailLine label={`IGST (${selectedOrder.igstRate}%)`} value={formatMoney(selectedOrder.igstAmount, selectedOrder.currency)} />
+                  
+                  <DetailLine
+                      label="Tax charged"
+                      value={formatMoney(selectedOrder.taxAmount, selectedOrder.currency)}
+                    />
+                  
                   <div className="mt-2 border-t border-slate-200 pt-3"><DetailLine label="Total amount" value={formatMoney(selectedOrder.totalAmount, selectedOrder.currency)} /></div>
                 </section>
                 <section className="rounded-xl border border-slate-200 p-4"><div className="mb-2 flex items-center gap-2"><CreditCard className="h-5 w-5 text-slate-500" /><h3 className="font-bold">Payment information</h3></div>

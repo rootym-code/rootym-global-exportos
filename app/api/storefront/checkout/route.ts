@@ -115,8 +115,14 @@ export async function POST(request: NextRequest) {
         amount: amountInPaise,
         currency: payment.currency,
         guestAccessToken,
+        subtotal: order.subtotal.toString(),
+        shippingAmount: order.shippingAmount.toString(),
+        taxAmount: order.taxAmount.toString(),
+        discountAmount: order.discountAmount.toString(),
+        totalAmount: order.totalAmount.toString(),
       },
     });
+
   } catch (error) {
     if (error instanceof StorefrontPaymentError) {
       return ApiResponse.error({
