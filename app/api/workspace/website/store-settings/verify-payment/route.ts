@@ -14,7 +14,8 @@ export async function POST(_request: NextRequest) {
 
     if (membership.role !== "OWNER" && membership.role !== "ADMIN") {
       return ApiResponse.error({
-        message: "Only workspace owners and admins can verify payment credentials.",
+        message:
+          "Only workspace owners and admins can verify payment credentials.",
         code: "PAYMENT_VERIFICATION_FORBIDDEN",
         status: 403,
       });
@@ -50,14 +51,18 @@ export async function POST(_request: NextRequest) {
     if (
       !payment ||
       payment.provider !== "RAZORPAY" ||
-      payment.environment !== "TEST"
+      (payment.environment !== "TEST" &&
+        payment.environment !== "LIVE")
     ) {
       return ApiResponse.error({
-        message: "Configure Razorpay in TEST mode before verifying credentials.",
-        code: "RAZORPAY_TEST_CONFIGURATION_REQUIRED",
+        message:
+          "Configure Razorpay and select TEST or LIVE mode before verifying credentials.",
+        code: "RAZORPAY_CONFIGURATION_REQUIRED",
         status: 409,
       });
     }
+
+    const environment = payment.environment;
 
     if (
       !payment.publicKeyId ||
@@ -65,7 +70,8 @@ export async function POST(_request: NextRequest) {
       !payment.encryptedWebhookSecret
     ) {
       return ApiResponse.error({
-        message: "Configure the Razorpay public key, key secret, and webhook secret first.",
+        message:
+          "Configure the Razorpay public key, key secret, and webhook secret first.",
         code: "PAYMENT_CONFIGURATION_INCOMPLETE",
         status: 400,
       });
@@ -77,7 +83,8 @@ export async function POST(_request: NextRequest) {
       keySecret = decryptSecret(payment.encryptedKeySecret);
     } catch {
       return ApiResponse.error({
-        message: "The saved Razorpay key secret could not be decrypted. Please reconfigure it.",
+        message:
+          "The saved Razorpay key secret could not be decrypted. Please reconfigure it.",
         code: "PAYMENT_SECRET_DECRYPTION_FAILED",
         status: 500,
       });
@@ -89,26 +96,27 @@ export async function POST(_request: NextRequest) {
         key_secret: keySecret,
       });
 
-      // A successful authenticated API request verifies the API credentials.
+      // Verify the selected environment's API credentials.
       // This does not independently verify the webhook secret.
       await razorpay.orders.all({ count: 1 });
     } catch {
       return ApiResponse.error({
-        message: "Razorpay rejected the test credentials or could not be reached. Check the test key ID and key secret, then try again.",
-        code: "RAZORPAY_TEST_CREDENTIALS_INVALID",
+        message:
+          `Razorpay rejected the ${environment.toLowerCase()} credentials or could not be reached. Check the selected environment's key ID and key secret, then try again.`,
+        code: "RAZORPAY_CREDENTIALS_INVALID",
         status: 422,
       });
     }
 
-    // Only mark the credentials as verified if the configuration has not
-    // changed while the Razorpay verification request was in progress.
+    // Only mark credentials verified if the exact configuration
+    // used for verification has not changed during the API request.
     const verifiedAt = new Date();
 
     const result = await prisma.storePaymentConfiguration.updateMany({
       where: {
         websiteId: website.id,
         provider: "RAZORPAY",
-        environment: "TEST",
+        environment,
         publicKeyId: payment.publicKeyId,
         encryptedKeySecret: payment.encryptedKeySecret,
         encryptedWebhookSecret: payment.encryptedWebhookSecret,
@@ -121,17 +129,19 @@ export async function POST(_request: NextRequest) {
 
     if (result.count !== 1) {
       return ApiResponse.error({
-        message: "Payment configuration changed during verification. Please verify the current configuration again.",
+        message:
+          "Payment configuration changed during verification. Please verify the current configuration again.",
         code: "PAYMENT_CONFIGURATION_CHANGED",
         status: 409,
       });
     }
 
     return ApiResponse.success({
-      message: "Razorpay test API credentials verified successfully. Online payments remain disabled.",
+      message:
+        `Razorpay ${environment.toLowerCase()} API credentials verified successfully. Online payments remain disabled.`,
       data: {
         verified: true,
-        environment: "TEST",
+        environment,
         paymentsEnabled: false,
         verifiedAt: verifiedAt.toISOString(),
         webhookSecretConfigured: true,
