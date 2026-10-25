@@ -83,40 +83,33 @@ export async function createRazorpayOrder({
   websiteId,
   storeOrderId,
 }: CreateGatewayOrderInput) {
+
   const payment = await prisma.storePaymentConfiguration.findUnique({
     where: { websiteId },
     select: {
       provider: true,
       environment: true,
+
+      // Existing TEST credentials
       publicKeyId: true,
       encryptedKeySecret: true,
       paymentsEnabled: true,
       verifiedAt: true,
+
+      // Separate LIVE credentials
+      livePublicKeyId: true,
+      liveEncryptedKeySecret: true,
+      livePaymentsEnabled: true,
+      liveVerifiedAt: true,
     },
   });
 
-  if (
-    !payment ||
-    payment.provider !== "RAZORPAY" ||
-    !payment.publicKeyId ||
-    !payment.encryptedKeySecret ||
-    !payment.verifiedAt ||
-    !payment.paymentsEnabled
-  ) {
-    throw new StorefrontPaymentError(
-      "Verified and enabled Razorpay credentials are required.",
-      "RAZORPAY_NOT_READY",
-      409,
-    );
-  }
 
-  if (
-    payment.environment !== StorePaymentEnvironment.TEST &&
-    payment.environment !== StorePaymentEnvironment.LIVE
-  ) {
+
+  if (!payment || payment.provider !== "RAZORPAY") {
     throw new StorefrontPaymentError(
-      "The configured Razorpay environment is invalid.",
-      "RAZORPAY_ENVIRONMENT_INVALID",
+      "Razorpay payment configuration is required.",
+      "RAZORPAY_NOT_READY",
       409,
     );
   }
@@ -148,12 +141,45 @@ export async function createRazorpayOrder({
     );
   }
 
-    // Never use credentials from one environment for an order
-  // created under the other environment.
-  if (order.providerEnvironment !== payment.environment) {
+  if (
+    order.providerEnvironment !== StorePaymentEnvironment.TEST &&
+    order.providerEnvironment !== StorePaymentEnvironment.LIVE
+  ) {
     throw new StorefrontPaymentError(
-      "This order belongs to a different Razorpay environment. It cannot be paid using the currently configured credentials.",
-      "RAZORPAY_ENVIRONMENT_MISMATCH",
+      "The order's Razorpay environment is invalid.",
+      "RAZORPAY_ENVIRONMENT_INVALID",
+      409,
+    );
+  }
+
+  const isLiveOrder =
+    order.providerEnvironment === StorePaymentEnvironment.LIVE;
+
+  const publicKeyId = isLiveOrder
+    ? payment.livePublicKeyId
+    : payment.publicKeyId;
+
+  const encryptedKeySecret = isLiveOrder
+    ? payment.liveEncryptedKeySecret
+    : payment.encryptedKeySecret;
+
+  const paymentsEnabled = isLiveOrder
+    ? payment.livePaymentsEnabled
+    : payment.paymentsEnabled;
+
+  const verifiedAt = isLiveOrder
+    ? payment.liveVerifiedAt
+    : payment.verifiedAt;
+
+  if (
+    !publicKeyId ||
+    !encryptedKeySecret ||
+    !verifiedAt ||
+    !paymentsEnabled
+  ) {
+    throw new StorefrontPaymentError(
+      "Verified and enabled Razorpay credentials for this order's environment are required.",
+      "RAZORPAY_NOT_READY",
       409,
     );
   }
@@ -178,15 +204,17 @@ export async function createRazorpayOrder({
 
   // Reuse an existing gateway order only for a still-payable ROOTYM order.
   if (order.providerOrderId) {
+
     return {
       orderId: order.id,
       orderNumber: order.orderNumber,
       razorpayOrderId: order.providerOrderId,
       currency: order.currency,
       amount: order.totalAmount,
-      publicKeyId: payment.publicKeyId,
-      environment: payment.environment,
+      publicKeyId,
+      environment: order.providerEnvironment,
     };
+
   }
 
   // An uncertain or abandoned attempt must not create another gateway order.
@@ -268,12 +296,14 @@ export async function createRazorpayOrder({
 
   // Complete local preparation before claiming creation, so a local
   // decryption/configuration failure does not leave a claimed attempt.
-  const keySecret = decryptSecret(payment.encryptedKeySecret);
+
+  const keySecret = decryptSecret(encryptedKeySecret);
 
   const razorpay = new Razorpay({
-    key_id: payment.publicKeyId,
+    key_id: publicKeyId,
     key_secret: keySecret,
   });
+
 
   // Atomic compare-and-set: only one concurrent request can claim creation.
   const claim = await prisma.storeOrder.updateMany({
@@ -318,15 +348,17 @@ export async function createRazorpayOrder({
     }
 
     if (latest.providerOrderId) {
+
       return {
         orderId: order.id,
         orderNumber: order.orderNumber,
         razorpayOrderId: latest.providerOrderId,
         currency: order.currency,
         amount: order.totalAmount,
-        publicKeyId: payment.publicKeyId,
-        environment: payment.environment,
+        publicKeyId,
+        environment: order.providerEnvironment,
       };
+
     }
 
     if (latest.providerOrderCreationStatus === "UNKNOWN") {
@@ -445,14 +477,14 @@ export async function createRazorpayOrder({
       503,
     );
   }
-
   return {
     orderId: order.id,
     orderNumber: order.orderNumber,
     razorpayOrderId: gatewayOrder.id,
     currency: order.currency,
     amount: order.totalAmount,
-    publicKeyId: payment.publicKeyId,
-    environment: payment.environment,
+    publicKeyId,
+    environment: order.providerEnvironment,
   };
+
 }

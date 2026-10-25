@@ -56,6 +56,8 @@ export async function POST(request: NextRequest) {
             environment: true,
             paymentsEnabled: true,
             verifiedAt: true,
+            livePaymentsEnabled: true,
+            liveVerifiedAt: true,
           },
         },
       },
@@ -94,11 +96,18 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Do not initiate payment unless activation and verification are present.
-    if (
-      !website.storePayment?.paymentsEnabled ||
-      !website.storePayment?.verifiedAt
-    ) {
+    // Do not initiate payment unless the selected environment is enabled and verified.
+    const paymentsEnabled =
+      configuredEnvironment === StorePaymentEnvironment.LIVE
+        ? website.storePayment?.livePaymentsEnabled
+        : website.storePayment?.paymentsEnabled;
+
+    const verifiedAt =
+      configuredEnvironment === StorePaymentEnvironment.LIVE
+        ? website.storePayment?.liveVerifiedAt
+        : website.storePayment?.verifiedAt;
+
+    if (!paymentsEnabled || !verifiedAt) {
       return ApiResponse.created({
         message:
           "Order created successfully. Online payment is not enabled yet.",

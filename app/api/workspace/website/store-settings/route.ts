@@ -102,6 +102,30 @@ payment: payment
       websiteId: payment.websiteId,
       provider: payment.provider,
       environment: payment.environment,
+      // Return safe metadata for both environments so the form can switch
+      // between TEST and LIVE without displaying or returning stored secrets.
+      environments: {
+        TEST: {
+          publicKeyId: payment.publicKeyId,
+          paymentsEnabled: payment.paymentsEnabled,
+          verifiedAt: payment.verifiedAt,
+          secretsConfigured: {
+            keySecret: Boolean(payment.encryptedKeySecret),
+            webhookSecret: Boolean(payment.encryptedWebhookSecret),
+          },
+        },
+        LIVE: {
+          publicKeyId: payment.livePublicKeyId,
+          paymentsEnabled: payment.livePaymentsEnabled,
+          verifiedAt: payment.liveVerifiedAt,
+          secretsConfigured: {
+            keySecret: Boolean(payment.liveEncryptedKeySecret),
+            webhookSecret: Boolean(payment.liveEncryptedWebhookSecret),
+          },
+        },
+      },
+      // Keep these selected-environment fields for compatibility with any
+      // existing consumers of this endpoint.
       publicKeyId:
         payment.environment === "LIVE"
           ? payment.livePublicKeyId
@@ -134,7 +158,6 @@ secretsConfigured: {
     return handleApiError(error);
   }
 }
-
 interface SettingsPayload {
   storeEnabled?: boolean;
   cartEnabled?: boolean;
@@ -143,11 +166,13 @@ interface SettingsPayload {
   shippingMode?: string;
   provider?: string;
   environment?: string;
+  credentialsEnvironment?: string;
   publicKeyId?: string | null;
   keySecret?: string;
   webhookSecret?: string;
   paymentsEnabled?: boolean;
 }
+
 
 export async function PATCH(request: NextRequest) {
   try {
@@ -179,7 +204,6 @@ export async function PATCH(request: NextRequest) {
       "guestCheckoutEnabled",
       "paymentsEnabled",
     ] as const;
-
     for (const field of booleanFields) {
       if (
         Object.prototype.hasOwnProperty.call(body, field) &&
@@ -242,13 +266,25 @@ export async function PATCH(request: NextRequest) {
         status: 400,
       });
     }
-
+        if (
+      body.credentialsEnvironment !== undefined &&
+      body.credentialsEnvironment !== "TEST" &&
+      body.credentialsEnvironment !== "LIVE"
+    ) {
+      return ApiResponse.error({
+        message: "Credentials environment must be TEST or LIVE.",
+        code: "INVALID_CREDENTIALS_ENVIRONMENT",
+        status: 400,
+      });
+    }
     for (const field of ["keySecret", "webhookSecret"] as const) {
-      if (
-        body[field] !== undefined &&
-        (typeof body[field] !== "string" ||
-          body[field].trim().length === 0 ||
-          body[field].length > 2000)
+      const value = body[field];
+          if (
+        value !== undefined &&
+        (typeof value !== "string" ||
+          (typeof value === "string" &&
+            (value.trim().length === 0 || value.length > 2000))
+        )
       ) {
         return ApiResponse.error({
           message: `${field} must be a non-empty string of at most 2000 characters.`,
@@ -257,7 +293,6 @@ export async function PATCH(request: NextRequest) {
         });
       }
     }
-
     if (
       body.publicKeyId !== undefined &&
       body.publicKeyId !== null &&
@@ -270,7 +305,6 @@ export async function PATCH(request: NextRequest) {
         status: 400,
       });
     }
-
     const existingPayment =
       await prisma.storePaymentConfiguration.findUnique({
         where: { websiteId: website.id },
@@ -290,18 +324,18 @@ livePaymentsEnabled: true,
 liveVerifiedAt: true,
         },
       });
-
-      const nextEnvironment =
-      body.environment ?? existingPayment?.environment ?? "TEST";
-    
+const nextEnvironment =
+body.credentialsEnvironment ??
+body.environment ??
+existingPayment?.environment ??
+"TEST";  
     const nextPublicKey =
       body.publicKeyId === undefined
         ? nextEnvironment === "LIVE"
           ? existingPayment?.livePublicKeyId ?? null
           : existingPayment?.publicKeyId ?? null
         : body.publicKeyId?.trim() || null;
-    
-    const nextKeySecret =
+        const nextKeySecret =
       body.keySecret === undefined
         ? nextEnvironment === "LIVE"
           ? existingPayment?.liveEncryptedKeySecret ?? null
@@ -314,8 +348,7 @@ liveVerifiedAt: true,
           ? existingPayment?.liveEncryptedWebhookSecret ?? null
           : existingPayment?.encryptedWebhookSecret ?? null
         : encryptSecret(body.webhookSecret.trim());
-    
-    const nextVerifiedAt =
+        const nextVerifiedAt =
       nextEnvironment === "LIVE"
         ? existingPayment?.liveVerifiedAt
         : existingPayment?.verifiedAt;
@@ -332,7 +365,6 @@ liveVerifiedAt: true,
         status: 400,
       });
     }
-
 // Payments can be enabled only with previously verified credentials
 // for the currently configured environment.
 if (body.paymentsEnabled === true) {
@@ -350,8 +382,8 @@ if (body.paymentsEnabled === true) {
     body.environment === undefined &&
     body.publicKeyId === undefined &&
     body.keySecret === undefined &&
-    body.webhookSecret === undefined;
-
+    body.credentialsEnvironment === undefined &&
+    body.webhookSecret === undefined
   if (!credentialsReady || !verificationStillValid) {
     return ApiResponse.error({
       message:
@@ -361,7 +393,6 @@ if (body.paymentsEnabled === true) {
     });
   }
 }
-
 const transactionResult = await prisma.$transaction(async (tx) => {
   await acquireStorePaymentLock(tx, website.id);
 
@@ -386,8 +417,13 @@ liveVerifiedAt: true,
   });
 
     // Recalculate the effective configuration from the fresh, locked row.
+
     const lockedNextEnvironment =
-    body.environment ?? currentPayment?.environment ?? "TEST";
+    body.credentialsEnvironment ??
+    body.environment ??
+    currentPayment?.environment ??
+    "TEST";
+  
   
   const lockedNextPublicKey =
     body.publicKeyId === undefined
@@ -447,7 +483,9 @@ liveVerifiedAt: true,
       body.environment === undefined &&
       body.publicKeyId === undefined &&
       body.keySecret === undefined &&
-      body.webhookSecret === undefined;
+      body.credentialsEnvironment === undefined &&
+      body.webhookSecret === undefined
+
 
     if (!credentialsReady || !verificationStillValid) {
       return {

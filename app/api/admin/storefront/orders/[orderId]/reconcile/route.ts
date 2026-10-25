@@ -109,38 +109,63 @@ export async function POST(
       );
     }
 
+
     const payment =
       await prisma.storePaymentConfiguration.findUnique({
         where: { websiteId: order.websiteId },
         select: {
           provider: true,
-          environment: true,
           publicKeyId: true,
           encryptedKeySecret: true,
           verifiedAt: true,
+          livePublicKeyId: true,
+          liveEncryptedKeySecret: true,
+          liveVerifiedAt: true,
         },
       });
 
-// Reconciliation requires verified credentials matching the order's environment.
-// paymentsEnabled is intentionally not required: this route never initiates payment.
-if (
-  !payment ||
-  payment.provider !== "RAZORPAY" ||
-  (
-    payment.environment !== StorePaymentEnvironment.TEST &&
-    payment.environment !== StorePaymentEnvironment.LIVE
-  ) ||
-  payment.environment !== order.providerEnvironment ||
-  !payment.publicKeyId ||
-  !payment.encryptedKeySecret ||
-  !payment.verifiedAt
-) {
-  return jsonError(
-    "Verified Razorpay credentials matching the order environment are required for reconciliation.",
-    409,
-    "RAZORPAY_ENVIRONMENT_NOT_READY",
-  );
-}
+    if (
+      order.providerEnvironment !== StorePaymentEnvironment.TEST &&
+      order.providerEnvironment !== StorePaymentEnvironment.LIVE
+    ) {
+      return jsonError(
+        "The order's Razorpay environment is invalid.",
+        409,
+        "RAZORPAY_ENVIRONMENT_NOT_READY",
+      );
+    }
+
+    const isLiveOrder =
+      order.providerEnvironment === StorePaymentEnvironment.LIVE;
+
+    const publicKeyId = isLiveOrder
+      ? payment?.livePublicKeyId
+      : payment?.publicKeyId;
+
+    const encryptedKeySecret = isLiveOrder
+      ? payment?.liveEncryptedKeySecret
+      : payment?.encryptedKeySecret;
+
+    const verifiedAtForEnvironment = isLiveOrder
+      ? payment?.liveVerifiedAt
+      : payment?.verifiedAt;
+
+    // Reconciliation only recovers an existing gateway order.
+    // It does not initiate a payment, so paymentsEnabled is not required.
+    if (
+      !payment ||
+      payment.provider !== "RAZORPAY" ||
+      !publicKeyId ||
+      !encryptedKeySecret ||
+      !verifiedAtForEnvironment
+    ) {
+      return jsonError(
+        "Verified Razorpay credentials matching the order environment are required for reconciliation.",
+        409,
+        "RAZORPAY_ENVIRONMENT_NOT_READY",
+      );
+    }
+
 
     const amountInPaise = order.totalAmount
       .mul(100)
@@ -159,8 +184,8 @@ if (
     }
 
     const razorpay = new Razorpay({
-      key_id: payment.publicKeyId,
-      key_secret: decryptSecret(payment.encryptedKeySecret),
+      key_id: publicKeyId,
+      key_secret: decryptSecret(encryptedKeySecret),
     });
 
 
@@ -287,6 +312,7 @@ if (
             id: order.id,
             websiteId: order.websiteId,
           },
+
           select: {
             providerOrderId: true,
             providerEnvironment: true,
@@ -297,14 +323,17 @@ if (
             currency: true,
             orderNumber: true,
           },
+
         }),
         tx.storePaymentConfiguration.findUnique({
           where: { websiteId: order.websiteId },
+
           select: {
             provider: true,
-            environment: true,
             verifiedAt: true,
+            liveVerifiedAt: true,
           },
+
         }),
       ]);
 
@@ -325,6 +354,7 @@ if (
         currentOrder.status !== "PENDING_PAYMENT" ||
         currentOrder.paymentStatus !== "CREATED" ||
         currentOrder.totalAmount.lte(0) ||
+        !currentOrder.totalAmount.equals(order.totalAmount) ||
         currentOrder.currency !== order.currency ||
         currentOrder.orderNumber !== order.orderNumber ||
         currentOrder.providerEnvironment !== order.providerEnvironment ||
@@ -334,15 +364,19 @@ if (
       ) {
         return { result: "ORDER_STATE_CHANGED" as const };
       }
+      const verifiedAtForCurrentEnvironment =
+        order.providerEnvironment === StorePaymentEnvironment.LIVE
+          ? currentPayment?.liveVerifiedAt
+          : currentPayment?.verifiedAt;
 
       if (
         !currentPayment ||
         currentPayment.provider !== "RAZORPAY" ||
-        currentPayment.environment !== order.providerEnvironment ||
-        !currentPayment.verifiedAt
+        !verifiedAtForCurrentEnvironment
       ) {
         return { result: "PAYMENT_CONFIGURATION_CHANGED" as const };
       }
+
 
       const linked = await tx.storeOrder.updateMany({
         where: {

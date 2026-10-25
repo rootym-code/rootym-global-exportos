@@ -8,10 +8,22 @@ import handleApiError from "@/lib/api/handle-api-error";
 import { requireWorkspaceAccess } from "@/app/lib/workspace/require-workspace-access";
 import { decryptSecret } from "@/lib/utils/secret-encryption";
 
-export async function POST(_request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
     const { tenant, membership } = await requireWorkspaceAccess();
+    const body = (await request.json()) as { environment?: unknown };
 
+    if (
+      body.environment !== undefined &&
+      body.environment !== "TEST" &&
+      body.environment !== "LIVE"
+    ) {
+      return ApiResponse.error({
+        message: "Environment must be TEST or LIVE.",
+        code: "INVALID_PAYMENT_ENVIRONMENT",
+        status: 400,
+      });
+    }
     if (membership.role !== "OWNER" && membership.role !== "ADMIN") {
       return ApiResponse.error({
         message:
@@ -66,8 +78,10 @@ export async function POST(_request: NextRequest) {
         status: 409,
       });
     }
-
-    const environment = payment.environment;
+    const environment =
+    body.environment === "TEST" || body.environment === "LIVE"
+      ? body.environment
+      : payment.environment;
     const isLiveEnvironment = environment === "LIVE";
 
     const publicKeyId = isLiveEnvironment
@@ -113,10 +127,19 @@ export async function POST(_request: NextRequest) {
       // Verify API credentials for the selected environment.
       // This does not independently verify webhook delivery or its signature.
       await razorpay.orders.all({ count: 1 });
-    } catch {
+    } catch (error) {
+      console.error("[Razorpay verification failed]", {
+        environment,
+        keyIdPrefix: publicKeyId.slice(0, 9),
+        error:
+        error && typeof error === "object"
+          ? JSON.stringify(error, Object.getOwnPropertyNames(error))
+          : String(error),
+      });
+    
       return ApiResponse.error({
         message:
-          `Razorpay rejected the ${environment.toLowerCase()} credentials or could not be reached. Check the selected environment's key ID and key secret, then try again.`,
+          `Razorpay rejected the ${environment.toLowerCase()} credentials or could not be reached. Check the server log for the underlying error.`,
         code: "RAZORPAY_CREDENTIALS_INVALID",
         status: 422,
       });
