@@ -2,7 +2,10 @@
 import "server-only";
 
 import Razorpay from "razorpay";
-import { Prisma } from "@/lib/generated/prisma";
+import {
+  Prisma,
+  StorePaymentEnvironment,
+} from "@/lib/generated/prisma";
 import prisma from "@/lib/prisma";
 import { decryptSecret } from "@/lib/utils/secret-encryption";
 
@@ -76,7 +79,7 @@ async function markCreationUnknown(
   }
 }
 
-export async function createRazorpayTestOrder({
+export async function createRazorpayOrder({
   websiteId,
   storeOrderId,
 }: CreateGatewayOrderInput) {
@@ -95,15 +98,25 @@ export async function createRazorpayTestOrder({
   if (
     !payment ||
     payment.provider !== "RAZORPAY" ||
-    payment.environment !== "TEST" ||
     !payment.publicKeyId ||
     !payment.encryptedKeySecret ||
     !payment.verifiedAt ||
     !payment.paymentsEnabled
   ) {
     throw new StorefrontPaymentError(
-      "Verified Razorpay test credentials are required.",
-      "RAZORPAY_TEST_NOT_READY",
+      "Verified and enabled Razorpay credentials are required.",
+      "RAZORPAY_NOT_READY",
+      409,
+    );
+  }
+
+  if (
+    payment.environment !== StorePaymentEnvironment.TEST &&
+    payment.environment !== StorePaymentEnvironment.LIVE
+  ) {
+    throw new StorefrontPaymentError(
+      "The configured Razorpay environment is invalid.",
+      "RAZORPAY_ENVIRONMENT_INVALID",
       409,
     );
   }
@@ -118,6 +131,7 @@ export async function createRazorpayTestOrder({
       orderNumber: true,
       currency: true,
       totalAmount: true,
+      providerEnvironment: true,
       providerOrderId: true,
       providerOrderCreationStatus: true,
       providerOrderCreationStartedAt: true,
@@ -131,6 +145,16 @@ export async function createRazorpayTestOrder({
       "Store order was not found.",
       "STORE_ORDER_NOT_FOUND",
       404,
+    );
+  }
+
+    // Never use credentials from one environment for an order
+  // created under the other environment.
+  if (order.providerEnvironment !== payment.environment) {
+    throw new StorefrontPaymentError(
+      "This order belongs to a different Razorpay environment. It cannot be paid using the currently configured credentials.",
+      "RAZORPAY_ENVIRONMENT_MISMATCH",
+      409,
     );
   }
 
@@ -161,6 +185,7 @@ export async function createRazorpayTestOrder({
       currency: order.currency,
       amount: order.totalAmount,
       publicKeyId: payment.publicKeyId,
+      environment: payment.environment,
     };
   }
 
@@ -182,6 +207,7 @@ export async function createRazorpayTestOrder({
         paymentStatus: "CREATED",
         providerOrderId: null,
         providerOrderCreationStatus: "IN_PROGRESS",
+        providerEnvironment: order.providerEnvironment,
         OR: [
           { providerOrderCreationStartedAt: null },
           { providerOrderCreationStartedAt: { lt: staleBefore } },
@@ -258,6 +284,7 @@ export async function createRazorpayTestOrder({
       paymentStatus: "CREATED",
       providerOrderId: null,
       providerOrderCreationStatus: "NOT_STARTED",
+      providerEnvironment: order.providerEnvironment,
     },
     data: {
       providerOrderCreationStatus: "IN_PROGRESS",
@@ -298,6 +325,7 @@ export async function createRazorpayTestOrder({
         currency: order.currency,
         amount: order.totalAmount,
         publicKeyId: payment.publicKeyId,
+        environment: payment.environment,
       };
     }
 
@@ -357,6 +385,7 @@ export async function createRazorpayTestOrder({
         status: "PENDING_PAYMENT",
         paymentStatus: "CREATED",
         providerOrderId: null,
+        providerEnvironment: order.providerEnvironment,
         providerOrderCreationStatus: {
           in: ["IN_PROGRESS", "UNKNOWN"],
         },
@@ -424,5 +453,6 @@ export async function createRazorpayTestOrder({
     currency: order.currency,
     amount: order.totalAmount,
     publicKeyId: payment.publicKeyId,
+    environment: payment.environment,
   };
 }

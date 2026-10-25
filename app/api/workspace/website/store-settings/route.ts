@@ -1,6 +1,6 @@
 
 import { NextRequest } from "next/server";
-
+import { acquireStorePaymentLock } from "@/lib/services/store-payment-lock.service";
 import prisma from "@/lib/prisma";
 import ApiResponse from "@/lib/api/api-response";
 import handleApiError from "@/lib/api/handle-api-error";
@@ -32,6 +32,11 @@ const PAYMENT_SELECT = {
     verifiedAt: true,
     createdAt: true,
     updatedAt: true,
+    livePublicKeyId: true,
+liveEncryptedKeySecret: true,
+liveEncryptedWebhookSecret: true,
+livePaymentsEnabled: true,
+liveVerifiedAt: true,
   } as const;
   
 
@@ -91,23 +96,38 @@ export async function GET() {
             slug: website.slug,
           },
           settings,
-          payment: payment
-            ? {
-                id: payment.id,
-                websiteId: payment.websiteId,
-                provider: payment.provider,
-                environment: payment.environment,
-                publicKeyId: payment.publicKeyId,
-                paymentsEnabled: payment.paymentsEnabled,
-                verifiedAt: payment.verifiedAt,
-                createdAt: payment.createdAt,
-                updatedAt: payment.updatedAt,
-              }
-            : null,
-          secretsConfigured: {
-            keySecret: Boolean(payment?.encryptedKeySecret),
-            webhookSecret: Boolean(payment?.encryptedWebhookSecret),
-          },
+payment: payment
+  ? {
+      id: payment.id,
+      websiteId: payment.websiteId,
+      provider: payment.provider,
+      environment: payment.environment,
+      publicKeyId:
+        payment.environment === "LIVE"
+          ? payment.livePublicKeyId
+          : payment.publicKeyId,
+      paymentsEnabled:
+        payment.environment === "LIVE"
+          ? payment.livePaymentsEnabled
+          : payment.paymentsEnabled,
+      verifiedAt:
+        payment.environment === "LIVE"
+          ? payment.liveVerifiedAt
+          : payment.verifiedAt,
+      createdAt: payment.createdAt,
+      updatedAt: payment.updatedAt,
+    }
+  : null,
+secretsConfigured: {
+  keySecret:
+    payment?.environment === "LIVE"
+      ? Boolean(payment.liveEncryptedKeySecret)
+      : Boolean(payment?.encryptedKeySecret),
+  webhookSecret:
+    payment?.environment === "LIVE"
+      ? Boolean(payment.liveEncryptedWebhookSecret)
+      : Boolean(payment?.encryptedWebhookSecret),
+},
         },
       });
   } catch (error) {
@@ -255,6 +275,7 @@ export async function PATCH(request: NextRequest) {
       await prisma.storePaymentConfiguration.findUnique({
         where: { websiteId: website.id },
         select: {
+          websiteId: true,
           provider: true,
           environment: true,
           publicKeyId: true,
@@ -262,26 +283,42 @@ export async function PATCH(request: NextRequest) {
           encryptedWebhookSecret: true,
           paymentsEnabled: true,
           verifiedAt: true,
+          livePublicKeyId: true,
+liveEncryptedKeySecret: true,
+liveEncryptedWebhookSecret: true,
+livePaymentsEnabled: true,
+liveVerifiedAt: true,
         },
       });
 
+      const nextEnvironment =
+      body.environment ?? existingPayment?.environment ?? "TEST";
+    
     const nextPublicKey =
       body.publicKeyId === undefined
-        ? existingPayment?.publicKeyId ?? null
+        ? nextEnvironment === "LIVE"
+          ? existingPayment?.livePublicKeyId ?? null
+          : existingPayment?.publicKeyId ?? null
         : body.publicKeyId?.trim() || null;
-
+    
     const nextKeySecret =
       body.keySecret === undefined
-        ? existingPayment?.encryptedKeySecret ?? null
+        ? nextEnvironment === "LIVE"
+          ? existingPayment?.liveEncryptedKeySecret ?? null
+          : existingPayment?.encryptedKeySecret ?? null
         : encryptSecret(body.keySecret.trim());
-
+    
     const nextWebhookSecret =
       body.webhookSecret === undefined
-        ? existingPayment?.encryptedWebhookSecret ?? null
+        ? nextEnvironment === "LIVE"
+          ? existingPayment?.liveEncryptedWebhookSecret ?? null
+          : existingPayment?.encryptedWebhookSecret ?? null
         : encryptSecret(body.webhookSecret.trim());
-
-    const nextEnvironment =
-      body.environment ?? existingPayment?.environment ?? "TEST";
+    
+    const nextVerifiedAt =
+      nextEnvironment === "LIVE"
+        ? existingPayment?.liveVerifiedAt
+        : existingPayment?.verifiedAt;
 
     // Disabling is always allowed. Enabling payments requires credentials.
     if (
@@ -296,17 +333,18 @@ export async function PATCH(request: NextRequest) {
       });
     }
 
-// TEST payments require complete, previously verified credentials.
-// Do not allow enabling payments while changing the configuration.
+// Payments can be enabled only with previously verified credentials
+// for the currently configured environment.
 if (body.paymentsEnabled === true) {
   const credentialsReady =
     (body.provider ?? existingPayment?.provider) === "RAZORPAY" &&
-    (body.environment ?? existingPayment?.environment) === "TEST" &&
+    (nextEnvironment === "TEST" || nextEnvironment === "LIVE") &&
     Boolean(nextPublicKey) &&
     Boolean(nextKeySecret) &&
     Boolean(nextWebhookSecret);
 
-  const verificationStillValid =
+    const verificationStillValid =
+    nextVerifiedAt != null &&
     existingPayment?.verifiedAt != null &&
     body.provider === undefined &&
     body.environment === undefined &&
@@ -317,18 +355,145 @@ if (body.paymentsEnabled === true) {
   if (!credentialsReady || !verificationStillValid) {
     return ApiResponse.error({
       message:
-        "Configure Razorpay TEST credentials, verify them, and save no payment configuration changes before enabling payments.",
+        "Configure and verify the Razorpay credentials for the selected environment, then enable payments without changing the payment configuration.",
       code: "PAYMENT_VERIFICATION_REQUIRED",
       status: 409,
     });
   }
 }
 
-    await prisma.$transaction(async (tx) => {
-      const currentSettings = await tx.storeSettings.findUnique({
-        where: { websiteId: website.id },
-        select: { id: true },
-      });
+const transactionResult = await prisma.$transaction(async (tx) => {
+  await acquireStorePaymentLock(tx, website.id);
+
+  // Read the payment environment only after acquiring the shared lock.
+  const currentPayment = await tx.storePaymentConfiguration.findUnique({
+    where: { websiteId: website.id },
+    select: {
+      websiteId: true,
+      provider: true,
+      environment: true,
+      publicKeyId: true,
+      encryptedKeySecret: true,
+      encryptedWebhookSecret: true,
+      paymentsEnabled: true,
+      verifiedAt: true,
+      livePublicKeyId: true,
+liveEncryptedKeySecret: true,
+liveEncryptedWebhookSecret: true,
+livePaymentsEnabled: true,
+liveVerifiedAt: true,
+    },
+  });
+
+    // Recalculate the effective configuration from the fresh, locked row.
+    const lockedNextEnvironment =
+    body.environment ?? currentPayment?.environment ?? "TEST";
+  
+  const lockedNextPublicKey =
+    body.publicKeyId === undefined
+      ? lockedNextEnvironment === "LIVE"
+        ? currentPayment?.livePublicKeyId ?? null
+        : currentPayment?.publicKeyId ?? null
+      : body.publicKeyId?.trim() || null;
+  
+  const lockedNextKeySecret =
+    body.keySecret === undefined
+      ? lockedNextEnvironment === "LIVE"
+        ? currentPayment?.liveEncryptedKeySecret ?? null
+        : currentPayment?.encryptedKeySecret ?? null
+      : encryptSecret(body.keySecret.trim());
+  
+  const lockedNextWebhookSecret =
+    body.webhookSecret === undefined
+      ? lockedNextEnvironment === "LIVE"
+        ? currentPayment?.liveEncryptedWebhookSecret ?? null
+        : currentPayment?.encryptedWebhookSecret ?? null
+      : encryptSecret(body.webhookSecret.trim());
+  
+  const lockedNextVerifiedAt =
+    lockedNextEnvironment === "LIVE"
+      ? currentPayment?.liveVerifiedAt
+      : currentPayment?.verifiedAt;
+
+  // Revalidate payment activation against the fresh configuration.
+  if (
+    body.paymentsEnabled === true &&
+    (!lockedNextPublicKey ||
+      !lockedNextKeySecret ||
+      !lockedNextWebhookSecret)
+  ) {
+    return {
+      error: ApiResponse.error({
+        message:
+          "Configure the Razorpay public key, key secret, and webhook secret before enabling payments.",
+        code: "PAYMENT_CONFIGURATION_INCOMPLETE",
+        status: 400,
+      }),
+    };
+  }
+
+  if (body.paymentsEnabled === true) {
+    const credentialsReady =
+      (body.provider ?? currentPayment?.provider) === "RAZORPAY" &&
+      (lockedNextEnvironment === "TEST" ||
+        lockedNextEnvironment === "LIVE") &&
+      Boolean(lockedNextPublicKey) &&
+      Boolean(lockedNextKeySecret) &&
+      Boolean(lockedNextWebhookSecret);
+
+    const verificationStillValid =
+    lockedNextVerifiedAt != null &&
+      body.provider === undefined &&
+      body.environment === undefined &&
+      body.publicKeyId === undefined &&
+      body.keySecret === undefined &&
+      body.webhookSecret === undefined;
+
+    if (!credentialsReady || !verificationStillValid) {
+      return {
+        error: ApiResponse.error({
+          message:
+            "Configure and verify the Razorpay credentials for the selected environment, then enable payments without changing the payment configuration.",
+          code: "PAYMENT_VERIFICATION_REQUIRED",
+          status: 409,
+        }),
+      };
+    }
+  }
+
+  // Do not switch environments while unpaid orders from the previous
+  // environment still require payment or recovery.
+  if (
+    currentPayment &&
+    body.environment !== undefined &&
+    body.environment !== currentPayment.environment
+  ) {
+    const pendingOrders = await tx.storeOrder.count({
+      where: {
+        websiteId: website.id,
+        status: "PENDING_PAYMENT",
+        providerEnvironment: {
+          not: body.environment as "TEST" | "LIVE",
+        },
+      },
+    });
+
+    if (pendingOrders > 0) {
+      return {
+        error: ApiResponse.error({
+          message:
+            "The payment environment cannot be changed while unpaid orders remain in the previous environment. Resolve or formally cancel those orders first.",
+          code: "PENDING_ORDERS_PREVENT_ENVIRONMENT_SWITCH",
+          status: 409,
+        }),
+      };
+    }
+  }
+
+  const currentSettings = await tx.storeSettings.findUnique({
+    where: { websiteId: website.id },
+    select: { id: true },
+  });
 
       const settingsData = {
         ...(body.storeEnabled !== undefined
@@ -364,22 +529,52 @@ if (body.paymentsEnabled === true) {
         });
       }
 
+
+      const isLiveEnvironment = lockedNextEnvironment === "LIVE";
+
+      const credentialFields = isLiveEnvironment
+        ? {
+            publicKeyId: "livePublicKeyId" as const,
+            keySecret: "liveEncryptedKeySecret" as const,
+            webhookSecret: "liveEncryptedWebhookSecret" as const,
+            paymentsEnabled: "livePaymentsEnabled" as const,
+            verifiedAt: "liveVerifiedAt" as const,
+          }
+        : {
+            publicKeyId: "publicKeyId" as const,
+            keySecret: "encryptedKeySecret" as const,
+            webhookSecret: "encryptedWebhookSecret" as const,
+            paymentsEnabled: "paymentsEnabled" as const,
+            verifiedAt: "verifiedAt" as const,
+          };
+
+      const credentialsChanged =
+        body.publicKeyId !== undefined ||
+        body.keySecret !== undefined ||
+        body.webhookSecret !== undefined;
+
       const paymentData = {
         ...(body.provider !== undefined ? { provider: body.provider } : {}),
         ...(body.environment !== undefined
-          ? { environment: body.environment }
+          ? { environment: lockedNextEnvironment }
           : {}),
         ...(body.publicKeyId !== undefined
-          ? { publicKeyId: nextPublicKey }
+          ? { [credentialFields.publicKeyId]: lockedNextPublicKey }
           : {}),
         ...(body.keySecret !== undefined
-          ? { encryptedKeySecret: nextKeySecret }
+          ? { [credentialFields.keySecret]: lockedNextKeySecret }
           : {}),
         ...(body.webhookSecret !== undefined
-          ? { encryptedWebhookSecret: nextWebhookSecret }
+          ? { [credentialFields.webhookSecret]: lockedNextWebhookSecret }
           : {}),
         ...(body.paymentsEnabled !== undefined
-          ? { paymentsEnabled: body.paymentsEnabled }
+          ? { [credentialFields.paymentsEnabled]: body.paymentsEnabled }
+          : {}),
+        ...(body.provider !== undefined || credentialsChanged
+          ? {
+              [credentialFields.verifiedAt]: null,
+              [credentialFields.paymentsEnabled]: false,
+            }
           : {}),
       };
 
@@ -389,33 +584,38 @@ if (body.paymentsEnabled === true) {
           create: {
             websiteId: website.id,
             provider: body.provider ?? "RAZORPAY",
-            environment: nextEnvironment,
-            publicKeyId: nextPublicKey,
-            encryptedKeySecret: nextKeySecret,
-            encryptedWebhookSecret: nextWebhookSecret,
+            environment: lockedNextEnvironment,
+            publicKeyId: null,
+            encryptedKeySecret: null,
+            encryptedWebhookSecret: null,
             paymentsEnabled: false,
-          },
-          update: {
-            ...paymentData,
-            // Changing credentials invalidates verification.
-            ...(body.provider !== undefined ||
-            body.environment !== undefined ||
-            body.publicKeyId !== undefined ||
-            body.keySecret !== undefined ||
-            body.webhookSecret !== undefined
+            livePaymentsEnabled: false,
+            liveVerifiedAt: null,
+            ...(isLiveEnvironment
               ? {
-                  verifiedAt: null,
-                  paymentsEnabled: false,
+                  livePublicKeyId: lockedNextPublicKey,
+                  liveEncryptedKeySecret: lockedNextKeySecret,
+                  liveEncryptedWebhookSecret: lockedNextWebhookSecret,
                 }
-              : {}),
+              : {
+                  publicKeyId: lockedNextPublicKey,
+                  encryptedKeySecret: lockedNextKeySecret,
+                  encryptedWebhookSecret: lockedNextWebhookSecret,
+                }),
           },
+          update: paymentData,
         });
       }
+      return { error: null };
     });
+
+    if (transactionResult.error) {
+      return transactionResult.error;
+    }
 
     return ApiResponse.success({
       message:
-        "Store settings saved. Online checkout remains disabled until payment verification is implemented.",
+      "Store settings saved. Payment configuration changes require verification before online checkout can be enabled.",
       data: {
         saved: true,
         storeActivationPending: true,

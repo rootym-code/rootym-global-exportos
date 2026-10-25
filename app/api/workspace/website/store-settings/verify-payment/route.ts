@@ -42,9 +42,14 @@ export async function POST(_request: NextRequest) {
       select: {
         provider: true,
         environment: true,
+
         publicKeyId: true,
         encryptedKeySecret: true,
         encryptedWebhookSecret: true,
+
+        livePublicKeyId: true,
+        liveEncryptedKeySecret: true,
+        liveEncryptedWebhookSecret: true,
       },
     });
 
@@ -63,15 +68,24 @@ export async function POST(_request: NextRequest) {
     }
 
     const environment = payment.environment;
+    const isLiveEnvironment = environment === "LIVE";
 
-    if (
-      !payment.publicKeyId ||
-      !payment.encryptedKeySecret ||
-      !payment.encryptedWebhookSecret
-    ) {
+    const publicKeyId = isLiveEnvironment
+      ? payment.livePublicKeyId
+      : payment.publicKeyId;
+
+    const encryptedKeySecret = isLiveEnvironment
+      ? payment.liveEncryptedKeySecret
+      : payment.encryptedKeySecret;
+
+    const encryptedWebhookSecret = isLiveEnvironment
+      ? payment.liveEncryptedWebhookSecret
+      : payment.encryptedWebhookSecret;
+
+    if (!publicKeyId || !encryptedKeySecret || !encryptedWebhookSecret) {
       return ApiResponse.error({
         message:
-          "Configure the Razorpay public key, key secret, and webhook secret first.",
+          `Configure the Razorpay ${environment.toLowerCase()} key ID, key secret, and webhook secret first.`,
         code: "PAYMENT_CONFIGURATION_INCOMPLETE",
         status: 400,
       });
@@ -80,7 +94,7 @@ export async function POST(_request: NextRequest) {
     let keySecret: string;
 
     try {
-      keySecret = decryptSecret(payment.encryptedKeySecret);
+      keySecret = decryptSecret(encryptedKeySecret);
     } catch {
       return ApiResponse.error({
         message:
@@ -92,12 +106,12 @@ export async function POST(_request: NextRequest) {
 
     try {
       const razorpay = new Razorpay({
-        key_id: payment.publicKeyId,
+        key_id: publicKeyId,
         key_secret: keySecret,
       });
 
-      // Verify the selected environment's API credentials.
-      // This does not independently verify the webhook secret.
+      // Verify API credentials for the selected environment.
+      // This does not independently verify webhook delivery or its signature.
       await razorpay.orders.all({ count: 1 });
     } catch {
       return ApiResponse.error({
@@ -108,23 +122,40 @@ export async function POST(_request: NextRequest) {
       });
     }
 
-    // Only mark credentials verified if the exact configuration
-    // used for verification has not changed during the API request.
     const verifiedAt = new Date();
+
+    // Compare-and-set: only verify the exact environment-specific
+    // credentials that were used for the successful Razorpay request.
+    const credentialWhere = isLiveEnvironment
+      ? {
+          livePublicKeyId: publicKeyId,
+          liveEncryptedKeySecret: encryptedKeySecret,
+          liveEncryptedWebhookSecret: encryptedWebhookSecret,
+        }
+      : {
+          publicKeyId,
+          encryptedKeySecret,
+          encryptedWebhookSecret,
+        };
+
+    const verificationData = isLiveEnvironment
+      ? {
+          liveVerifiedAt: verifiedAt,
+          livePaymentsEnabled: false,
+        }
+      : {
+          verifiedAt,
+          paymentsEnabled: false,
+        };
 
     const result = await prisma.storePaymentConfiguration.updateMany({
       where: {
         websiteId: website.id,
         provider: "RAZORPAY",
         environment,
-        publicKeyId: payment.publicKeyId,
-        encryptedKeySecret: payment.encryptedKeySecret,
-        encryptedWebhookSecret: payment.encryptedWebhookSecret,
+        ...credentialWhere,
       },
-      data: {
-        verifiedAt,
-        paymentsEnabled: false,
-      },
+      data: verificationData,
     });
 
     if (result.count !== 1) {

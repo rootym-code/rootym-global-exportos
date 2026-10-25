@@ -2068,6 +2068,11 @@ enum StoreShippingPricingType {
   WEIGHT_BASED
 }
 
+enum StorePaymentEnvironment {
+  TEST
+  LIVE
+}
+
 /// Website-scoped online store settings.
 /// Online sales remain disabled until explicitly activated.
 model StoreSettings {
@@ -2104,7 +2109,12 @@ model StorePaymentConfiguration {
   verifiedAt             DateTime?
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
-
+  // Separate LIVE credentials so switching environments preserves TEST setup.
+  livePublicKeyId            String?
+  liveEncryptedKeySecret     String?
+  liveEncryptedWebhookSecret String?
+  livePaymentsEnabled        Boolean   @default(false)
+  liveVerifiedAt             DateTime?
   website Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
 
   @@index([provider, environment])
@@ -2112,15 +2122,15 @@ model StorePaymentConfiguration {
 }
 
 model StoreOrder {
-  id                  String                  @id @default(cuid())
-  websiteId           String
-  orderNumber         String                  @unique
-  checkoutRequestId   String?
-  checkoutRequestHash String?
+  id                         String                  @id @default(cuid())
+  websiteId                  String
+  orderNumber                String                  @unique
+  checkoutRequestId          String?
+  checkoutRequestHash        String?
   checkoutRequestFingerprint String?
-  status              StoreOrderStatus        @default(PENDING_PAYMENT)
-  paymentStatus       StoreOrderPaymentStatus @default(CREATED)
-  currency            String                  @default("INR")
+  status                     StoreOrderStatus        @default(PENDING_PAYMENT)
+  paymentStatus              StoreOrderPaymentStatus @default(CREATED)
+  currency                   String                  @default("INR")
 
   subtotal       Decimal @db.Decimal(18, 2)
   shippingAmount Decimal @default(0) @db.Decimal(18, 2)
@@ -2147,14 +2157,14 @@ model StoreOrder {
   customerPhone String?
 
   // Manual shipment tracking information
-  courierName          String?
-  trackingNumber       String?
-  trackingUrl          String?
-  shippedAt            DateTime?
+  courierName    String?
+  trackingNumber String?
+  trackingUrl    String?
+  shippedAt      DateTime?
 
   // Shipment email notification tracking
-  shipmentEmailSentAt  DateTime?
-  shipmentEmailError   String?
+  shipmentEmailSentAt DateTime?
+  shipmentEmailError  String?
 
   shippingAddress1   String
   shippingAddress2   String?
@@ -2163,8 +2173,9 @@ model StoreOrder {
   shippingPostalCode String
   shippingCountry    String
 
-  provider        String  @default("RAZORPAY")
-  providerOrderId String? @unique
+  provider            String                  @default("RAZORPAY")
+  providerOrderId     String?                 @unique
+  providerEnvironment StorePaymentEnvironment @default(TEST)
 
   providerOrderCreationStatus    StoreOrderCreationStatus @default(NOT_STARTED)
   providerOrderCreationStartedAt DateTime?

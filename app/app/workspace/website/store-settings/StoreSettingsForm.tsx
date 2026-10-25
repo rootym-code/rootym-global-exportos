@@ -140,8 +140,6 @@ const [shippingPricingType, setShippingPricingType] =
   const loadSettings = useCallback(async () => {
     try {
       setLoading(true);
-      setError("");
-      setSuccessMessage("");
 
       const response = await fetch(
         "/api/workspace/website/store-settings",
@@ -182,6 +180,7 @@ const [shippingPricingType, setShippingPricingType] =
       );
       setPublicKeyId(data.payment?.publicKeyId ?? "");
       setPaymentsEnabled(data.payment?.paymentsEnabled ?? false);
+      setPaymentVerifiedAt(data.payment?.verifiedAt ?? null);
 
       setKeySecretConfigured(data.secretsConfigured.keySecret);
       setWebhookSecretConfigured(
@@ -259,6 +258,8 @@ const handleSave = async () => {
         guestCheckoutEnabled,
         defaultCurrency,
         shippingMode: "MANUAL",
+        environment,
+        publicKeyId: publicKeyId.trim(),
       };
 
       // Empty secret fields mean keep the existing encrypted credentials.
@@ -971,7 +972,6 @@ if (loading) {
       Credentials verified successfully.
     </p>
   )}
-
   <Button
     type="button"
     onClick={handleVerifyPayment}
@@ -993,12 +993,10 @@ if (loading) {
     ) : (
       <>
         <ShieldCheck className="h-4 w-4" />
-        Verify Razorpay TEST Credentials
+        Verify Razorpay Credentials
       </>
     )}
   </Button>
-
-
 </div>
               {paymentVerifiedAt && environment === "TEST" && (
                 <div className="border-t border-slate-200 pt-4">

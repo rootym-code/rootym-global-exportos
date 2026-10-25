@@ -8,7 +8,10 @@ import {
 import { NextRequest, NextResponse } from "next/server";
 import Razorpay from "razorpay";
 
-import { Prisma } from "@/lib/generated/prisma";
+import {
+  Prisma,
+  StorePaymentEnvironment,
+} from "@/lib/generated/prisma";
 import prisma from "@/lib/prisma";
 import { decryptSecret } from "@/lib/utils/secret-encryption";
 
@@ -125,11 +128,11 @@ export async function POST(request: NextRequest) {
       await prisma.storePaymentConfiguration.findMany({
         where: {
           provider: "RAZORPAY",
-          environment: "TEST",
           encryptedWebhookSecret: { not: null },
         },
         select: {
           websiteId: true,
+          environment: true,
           publicKeyId: true,
           encryptedKeySecret: true,
           encryptedWebhookSecret: true,
@@ -138,7 +141,7 @@ export async function POST(request: NextRequest) {
 
     if (configurations.length === 0) {
       console.error(
-        "No TEST-mode storefront webhook configurations are available.",
+        "No storefront webhook configurations are available.",
       );
 
       return NextResponse.json(
@@ -234,6 +237,7 @@ export async function POST(request: NextRequest) {
         websiteId: true,
         currency: true,
         totalAmount: true,
+        providerEnvironment: true,
       },
     });
 
@@ -242,6 +246,20 @@ export async function POST(request: NextRequest) {
         success: true,
         message: "Unknown storefront order ignored.",
       });
+    }
+
+    if (order.providerEnvironment !== matchedConfiguration.environment) {
+      console.error(
+        "Storefront webhook environment does not match the order environment.",
+      );
+    
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Webhook environment does not match the order.",
+        },
+        { status: 409 },
+      );
     }
 
     let payment: RazorpayEntity | undefined;
@@ -289,23 +307,28 @@ export async function POST(request: NextRequest) {
         },
       });
     
-    if (
-      !paymentConfiguration ||
-      paymentConfiguration.provider !== "RAZORPAY" ||
-      paymentConfiguration.environment !== "TEST" ||
-      !paymentConfiguration.publicKeyId ||
-      !paymentConfiguration.encryptedKeySecret ||
-      !paymentConfiguration.verifiedAt
-    ) {
-      console.error(
-        "Razorpay TEST credentials are not configured and verified.",
-      );
-    
-      return NextResponse.json(
-        { success: false, message: "Payment verification unavailable." },
-        { status: 503 },
-      );
-    }
+      if (
+        !paymentConfiguration ||
+        paymentConfiguration.provider !== "RAZORPAY" ||
+        (
+          paymentConfiguration.environment !== StorePaymentEnvironment.TEST &&
+          paymentConfiguration.environment !== StorePaymentEnvironment.LIVE
+        ) ||
+        paymentConfiguration.environment !== matchedConfiguration.environment ||
+        paymentConfiguration.environment !== order.providerEnvironment ||
+        !paymentConfiguration.publicKeyId ||
+        !paymentConfiguration.encryptedKeySecret ||
+        !paymentConfiguration.verifiedAt
+      ) {
+        console.error(
+          "Razorpay credentials are unavailable or do not match the order environment.",
+        );
+      
+        return NextResponse.json(
+          { success: false, message: "Payment verification unavailable." },
+          { status: 503 },
+        );
+      }
     
     const publicKeyId = paymentConfiguration.publicKeyId;
     const encryptedKeySecret =
@@ -443,6 +466,7 @@ export async function POST(request: NextRequest) {
           id: order.id,
           websiteId: matchedConfiguration.websiteId,
           providerOrderId: razorpayOrderId,
+          providerEnvironment: order.providerEnvironment,
           status: "PENDING_PAYMENT",
           paymentStatus: {
             in: ["CREATED", "AUTHORIZED", "FAILED"],
@@ -467,6 +491,7 @@ export async function POST(request: NextRequest) {
         id: order.id,
         websiteId: matchedConfiguration.websiteId,
         providerOrderId: razorpayOrderId,
+        providerEnvironment: order.providerEnvironment,
         status: "PENDING_PAYMENT",
         paymentStatus: {
           in: ["CREATED", "AUTHORIZED", "FAILED"],

@@ -1,7 +1,11 @@
 import { createHash, randomUUID } from "node:crypto";
 
-import { Prisma } from "@/lib/generated/prisma";
+import {
+  Prisma,
+  StorePaymentEnvironment,
+} from "@/lib/generated/prisma";
 import prisma from "@/lib/prisma";
+import { acquireStorePaymentLock } from "@/lib/services/store-payment-lock.service";
 import { checkProductPurchaseEligibility } from "@/lib/services/product-eligibility.service";
 import { getProductById } from "@/lib/services/product.service";
 import {
@@ -52,6 +56,7 @@ const storeOrderResponseSelect = {
     orderNumber: true,
     status: true,
     paymentStatus: true,
+    providerEnvironment: true,
     currency: true,
     subtotal: true,
     shippingAmount: true,
@@ -470,7 +475,10 @@ function createCheckoutRequestFingerprint(
     .digest("hex");
 }
 
-export async function createStoreOrder(input: CreateCheckoutInput) {
+export async function createStoreOrder(
+  input: CreateCheckoutInput,
+  options: { providerEnvironment: StorePaymentEnvironment },
+) {
   const checkoutRequestId = requiredText(
     input.checkoutRequestId,
     "Checkout request ID",
@@ -594,6 +602,8 @@ if (validated.settings.defaultCurrency.trim().toUpperCase() !== "INR") {
     );
   }
 
+  const shipmentMeasurements = validated.shipmentMeasurements;
+
   let shippingQuote;
 
   try {
@@ -636,9 +646,45 @@ const orderNumber = `RTM-${new Date().toISOString().slice(0, 10).replace(/-/g, "
     .toUpperCase()}`;
 
     try {
-  const order = await prisma.storeOrder.create({
+      const order = await prisma.$transaction(async (tx) => {
+        await acquireStorePaymentLock(tx, validated.website.id);
+    
+        const activePayment = await tx.storePaymentConfiguration.findUnique({
+          where: { websiteId: validated.website.id },
+          select: {
+            environment: true,
+          },
+        });
+    
+        if (
+          activePayment &&
+          activePayment.environment !== "TEST" &&
+          activePayment.environment !== "LIVE"
+        ) {
+          throw new CheckoutError(
+            "The store payment environment is invalid. Please contact support.",
+            "INVALID_PAYMENT_ENVIRONMENT",
+            409,
+          );
+        }
+        
+        const activeEnvironment =
+          activePayment?.environment === "LIVE"
+            ? StorePaymentEnvironment.LIVE
+            : StorePaymentEnvironment.TEST;
+    
+        if (activeEnvironment !== options.providerEnvironment) {
+          throw new CheckoutError(
+            "The store payment environment changed while checkout was in progress. Please retry checkout.",
+            "PAYMENT_ENVIRONMENT_MISMATCH",
+            409,
+          );
+        }
+    
+        return tx.storeOrder.create({
     data: {
       websiteId: validated.website.id,
+      providerEnvironment: options.providerEnvironment,
       orderNumber,
       checkoutRequestId,
       checkoutRequestHash,
@@ -663,13 +709,10 @@ metadata: {
     destinationPin: validated.customer.postalCode,
     quotedAt: new Date().toISOString(),
     measurements: {
-      quantity: validated.shipmentMeasurements.quantity,
-      totalActualWeightGrams:
-        validated.shipmentMeasurements.totalActualWeightGrams,
-      totalVolumeCm3:
-        validated.shipmentMeasurements.totalVolumeCm3,
-      equivalentParcelDimensionsCm:
-        validated.shipmentMeasurements.equivalentParcelDimensionsCm,
+      quantity: shipmentMeasurements.quantity,
+      totalActualWeightGrams: shipmentMeasurements.totalActualWeightGrams,
+      totalVolumeCm3: shipmentMeasurements.totalVolumeCm3,
+      equivalentParcelDimensionsCm: shipmentMeasurements.equivalentParcelDimensionsCm,
     },
   },
 },
@@ -698,9 +741,9 @@ metadata: {
     },
     select: storeOrderResponseSelect,
   });
+});
 
-  return order;
-
+return order;
 } catch (error) {
   if (
     error instanceof Prisma.PrismaClientKnownRequestError &&

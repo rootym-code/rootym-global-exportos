@@ -7,7 +7,10 @@ import {
 } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import Razorpay from "razorpay";
-import { Prisma } from "@/lib/generated/prisma";
+import {
+  Prisma,
+  StorePaymentEnvironment,
+} from "@/lib/generated/prisma";
 
 import prisma from "@/lib/prisma";
 import { decryptSecret } from "@/lib/utils/secret-encryption";
@@ -128,6 +131,7 @@ export async function POST(request: NextRequest) {
         paymentStatus: true,
         provider: true,
         providerOrderId: true,
+        providerEnvironment: true,
         providerPaymentId: true,
         currency: true,
         totalAmount: true,
@@ -183,20 +187,38 @@ export async function POST(request: NextRequest) {
         },
       });
 
-    if (
-      !configuration ||
-      configuration.provider !== "RAZORPAY" ||
-      configuration.environment !== "TEST" ||
-      !configuration.publicKeyId ||
-      !configuration.encryptedKeySecret ||
-      !configuration.verifiedAt
-    ) {
-      return errorResponse(
-        "Verified Razorpay TEST credentials are unavailable.",
-        503,
-        "PAYMENT_VERIFICATION_UNAVAILABLE",
-      );
-    }
+      if (
+        !configuration ||
+        configuration.provider !== "RAZORPAY" ||
+        !configuration.publicKeyId ||
+        !configuration.encryptedKeySecret ||
+        !configuration.verifiedAt
+      ) {
+        return errorResponse(
+          "Verified Razorpay credentials are unavailable.",
+          503,
+          "PAYMENT_VERIFICATION_UNAVAILABLE",
+        );
+      }
+  
+      if (
+        configuration.environment !== StorePaymentEnvironment.TEST &&
+        configuration.environment !== StorePaymentEnvironment.LIVE
+      ) {
+        return errorResponse(
+          "The configured Razorpay environment is invalid.",
+          503,
+          "PAYMENT_ENVIRONMENT_INVALID",
+        );
+      }
+  
+      if (order.providerEnvironment !== configuration.environment) {
+        return errorResponse(
+          "This order belongs to a different Razorpay environment. Payment verification cannot continue with the current credentials.",
+          409,
+          "PAYMENT_ENVIRONMENT_MISMATCH",
+        );
+      }
 
     const keySecret = decryptSecret(
       configuration.encryptedKeySecret,
@@ -264,6 +286,7 @@ export async function POST(request: NextRequest) {
         websiteId: order.websiteId,
         provider: "RAZORPAY",
         providerOrderId: razorpayOrderId,
+        providerEnvironment: order.providerEnvironment,
         status: "PENDING_PAYMENT",
         paymentStatus: {
           in: ["CREATED", "AUTHORIZED"],
