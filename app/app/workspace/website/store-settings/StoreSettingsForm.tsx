@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CheckCircle2,
   CreditCard,
@@ -21,51 +21,26 @@ interface StoreSettingsData {
   shippingMode: string;
 }
 
-type ShippingPricingType = "FLAT_RATE" | "WEIGHT_BASED";
+type PaymentEnvironment = "TEST" | "LIVE";
 
-interface ShippingRule {
-  id: string;
-  name: string;
-  zoneName: string | null;
-  countryCode: string;
-  stateCode: string | null;
-  postalCode: string | null;
-  postalCodePrefix: string | null;
-  pricingType: ShippingPricingType;
-  currency: string;
-  flatRate: number | string;
-  baseCharge: number | string;
-  includedWeightKg: number | string | null;
-  additionalPerKg: number | string | null;
-  isActive: boolean;
-  effectiveFrom: string | null;
-  effectiveTo: string | null;
-}
-
-interface ShippingRulesResponse {
-  success: boolean;
-  message?: string;
-  data?: {
-    website: {
-      name: string;
-      slug: string;
-    };
-    settings: {
-      shippingEnabled: boolean;
-      shippingMode: string;
-      defaultCurrency: string;
-    };
-    rules: ShippingRule[];
+interface PaymentEnvironmentData {
+  publicKeyId: string | null;
+  paymentsEnabled: boolean;
+  verifiedAt: string | null;
+  secretsConfigured: {
+    keySecret: boolean;
+    webhookSecret: boolean;
   };
 }
 
 interface StorePaymentData {
   id?: string;
   provider: string;
-  environment: "TEST" | "LIVE";
+  environment: PaymentEnvironment;
   publicKeyId: string | null;
   paymentsEnabled: boolean;
   verifiedAt: string | null;
+  environments: Record<PaymentEnvironment, PaymentEnvironmentData>;
 }
 
 interface StoreSettingsResponse {
@@ -107,7 +82,33 @@ export default function StoreSettingsForm({
   const [defaultCurrency, setDefaultCurrency] = useState("INR");
 
   const [environment, setEnvironment] =
-    useState<"TEST" | "LIVE">("TEST");
+  useState<PaymentEnvironment>("TEST");
+  const selectedEnvironmentRef = useRef<PaymentEnvironment>("TEST");
+const [savedEnvironment, setSavedEnvironment] =
+  useState<PaymentEnvironment>("TEST");
+
+const [paymentEnvironments, setPaymentEnvironments] = useState<
+  Record<PaymentEnvironment, PaymentEnvironmentData>
+>({
+  TEST: {
+    publicKeyId: null,
+    paymentsEnabled: false,
+    verifiedAt: null,
+    secretsConfigured: {
+      keySecret: false,
+      webhookSecret: false,
+    },
+  },
+  LIVE: {
+    publicKeyId: null,
+    paymentsEnabled: false,
+    verifiedAt: null,
+    secretsConfigured: {
+      keySecret: false,
+      webhookSecret: false,
+    },
+  },
+});
   const [publicKeyId, setPublicKeyId] = useState("");
   const [keySecret, setKeySecret] = useState("");
   const [webhookSecret, setWebhookSecret] = useState("");
@@ -121,27 +122,14 @@ export default function StoreSettingsForm({
 const [paymentVerifiedAt, setPaymentVerifiedAt] = useState<string | null>(
   null,
 );
-  const [shippingRules, setShippingRules] = useState<ShippingRule[]>([]);
-const [shippingEnabled, setShippingEnabled] = useState(false);
-const [shippingLoading, setShippingLoading] = useState(true);
-const [shippingError, setShippingError] = useState("");
-const [shippingSuccess, setShippingSuccess] = useState("");
-const [shippingSaving, setShippingSaving] = useState(false);
-const [showShippingForm, setShowShippingForm] = useState(false);
-
-const [shippingPricingType, setShippingPricingType] =
-  useState<ShippingPricingType>("FLAT_RATE");
-
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
-  const loadSettings = useCallback(async () => {
+  const loadSettings = useCallback(async (preserveSelectedEnvironment = false) => {
     try {
       setLoading(true);
-      setError("");
-      setSuccessMessage("");
 
       const response = await fetch(
         "/api/workspace/website/store-settings",
@@ -177,17 +165,59 @@ const [shippingPricingType, setShippingPricingType] =
         data.settings?.defaultCurrency ?? "INR",
       );
 
-      setEnvironment(
-        data.payment?.environment === "LIVE" ? "LIVE" : "TEST",
-      );
-      setPublicKeyId(data.payment?.publicKeyId ?? "");
-      setPaymentsEnabled(data.payment?.paymentsEnabled ?? false);
 
-      setKeySecretConfigured(data.secretsConfigured.keySecret);
+      const activeEnvironment: PaymentEnvironment =
+        data.payment?.environment === "LIVE" ? "LIVE" : "TEST";
+
+      const environments: Record<
+        PaymentEnvironment,
+        PaymentEnvironmentData
+      > = {
+        TEST: {
+          publicKeyId: data.payment?.environments?.TEST?.publicKeyId ?? null,
+          paymentsEnabled:
+            data.payment?.environments?.TEST?.paymentsEnabled ?? false,
+          verifiedAt: data.payment?.environments?.TEST?.verifiedAt ?? null,
+          secretsConfigured: {
+            keySecret:
+              data.payment?.environments?.TEST?.secretsConfigured?.keySecret ??
+              false,
+            webhookSecret:
+              data.payment?.environments?.TEST?.secretsConfigured?.webhookSecret ??
+              false,
+          },
+        },
+        LIVE: {
+          publicKeyId: data.payment?.environments?.LIVE?.publicKeyId ?? null,
+          paymentsEnabled:
+            data.payment?.environments?.LIVE?.paymentsEnabled ?? false,
+          verifiedAt: data.payment?.environments?.LIVE?.verifiedAt ?? null,
+          secretsConfigured: {
+            keySecret:
+              data.payment?.environments?.LIVE?.secretsConfigured?.keySecret ??
+              false,
+            webhookSecret:
+              data.payment?.environments?.LIVE?.secretsConfigured?.webhookSecret ??
+              false,
+          },
+        },
+      };
+
+      setSavedEnvironment(activeEnvironment);
+      setPaymentEnvironments(environments);
+      const selectedEnvironment = preserveSelectedEnvironment
+      ? selectedEnvironmentRef.current
+      : activeEnvironment;
+      selectedEnvironmentRef.current = selectedEnvironment;
+    setEnvironment(selectedEnvironment);
+        const selectedPayment = environments[selectedEnvironment];
+            setPublicKeyId(selectedPayment.publicKeyId ?? "");
+      setPaymentsEnabled(selectedPayment.paymentsEnabled);
+      setPaymentVerifiedAt(selectedPayment.verifiedAt);
+      setKeySecretConfigured(selectedPayment.secretsConfigured.keySecret);
       setWebhookSecretConfigured(
-        data.secretsConfigured.webhookSecret,
+        selectedPayment.secretsConfigured.webhookSecret,
       );
-
       // Never populate secret inputs with stored credentials.
       setKeySecret("");
       setWebhookSecret("");
@@ -205,71 +235,20 @@ const [shippingPricingType, setShippingPricingType] =
   useEffect(() => {
     void loadSettings();
   }, [loadSettings]);
-
-const loadShippingRules = useCallback(async () => {
-  try {
-    setShippingLoading(true);
-    setShippingError("");
-
-    const response = await fetch(
-      "/api/workspace/website/shipping-rules",
-      {
-        method: "GET",
-        credentials: "include",
-        cache: "no-store",
-      },
-    );
-
-    const result: ShippingRulesResponse = await response.json();
-
-    if (!response.ok || !result.success || !result.data) {
-      throw new Error(
-        result.message ?? "Unable to load shipping rules.",
-      );
-    }
-
-    setShippingRules(result.data.rules);
-    setShippingEnabled(result.data.settings.shippingEnabled);
-  } catch (err) {
-    setShippingError(
-      err instanceof Error
-        ? err.message
-        : "Unable to load shipping rules.",
-    );
-  } finally {
-    setShippingLoading(false);
-  }
-}, []);
-
-useEffect(() => {
-  void loadShippingRules();
-}, [loadShippingRules]);
-
 const handleSave = async () => {
     if (!canEdit || saving) return;
-
     try {
       setSaving(true);
       setError("");
       setSuccessMessage("");
-
-      const payload: Record<string, unknown> = {
-        storeEnabled,
-        cartEnabled,
-        guestCheckoutEnabled,
-        defaultCurrency,
-        shippingMode: "MANUAL",
-      };
-
+const payload: Record<string, unknown> = {
+  storeEnabled,
+  cartEnabled,
+  guestCheckoutEnabled,
+  defaultCurrency,
+  shippingMode: "MANUAL",
+};
       // Empty secret fields mean keep the existing encrypted credentials.
-      if (keySecret.trim()) {
-        payload.keySecret = keySecret.trim();
-      }
-
-      if (webhookSecret.trim()) {
-        payload.webhookSecret = webhookSecret.trim();
-      }
-
       const response = await fetch(
         "/api/workspace/website/store-settings",
         {
@@ -281,23 +260,18 @@ const handleSave = async () => {
           body: JSON.stringify(payload),
         },
       );
-
       const result: StoreSettingsResponse = await response.json();
-
       if (!response.ok || !result.success) {
         throw new Error(
           result.message ?? "Unable to save store settings.",
         );
       }
-
       setKeySecret("");
       setWebhookSecret("");
-
       setSuccessMessage(
         result.message ??
           "Settings saved. Online checkout remains disabled until verification is available.",
       );
-
       await loadSettings();
     } catch (err) {
       setError(
@@ -309,7 +283,67 @@ const handleSave = async () => {
       setSaving(false);
     }
   };
-
+  const handleSavePaymentCredentials = async () => {
+    if (!canEdit || saving || verifyingPayment) return;
+  
+    if (!publicKeyId.trim()) {
+      setError("Enter the Razorpay Key ID for the selected environment.");
+      return;
+    }
+      if (!keySecret.trim() && !keySecretConfigured) {
+      setError("Enter the Razorpay Key Secret for the selected environment.");
+      return;
+    }
+      if (!webhookSecret.trim() && !webhookSecretConfigured) {
+      setError("Enter the Razorpay Webhook Secret for the selected environment.");
+      return;
+    }
+      try {
+      setSaving(true);
+      setError("");
+      setSuccessMessage("");
+        const payload: Record<string, unknown> = {
+        credentialsEnvironment: environment,
+        publicKeyId: publicKeyId.trim(),
+      };
+  
+      if (keySecret.trim()) {
+        payload.keySecret = keySecret.trim();
+      }
+  
+      if (webhookSecret.trim()) {
+        payload.webhookSecret = webhookSecret.trim();
+      }
+        const response = await fetch("/api/workspace/website/store-settings", {
+        method: "PATCH",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+        const result: StoreSettingsResponse = await response.json();
+        if (!response.ok || !result.success) {
+        throw new Error(
+          result.message ?? "Unable to save Razorpay credentials.",
+        );
+      }
+        setKeySecret("");
+      setWebhookSecret("");
+        setSuccessMessage(
+        `Razorpay ${environment} credentials saved. Verify them before enabling payments.`,
+      );
+        await loadSettings(true);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to save Razorpay credentials.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
   const handleVerifyPayment = async () => {
     if (!canEdit || saving || verifyingPayment) return;
   
@@ -323,25 +357,25 @@ const handleSave = async () => {
         {
           method: "POST",
           credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ environment }),
         },
       );
   
       const result = await response.json();
-  
-      if (!response.ok || !result.success) {
+        if (!response.ok || !result.success) {
         throw new Error(
           result.message ?? "Unable to verify Razorpay credentials.",
         );
       }
-  
-      setPaymentVerifiedAt(result.data?.verifiedAt ?? null);
+        setPaymentVerifiedAt(result.data?.verifiedAt ?? null);
       setPaymentsEnabled(false);
-  
-      setSuccessMessage(
+        setSuccessMessage(
         "Razorpay TEST API credentials verified successfully. Online payments remain disabled.",
       );
-  
-      await loadSettings();
+        await loadSettings();
     } catch (err) {
       setError(
         err instanceof Error
@@ -352,7 +386,6 @@ const handleSave = async () => {
       setVerifyingPayment(false);
     }
   };
-
   const handleEnableTestPayments = async () => {
     if (
       !canEdit ||
@@ -363,8 +396,7 @@ const handleSave = async () => {
     ) {
       return;
     }
-  
-    try {
+      try {
       setSaving(true);
       setError("");
       setSuccessMessage("");
@@ -382,16 +414,13 @@ const handleSave = async () => {
           }),
         },
       );
-  
-      const result: StoreSettingsResponse = await response.json();
-  
-      if (!response.ok || !result.success) {
+        const result: StoreSettingsResponse = await response.json();
+        if (!response.ok || !result.success) {
         throw new Error(
           result.message ?? "Unable to enable Razorpay TEST payments.",
         );
       }
-  
-      setSuccessMessage("Razorpay TEST payments enabled successfully.");
+        setSuccessMessage("Razorpay TEST payments enabled successfully.");
       await loadSettings();
     } catch (err) {
       setError(
@@ -401,111 +430,6 @@ const handleSave = async () => {
       );
     } finally {
       setSaving(false);
-    }
-  };
-
-const handleShippingRuleSave = async (
-    event: React.FormEvent<HTMLFormElement>,
-  ) => {
-    event.preventDefault();
-
-    if (!canEdit || shippingSaving) return;
-
-    const form = event.currentTarget;
-    const formData = new FormData(form);
-    const pricingType = String(
-      formData.get("pricingType") ?? "FLAT_RATE",
-    ) as ShippingPricingType;
-
-    const payload = {
-      name: String(formData.get("name") ?? "").trim(),
-      zoneName: String(formData.get("zoneName") ?? "").trim() || null,
-      countryCode: String(formData.get("countryCode") ?? "IN")
-        .trim()
-        .toUpperCase(),
-      stateCode: String(formData.get("stateCode") ?? "").trim() || null,
-      postalCode: String(formData.get("postalCode") ?? "").trim() || null,
-      postalCodePrefix:
-        String(formData.get("postalCodePrefix") ?? "").trim() || null,
-      pricingType,
-      currency: defaultCurrency,
-      flatRate: Number(formData.get("flatRate") ?? 0),
-      baseCharge: Number(formData.get("baseCharge") ?? 0),
-      includedWeightKg:
-        pricingType === "WEIGHT_BASED"
-          ? Number(formData.get("includedWeightKg"))
-          : null,
-      additionalPerKg:
-        pricingType === "WEIGHT_BASED"
-          ? Number(formData.get("additionalPerKg"))
-          : null,
-      isActive: formData.get("isActive") === "on",
-    };
-
-    if (!payload.name) {
-      setShippingError("Enter a name for this shipping rule.");
-      return;
-    }
-
-    if (
-      !Number.isFinite(payload.flatRate) ||
-      payload.flatRate < 0 ||
-      !Number.isFinite(payload.baseCharge) ||
-      payload.baseCharge < 0
-    ) {
-      setShippingError("Shipping charges must be valid non-negative numbers.");
-      return;
-    }
-
-    if (
-      pricingType === "WEIGHT_BASED" &&
-      (!Number.isFinite(payload.includedWeightKg) ||
-        payload.includedWeightKg === null ||
-        payload.includedWeightKg < 0 ||
-        !Number.isFinite(payload.additionalPerKg) ||
-        payload.additionalPerKg === null ||
-        payload.additionalPerKg < 0)
-    ) {
-      setShippingError(
-        "Enter valid included weight and additional charge per kg.",
-      );
-      return;
-    }
-
-    try {
-      setShippingSaving(true);
-      setShippingError("");
-      setShippingSuccess("");
-
-      const response = await fetch(
-        "/api/workspace/website/shipping-rules",
-        {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        },
-      );
-
-      const result: ShippingRulesResponse = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.message ?? "Unable to save shipping rule.");
-      }
-
-      setShippingSuccess("Shipping rule created successfully.");
-      setShowShippingForm(false);
-      form.reset();
-
-      await loadShippingRules();
-    } catch (err) {
-      setShippingError(
-        err instanceof Error
-          ? err.message
-          : "Unable to save shipping rule.",
-      );
-    } finally {
-      setShippingSaving(false);
     }
   };
 
@@ -519,7 +443,6 @@ if (loading) {
       </section>
     );
   }
-
   return (
     <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200 sm:p-8">
       <div className="space-y-8">
@@ -555,7 +478,6 @@ if (loading) {
             Checkout not activated
           </span>
         </header>
-
         {error && (
           <div
             role="alert"
@@ -574,7 +496,6 @@ if (loading) {
             {successMessage}
           </div>
         )}
-
         <fieldset disabled={!canEdit || saving} className="space-y-8">
           <section className="space-y-5">
             <div>
@@ -586,7 +507,6 @@ if (loading) {
                 preferences does not activate checkout yet.
               </p>
             </div>
-
             <label className="flex items-start gap-3 rounded-2xl border border-slate-200 p-4">
               <input
                 type="checkbox"
@@ -606,7 +526,6 @@ if (loading) {
                 </span>
               </span>
             </label>
-
             <label className="flex items-start gap-3 rounded-2xl border border-slate-200 p-4">
               <input
                 type="checkbox"
@@ -625,7 +544,6 @@ if (loading) {
                 </span>
               </span>
             </label>
-
             <label className="flex items-start gap-3 rounded-2xl border border-slate-200 p-4">
               <input
                 type="checkbox"
@@ -645,7 +563,6 @@ if (loading) {
                 </span>
               </span>
             </label>
-
             <div className="max-w-sm">
               <label
                 htmlFor="store-currency"
@@ -673,7 +590,6 @@ if (loading) {
               </p>
             </div>
           </section>
-
 <section className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-5 sm:p-6">
   <div className="flex items-start gap-3">
     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100">
@@ -697,7 +613,6 @@ if (loading) {
       </a>
     </div>
   </div>
-
   <ol className="mt-6 space-y-5">
     <li className="flex gap-3">
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-sm font-bold text-emerald-800 ring-1 ring-emerald-200">
@@ -721,7 +636,6 @@ if (loading) {
         </a>
       </div>
     </li>
-
     <li className="flex gap-3">
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-sm font-bold text-emerald-800 ring-1 ring-emerald-200">
         2
@@ -801,7 +715,6 @@ if (loading) {
         </p>
       </div>
     </li>
-
     <li className="flex gap-3">
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-sm font-bold text-emerald-800 ring-1 ring-emerald-200">
         5
@@ -819,7 +732,6 @@ if (loading) {
       </div>
     </li>
   </ol>
-
   <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
     <p className="text-sm font-semibold text-amber-900">
       Security reminder
@@ -831,7 +743,6 @@ if (loading) {
     </p>
   </div>
 </section>
-
 <section className="space-y-5 border-t border-slate-200 pt-8">
             <div className="flex items-start gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100">
@@ -859,11 +770,30 @@ if (loading) {
               <select
                 id="razorpay-environment"
                 value={environment}
-                onChange={(event) =>
-                  setEnvironment(
-                    event.target.value as "TEST" | "LIVE",
-                  )
-                }
+
+                onChange={(event) => {
+                  const nextEnvironment =
+                    event.target.value as PaymentEnvironment;
+
+                  setEnvironment(nextEnvironment);
+                  selectedEnvironmentRef.current = nextEnvironment;
+                  const selectedPayment =
+                    paymentEnvironments[nextEnvironment];
+
+                  setPublicKeyId(selectedPayment.publicKeyId ?? "");
+                  setPaymentsEnabled(selectedPayment.paymentsEnabled);
+                  setPaymentVerifiedAt(selectedPayment.verifiedAt);
+                  setKeySecretConfigured(
+                    selectedPayment.secretsConfigured.keySecret,
+                  );
+                  setWebhookSecretConfigured(
+                    selectedPayment.secretsConfigured.webhookSecret,
+                  );
+
+                  // Never carry unsaved secrets between environments.
+                  setKeySecret("");
+                  setWebhookSecret("");
+                }}
                 className={inputClass}
               >
                 <option value="TEST">Test mode</option>
@@ -874,7 +804,6 @@ if (loading) {
                 verification and launch checks.
               </p>
             </div>
-
             <div>
               <label
                 htmlFor="razorpay-public-key"
@@ -895,7 +824,6 @@ if (loading) {
                 className={inputClass}
               />
             </div>
-
             <div>
               <label
                 htmlFor="razorpay-key-secret"
@@ -923,7 +851,6 @@ if (loading) {
                   : "No Key Secret is saved yet."}
               </p>
             </div>
-
             <div>
               <label
                 htmlFor="razorpay-webhook-secret"
@@ -953,13 +880,33 @@ if (loading) {
                   : "No webhook secret is saved yet."}
               </p>
             </div>
-
+            <div className="flex flex-wrap items-center gap-3">
+  <Button
+    type="button"
+    onClick={handleSavePaymentCredentials}
+    disabled={!canEdit || saving || verifyingPayment}
+  >
+    {saving ? (
+      <>
+        <Loader2 className="h-4 w-4 animate-spin" />
+        Saving credentials...
+      </>
+    ) : (
+      <>
+        <Save className="h-4 w-4" />
+        Save Razorpay Credentials
+      </>
+    )}
+  </Button>
+  <p className="text-xs text-slate-500">
+    Saves credentials for {environment} only. Does not switch the active payment environment.
+  </p>
+</div>
             <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
   <div>
     <p className="text-sm font-semibold text-slate-900">
       Verify Razorpay TEST credentials
     </p>
-
     <p className="mt-1 text-sm leading-6 text-slate-600">
       Save your credentials first, then verify the API connection.
       Verification does not enable online payments automatically.
@@ -971,7 +918,6 @@ if (loading) {
       Credentials verified successfully.
     </p>
   )}
-
   <Button
     type="button"
     onClick={handleVerifyPayment}
@@ -993,12 +939,10 @@ if (loading) {
     ) : (
       <>
         <ShieldCheck className="h-4 w-4" />
-        Verify Razorpay TEST Credentials
+        Verify Razorpay Credentials
       </>
     )}
   </Button>
-
-
 </div>
               {paymentVerifiedAt && environment === "TEST" && (
                 <div className="border-t border-slate-200 pt-4">
@@ -1038,337 +982,6 @@ if (loading) {
               )}
               
             </section>
-
-<section className="space-y-5 border-t border-slate-200 pt-8">
-  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-    <div>
-      <h3 className="text-lg font-bold text-slate-900">
-        Shipping rules
-      </h3>
-      <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
-        Configure shipping rates and delivery zones for your
-        store. Shipping charges will not be applied at checkout
-        until shipping calculation and checkout integration are
-        implemented and tested.
-      </p>
-    </div>
-
-    <Button
-      type="button"
-      disabled={!canEdit || shippingLoading}
-      onClick={() => setShowShippingForm(true)}
-    >
-      Add shipping rule
-    </Button>
-  </div>
-
-  <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-    <p className="text-sm font-semibold text-amber-900">
-      {shippingEnabled
-        ? "Shipping is marked as enabled in settings"
-        : "Shipping is currently disabled"}
-    </p>
-    <p className="mt-1 text-sm leading-6 text-amber-800">
-      This status does not activate shipping charges at checkout.
-      Keep shipping disabled until the complete calculation flow
-      is ready.
-    </p>
-  </div>
-
-  {shippingError && (
-    <div
-      role="alert"
-      className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-    >
-      {shippingError}
-    </div>
-  )}
-
-{shippingSuccess && (
-              <div
-                role="status"
-                className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"
-              >
-                {shippingSuccess}
-              </div>
-            )}
-
-            {showShippingForm && (
-              <form
-                onSubmit={handleShippingRuleSave}
-                className="space-y-5 rounded-2xl border border-slate-200 bg-slate-50 p-5"
-              >
-                <div>
-                  <h4 className="text-base font-bold text-slate-900">
-                    Create shipping rule
-                  </h4>
-                  <p className="mt-1 text-sm text-slate-500">
-                    Define where this rule applies and how its charge is calculated.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className="text-sm font-semibold text-slate-700">
-                      Rule name *
-                    </label>
-                    <input
-                      name="name"
-                      required
-                      maxLength={100}
-                      placeholder="e.g. Maharashtra delivery"
-                      className={inputClass}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-semibold text-slate-700">
-                      Delivery zone name
-                    </label>
-                    <input
-                      name="zoneName"
-                      maxLength={100}
-                      placeholder="e.g. Local delivery"
-                      className={inputClass}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-semibold text-slate-700">
-                      Country code *
-                    </label>
-                    <input
-                      name="countryCode"
-                      required
-                      defaultValue="IN"
-                      minLength={2}
-                      maxLength={2}
-                      pattern="[A-Za-z]{2}"
-                      title="Enter a two-letter country code, such as IN or DE."
-                      className={inputClass}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-semibold text-slate-700">
-                      State code
-                    </label>
-                    <input
-                      name="stateCode"
-                      maxLength={20}
-                      placeholder="e.g. MH"
-                      className={inputClass}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-semibold text-slate-700">
-                      Exact postal code
-                    </label>
-                    <input
-                      name="postalCode"
-                      maxLength={20}
-                      placeholder="Optional"
-                      className={inputClass}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-semibold text-slate-700">
-                      Postal-code prefix
-                    </label>
-                    <input
-                      name="postalCodePrefix"
-                      maxLength={20}
-                      placeholder="e.g. 411"
-                      className={inputClass}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-semibold text-slate-700">
-                      Pricing method *
-                    </label>
-<select
-  name="pricingType"
-  value={shippingPricingType}
-  className={inputClass}
-  onChange={(event) =>
-    setShippingPricingType(
-      event.target.value as ShippingPricingType,
-    )
-  }
->
-  <option value="FLAT_RATE">Flat rate</option>
-  <option value="WEIGHT_BASED">Weight-based</option>
-</select>
-
-</div>
-                </div>
-                <div className={shippingPricingType === "FLAT_RATE" ? "" : "hidden"}>
-                  <label className="text-sm font-semibold text-slate-700">
-                    Flat shipping charge ({defaultCurrency}) *
-                  </label>
-                  <input
-                    name="flatRate"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    defaultValue="0"
-                    required
-                    className={inputClass}
-                  />
-                </div>
-
-                <div className={shippingPricingType === "WEIGHT_BASED" ? "" : "hidden"}>
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                    <div>
-                      <label className="text-sm font-semibold text-slate-700">
-                        Base charge ({defaultCurrency}) *
-                      </label>
-                      <input
-                        name="baseCharge"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        defaultValue="0"
-                        className={inputClass}
-                        disabled={shippingPricingType !== "WEIGHT_BASED"}
-                        required={shippingPricingType === "WEIGHT_BASED"}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-semibold text-slate-700">
-                        Included weight (kg) *
-                      </label>
-                      <input
-                        name="includedWeightKg"
-                        type="number"
-                        min="0"
-                        step="0.001"
-                        defaultValue="1"
-                        className={inputClass}
-                        disabled={shippingPricingType !== "WEIGHT_BASED"}
-                        required={shippingPricingType === "WEIGHT_BASED"}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-semibold text-slate-700">
-                        Additional charge per kg ({defaultCurrency}) *
-                      </label>
-                      <input
-                        name="additionalPerKg"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        defaultValue="0"
-                        className={inputClass}
-                        disabled={shippingPricingType !== "WEIGHT_BASED"}
-                        required={shippingPricingType === "WEIGHT_BASED"}
-                      />
-                    </div>
-                  </div>
-                  <p className="mt-2 text-xs text-slate-500">
-                    Weight-based fields will be enabled when that pricing method is selected.
-                  </p>
-                </div>
-
-                <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-3">
-                  <input
-                    type="checkbox"
-                    name="isActive"
-                    className="mt-1 h-4 w-4 accent-emerald-600"
-                  />
-                  <span>
-                    <span className="block text-sm font-semibold text-slate-800">
-                      Create as active rule
-                    </span>
-                    <span className="mt-1 block text-xs leading-5 text-slate-500">
-                      Active here means the rule is configured as active; it does not enable checkout shipping.
-                    </span>
-                  </span>
-                </label>
-
-                <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                  <Button
-                    type="button"
-                    disabled={shippingSaving}
-                    onClick={() => {
-                      setShowShippingForm(false);
-                      setShippingError("");
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={shippingSaving || !canEdit}>
-                    {shippingSaving ? "Saving rule..." : "Save shipping rule"}
-                  </Button>
-                </div>
-              </form>
-            )}
-
-  {shippingLoading ? (
-    <div className="flex items-center gap-2 py-6 text-sm text-slate-500">
-      <Loader2 className="h-4 w-4 animate-spin" />
-      Loading shipping rules...
-    </div>
-  ) : shippingRules.length === 0 ? (
-    <div className="rounded-2xl border border-dashed border-slate-300 px-5 py-8 text-center">
-      <p className="font-semibold text-slate-800">
-        No shipping rules configured
-      </p>
-      <p className="mt-1 text-sm text-slate-500">
-        Add a rule to define rates for your delivery areas.
-      </p>
-    </div>
-  ) : (
-    <div className="space-y-3">
-      {shippingRules.map((rule) => (
-        <article
-          key={rule.id}
-          className="rounded-2xl border border-slate-200 p-4"
-        >
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h4 className="font-semibold text-slate-900">
-                {rule.name}
-              </h4>
-              <p className="mt-1 text-sm text-slate-500">
-                {rule.zoneName || "General delivery zone"}
-                {" · "}
-                {rule.countryCode}
-                {rule.stateCode ? ` · ${rule.stateCode}` : ""}
-              </p>
-              <p className="mt-2 text-sm text-slate-700">
-                {rule.pricingType === "FLAT_RATE"
-                  ? `Flat rate: ${rule.currency} ${Number(rule.flatRate).toFixed(2)}`
-                  : `Base charge: ${rule.currency} ${Number(rule.baseCharge).toFixed(2)}; included weight: ${rule.includedWeightKg ?? "—"} kg; additional per kg: ${rule.additionalPerKg ?? "—"}`}
-              </p>
-              {(rule.postalCode || rule.postalCodePrefix) && (
-                <p className="mt-1 text-xs text-slate-500">
-                  Postal restriction:{" "}
-                  {rule.postalCode || `Prefix ${rule.postalCodePrefix}`}
-                </p>
-              )}
-            </div>
-
-            <span
-              className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold ${
-                rule.isActive
-                  ? "bg-emerald-50 text-emerald-700"
-                  : "bg-slate-100 text-slate-600"
-              }`}
-            >
-              {rule.isActive ? "Active rule" : "Inactive rule"}
-            </span>
-          </div>
-        </article>
-      ))}
-    </div>
-  )}
-</section>
 </fieldset>
 
 <div className="flex flex-col gap-4 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
@@ -1377,7 +990,6 @@ if (loading) {
               ? "Changes apply only to this customer website."
               : "You have view-only access to these settings."}
           </div>
-
           {canEdit && (
             <Button
               type="button"

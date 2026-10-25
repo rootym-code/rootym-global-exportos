@@ -7,7 +7,10 @@ import {
 } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import Razorpay from "razorpay";
-import { Prisma } from "@/lib/generated/prisma";
+import {
+  Prisma,
+  StorePaymentEnvironment,
+} from "@/lib/generated/prisma";
 
 import prisma from "@/lib/prisma";
 import { decryptSecret } from "@/lib/utils/secret-encryption";
@@ -128,6 +131,7 @@ export async function POST(request: NextRequest) {
         paymentStatus: true,
         provider: true,
         providerOrderId: true,
+        providerEnvironment: true,
         providerPaymentId: true,
         currency: true,
         totalAmount: true,
@@ -171,36 +175,68 @@ export async function POST(request: NextRequest) {
       );
     }
 
+
     const configuration =
       await prisma.storePaymentConfiguration.findUnique({
         where: { websiteId: order.websiteId },
         select: {
           provider: true,
-          environment: true,
           publicKeyId: true,
           encryptedKeySecret: true,
           verifiedAt: true,
+          livePublicKeyId: true,
+          liveEncryptedKeySecret: true,
+          liveVerifiedAt: true,
         },
       });
 
-    if (
-      !configuration ||
-      configuration.provider !== "RAZORPAY" ||
-      configuration.environment !== "TEST" ||
-      !configuration.publicKeyId ||
-      !configuration.encryptedKeySecret ||
-      !configuration.verifiedAt
-    ) {
+    if (!configuration || configuration.provider !== "RAZORPAY") {
       return errorResponse(
-        "Verified Razorpay TEST credentials are unavailable.",
+        "Razorpay payment configuration is unavailable.",
         503,
         "PAYMENT_VERIFICATION_UNAVAILABLE",
       );
     }
 
-    const keySecret = decryptSecret(
-      configuration.encryptedKeySecret,
-    );
+    if (
+      order.providerEnvironment !== StorePaymentEnvironment.TEST &&
+      order.providerEnvironment !== StorePaymentEnvironment.LIVE
+    ) {
+      return errorResponse(
+        "The order's Razorpay environment is invalid.",
+        503,
+        "PAYMENT_ENVIRONMENT_INVALID",
+      );
+    }
+
+    const isLiveOrder =
+      order.providerEnvironment === StorePaymentEnvironment.LIVE;
+
+    const publicKeyId = isLiveOrder
+      ? configuration.livePublicKeyId
+      : configuration.publicKeyId;
+
+    const encryptedKeySecret = isLiveOrder
+      ? configuration.liveEncryptedKeySecret
+      : configuration.encryptedKeySecret;
+
+    const verifiedAtForEnvironment = isLiveOrder
+      ? configuration.liveVerifiedAt
+      : configuration.verifiedAt;
+
+    if (
+      !publicKeyId ||
+      !encryptedKeySecret ||
+      !verifiedAtForEnvironment
+    ) {
+      return errorResponse(
+        "Verified Razorpay credentials for this order's environment are unavailable.",
+        503,
+        "PAYMENT_VERIFICATION_UNAVAILABLE",
+      );
+    }
+
+    const keySecret = decryptSecret(encryptedKeySecret);
 
     if (
       !isValidSignature(
@@ -220,7 +256,7 @@ export async function POST(request: NextRequest) {
     // A valid signature alone is not enough: independently retrieve
     // the payment from Razorpay and verify its captured status and amount.
     const razorpay = new Razorpay({
-      key_id: configuration.publicKeyId,
+      key_id: publicKeyId,
       key_secret: keySecret,
     });
 
@@ -264,6 +300,7 @@ export async function POST(request: NextRequest) {
         websiteId: order.websiteId,
         provider: "RAZORPAY",
         providerOrderId: razorpayOrderId,
+        providerEnvironment: order.providerEnvironment,
         status: "PENDING_PAYMENT",
         paymentStatus: {
           in: ["CREATED", "AUTHORIZED"],

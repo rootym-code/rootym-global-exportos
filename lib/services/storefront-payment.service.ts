@@ -2,7 +2,10 @@
 import "server-only";
 
 import Razorpay from "razorpay";
-import { Prisma } from "@/lib/generated/prisma";
+import {
+  Prisma,
+  StorePaymentEnvironment,
+} from "@/lib/generated/prisma";
 import prisma from "@/lib/prisma";
 import { decryptSecret } from "@/lib/utils/secret-encryption";
 
@@ -76,34 +79,37 @@ async function markCreationUnknown(
   }
 }
 
-export async function createRazorpayTestOrder({
+export async function createRazorpayOrder({
   websiteId,
   storeOrderId,
 }: CreateGatewayOrderInput) {
+
   const payment = await prisma.storePaymentConfiguration.findUnique({
     where: { websiteId },
     select: {
       provider: true,
       environment: true,
+
+      // Existing TEST credentials
       publicKeyId: true,
       encryptedKeySecret: true,
       paymentsEnabled: true,
       verifiedAt: true,
+
+      // Separate LIVE credentials
+      livePublicKeyId: true,
+      liveEncryptedKeySecret: true,
+      livePaymentsEnabled: true,
+      liveVerifiedAt: true,
     },
   });
 
-  if (
-    !payment ||
-    payment.provider !== "RAZORPAY" ||
-    payment.environment !== "TEST" ||
-    !payment.publicKeyId ||
-    !payment.encryptedKeySecret ||
-    !payment.verifiedAt ||
-    !payment.paymentsEnabled
-  ) {
+
+
+  if (!payment || payment.provider !== "RAZORPAY") {
     throw new StorefrontPaymentError(
-      "Verified Razorpay test credentials are required.",
-      "RAZORPAY_TEST_NOT_READY",
+      "Razorpay payment configuration is required.",
+      "RAZORPAY_NOT_READY",
       409,
     );
   }
@@ -118,6 +124,7 @@ export async function createRazorpayTestOrder({
       orderNumber: true,
       currency: true,
       totalAmount: true,
+      providerEnvironment: true,
       providerOrderId: true,
       providerOrderCreationStatus: true,
       providerOrderCreationStartedAt: true,
@@ -131,6 +138,49 @@ export async function createRazorpayTestOrder({
       "Store order was not found.",
       "STORE_ORDER_NOT_FOUND",
       404,
+    );
+  }
+
+  if (
+    order.providerEnvironment !== StorePaymentEnvironment.TEST &&
+    order.providerEnvironment !== StorePaymentEnvironment.LIVE
+  ) {
+    throw new StorefrontPaymentError(
+      "The order's Razorpay environment is invalid.",
+      "RAZORPAY_ENVIRONMENT_INVALID",
+      409,
+    );
+  }
+
+  const isLiveOrder =
+    order.providerEnvironment === StorePaymentEnvironment.LIVE;
+
+  const publicKeyId = isLiveOrder
+    ? payment.livePublicKeyId
+    : payment.publicKeyId;
+
+  const encryptedKeySecret = isLiveOrder
+    ? payment.liveEncryptedKeySecret
+    : payment.encryptedKeySecret;
+
+  const paymentsEnabled = isLiveOrder
+    ? payment.livePaymentsEnabled
+    : payment.paymentsEnabled;
+
+  const verifiedAt = isLiveOrder
+    ? payment.liveVerifiedAt
+    : payment.verifiedAt;
+
+  if (
+    !publicKeyId ||
+    !encryptedKeySecret ||
+    !verifiedAt ||
+    !paymentsEnabled
+  ) {
+    throw new StorefrontPaymentError(
+      "Verified and enabled Razorpay credentials for this order's environment are required.",
+      "RAZORPAY_NOT_READY",
+      409,
     );
   }
 
@@ -154,14 +204,17 @@ export async function createRazorpayTestOrder({
 
   // Reuse an existing gateway order only for a still-payable ROOTYM order.
   if (order.providerOrderId) {
+
     return {
       orderId: order.id,
       orderNumber: order.orderNumber,
       razorpayOrderId: order.providerOrderId,
       currency: order.currency,
       amount: order.totalAmount,
-      publicKeyId: payment.publicKeyId,
+      publicKeyId,
+      environment: order.providerEnvironment,
     };
+
   }
 
   // An uncertain or abandoned attempt must not create another gateway order.
@@ -182,6 +235,7 @@ export async function createRazorpayTestOrder({
         paymentStatus: "CREATED",
         providerOrderId: null,
         providerOrderCreationStatus: "IN_PROGRESS",
+        providerEnvironment: order.providerEnvironment,
         OR: [
           { providerOrderCreationStartedAt: null },
           { providerOrderCreationStartedAt: { lt: staleBefore } },
@@ -242,12 +296,14 @@ export async function createRazorpayTestOrder({
 
   // Complete local preparation before claiming creation, so a local
   // decryption/configuration failure does not leave a claimed attempt.
-  const keySecret = decryptSecret(payment.encryptedKeySecret);
+
+  const keySecret = decryptSecret(encryptedKeySecret);
 
   const razorpay = new Razorpay({
-    key_id: payment.publicKeyId,
+    key_id: publicKeyId,
     key_secret: keySecret,
   });
+
 
   // Atomic compare-and-set: only one concurrent request can claim creation.
   const claim = await prisma.storeOrder.updateMany({
@@ -258,6 +314,7 @@ export async function createRazorpayTestOrder({
       paymentStatus: "CREATED",
       providerOrderId: null,
       providerOrderCreationStatus: "NOT_STARTED",
+      providerEnvironment: order.providerEnvironment,
     },
     data: {
       providerOrderCreationStatus: "IN_PROGRESS",
@@ -291,14 +348,17 @@ export async function createRazorpayTestOrder({
     }
 
     if (latest.providerOrderId) {
+
       return {
         orderId: order.id,
         orderNumber: order.orderNumber,
         razorpayOrderId: latest.providerOrderId,
         currency: order.currency,
         amount: order.totalAmount,
-        publicKeyId: payment.publicKeyId,
+        publicKeyId,
+        environment: order.providerEnvironment,
       };
+
     }
 
     if (latest.providerOrderCreationStatus === "UNKNOWN") {
@@ -357,6 +417,7 @@ export async function createRazorpayTestOrder({
         status: "PENDING_PAYMENT",
         paymentStatus: "CREATED",
         providerOrderId: null,
+        providerEnvironment: order.providerEnvironment,
         providerOrderCreationStatus: {
           in: ["IN_PROGRESS", "UNKNOWN"],
         },
@@ -416,13 +477,14 @@ export async function createRazorpayTestOrder({
       503,
     );
   }
-
   return {
     orderId: order.id,
     orderNumber: order.orderNumber,
     razorpayOrderId: gatewayOrder.id,
     currency: order.currency,
     amount: order.totalAmount,
-    publicKeyId: payment.publicKeyId,
+    publicKeyId,
+    environment: order.providerEnvironment,
   };
+
 }

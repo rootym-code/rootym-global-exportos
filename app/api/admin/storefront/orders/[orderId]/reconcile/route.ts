@@ -1,8 +1,12 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import Razorpay from "razorpay";
-import { Prisma } from "@/lib/generated/prisma";
+import {
+  Prisma,
+  StorePaymentEnvironment,
+} from "@/lib/generated/prisma";
 import prisma from "@/lib/prisma";
+import { acquireStorePaymentLock } from "@/lib/services/store-payment-lock.service";
 import { authenticateAdmin } from "@/lib/auth";
 import { decryptSecret } from "@/lib/utils/secret-encryption";
 
@@ -53,6 +57,7 @@ export async function POST(
         totalAmount: true,
         provider: true,
         providerOrderId: true,
+        providerEnvironment: true,
         providerOrderCreationStatus: true,
         providerOrderCreationStartedAt: true,
         paymentStatus: true,
@@ -104,35 +109,63 @@ export async function POST(
       );
     }
 
+
     const payment =
       await prisma.storePaymentConfiguration.findUnique({
         where: { websiteId: order.websiteId },
         select: {
           provider: true,
-          environment: true,
           publicKeyId: true,
           encryptedKeySecret: true,
           verifiedAt: true,
+          livePublicKeyId: true,
+          liveEncryptedKeySecret: true,
+          liveVerifiedAt: true,
         },
       });
 
-    // Reconciliation is restricted to verified TEST credentials.
-    // paymentsEnabled is intentionally not required here: this route
-    // never initiates a payment or enables payments.
+    if (
+      order.providerEnvironment !== StorePaymentEnvironment.TEST &&
+      order.providerEnvironment !== StorePaymentEnvironment.LIVE
+    ) {
+      return jsonError(
+        "The order's Razorpay environment is invalid.",
+        409,
+        "RAZORPAY_ENVIRONMENT_NOT_READY",
+      );
+    }
+
+    const isLiveOrder =
+      order.providerEnvironment === StorePaymentEnvironment.LIVE;
+
+    const publicKeyId = isLiveOrder
+      ? payment?.livePublicKeyId
+      : payment?.publicKeyId;
+
+    const encryptedKeySecret = isLiveOrder
+      ? payment?.liveEncryptedKeySecret
+      : payment?.encryptedKeySecret;
+
+    const verifiedAtForEnvironment = isLiveOrder
+      ? payment?.liveVerifiedAt
+      : payment?.verifiedAt;
+
+    // Reconciliation only recovers an existing gateway order.
+    // It does not initiate a payment, so paymentsEnabled is not required.
     if (
       !payment ||
       payment.provider !== "RAZORPAY" ||
-      payment.environment !== "TEST" ||
-      !payment.publicKeyId ||
-      !payment.encryptedKeySecret ||
-      !payment.verifiedAt
+      !publicKeyId ||
+      !encryptedKeySecret ||
+      !verifiedAtForEnvironment
     ) {
       return jsonError(
-        "Verified Razorpay TEST credentials are required for reconciliation.",
+        "Verified Razorpay credentials matching the order environment are required for reconciliation.",
         409,
-        "RAZORPAY_TEST_NOT_READY",
+        "RAZORPAY_ENVIRONMENT_NOT_READY",
       );
     }
+
 
     const amountInPaise = order.totalAmount
       .mul(100)
@@ -151,8 +184,8 @@ export async function POST(
     }
 
     const razorpay = new Razorpay({
-      key_id: payment.publicKeyId,
-      key_secret: decryptSecret(payment.encryptedKeySecret),
+      key_id: publicKeyId,
+      key_secret: decryptSecret(encryptedKeySecret),
     });
 
 
@@ -207,7 +240,7 @@ export async function POST(
             paymentRetryAllowed: false,
             reconciliationRetryAllowed: true,
             recommendedAction:
-              "Wait briefly, then run reconciliation again. If the order remains unresolved, inspect Razorpay TEST-mode orders using the receipt and ROOTYM order references before taking further action.",
+             "Wait briefly, then run reconciliation again. If the order remains unresolved, inspect Razorpay orders in the matching payment environment using the receipt and ROOTYM order references before taking further action.",
           },
         },
         { status: 409 },
@@ -268,26 +301,134 @@ if (
   );
 }
 
-    // Atomic compare-and-set prevents overwriting a concurrent update.
-    const linked = await prisma.storeOrder.updateMany({
-      where: {
-        id: order.id,
-        websiteId: order.websiteId,
-        status: "PENDING_PAYMENT",
-        paymentStatus: "CREATED",
-        providerOrderId: null,
-        providerOrderCreationStatus: {
-          in: ["UNKNOWN", "IN_PROGRESS", "CREATED"],
+
+    // Atomically revalidate the local order and payment environment before linking.
+    const transactionResult = await prisma.$transaction(async (tx) => {
+      await acquireStorePaymentLock(tx, order.websiteId);
+
+      const [currentOrder, currentPayment] = await Promise.all([
+        tx.storeOrder.findFirst({
+          where: {
+            id: order.id,
+            websiteId: order.websiteId,
+          },
+
+          select: {
+            providerOrderId: true,
+            providerEnvironment: true,
+            providerOrderCreationStatus: true,
+            paymentStatus: true,
+            status: true,
+            totalAmount: true,
+            currency: true,
+            orderNumber: true,
+          },
+
+        }),
+        tx.storePaymentConfiguration.findUnique({
+          where: { websiteId: order.websiteId },
+
+          select: {
+            provider: true,
+            verifiedAt: true,
+            liveVerifiedAt: true,
+          },
+
+        }),
+      ]);
+
+      if (!currentOrder) {
+        return { result: "ORDER_NOT_FOUND" as const };
+      }
+
+      if (currentOrder.providerOrderId) {
+        return {
+          result:
+            currentOrder.providerOrderId === gatewayOrder.id
+              ? ("ALREADY_LINKED" as const)
+              : ("DIFFERENT_ORDER_LINKED" as const),
+        };
+      }
+
+      if (
+        currentOrder.status !== "PENDING_PAYMENT" ||
+        currentOrder.paymentStatus !== "CREATED" ||
+        currentOrder.totalAmount.lte(0) ||
+        !currentOrder.totalAmount.equals(order.totalAmount) ||
+        currentOrder.currency !== order.currency ||
+        currentOrder.orderNumber !== order.orderNumber ||
+        currentOrder.providerEnvironment !== order.providerEnvironment ||
+        !["UNKNOWN", "IN_PROGRESS", "CREATED"].includes(
+          currentOrder.providerOrderCreationStatus,
+        )
+      ) {
+        return { result: "ORDER_STATE_CHANGED" as const };
+      }
+      const verifiedAtForCurrentEnvironment =
+        order.providerEnvironment === StorePaymentEnvironment.LIVE
+          ? currentPayment?.liveVerifiedAt
+          : currentPayment?.verifiedAt;
+
+      if (
+        !currentPayment ||
+        currentPayment.provider !== "RAZORPAY" ||
+        !verifiedAtForCurrentEnvironment
+      ) {
+        return { result: "PAYMENT_CONFIGURATION_CHANGED" as const };
+      }
+
+
+      const linked = await tx.storeOrder.updateMany({
+        where: {
+          id: order.id,
+          websiteId: order.websiteId,
+          status: "PENDING_PAYMENT",
+          paymentStatus: "CREATED",
+          providerOrderId: null,
+          providerEnvironment: order.providerEnvironment,
+          providerOrderCreationStatus: {
+            in: ["UNKNOWN", "IN_PROGRESS", "CREATED"],
+          },
         },
-      },
-      data: {
-        providerOrderId: gatewayOrder.id,
-        provider: "RAZORPAY",
-        providerOrderCreationStatus: "CREATED",
-      },
+        data: {
+          providerOrderId: gatewayOrder.id,
+          provider: "RAZORPAY",
+          providerOrderCreationStatus: "CREATED",
+        },
+      });
+
+      return {
+        result: linked.count === 1
+          ? ("RECONCILED" as const)
+          : ("ORDER_STATE_CHANGED" as const),
+      };
     });
 
-    if (linked.count !== 1) {
+    if (transactionResult.result === "ORDER_NOT_FOUND") {
+      return jsonError(
+        "Store order was not found during reconciliation.",
+        404,
+        "STORE_ORDER_NOT_FOUND",
+      );
+    }
+
+    if (transactionResult.result === "DIFFERENT_ORDER_LINKED") {
+      return jsonError(
+        "A different gateway order has already been linked. Manual investigation is required.",
+        409,
+        "DIFFERENT_GATEWAY_ORDER_LINKED",
+      );
+    }
+
+    if (transactionResult.result === "PAYMENT_CONFIGURATION_CHANGED") {
+      return jsonError(
+        "The active payment configuration changed during reconciliation. Verify the environment and retry.",
+        409,
+        "RAZORPAY_ENVIRONMENT_NOT_READY",
+      );
+    }
+
+    if (transactionResult.result === "ORDER_STATE_CHANGED") {
       return jsonError(
         "The local order changed during reconciliation. Reload it and inspect its current state.",
         409,
@@ -295,11 +436,21 @@ if (
       );
     }
 
+    if (
+      transactionResult.result !== "RECONCILED" &&
+      transactionResult.result !== "ALREADY_LINKED"
+    ) {
+      return jsonError(
+        "Reconciliation could not confirm the gateway order association.",
+        409,
+        "RECONCILIATION_CONFLICT",
+      );
+    }
     return NextResponse.json({
       success: true,
       result: "RECONCILED",
       message:
-        "The existing Razorpay TEST order was verified and linked to the local order.",
+       "The existing Razorpay order was verified and linked to the local order.",
       orderNumber: order.orderNumber,
       providerOrderCreationStatus: "CREATED",
     });

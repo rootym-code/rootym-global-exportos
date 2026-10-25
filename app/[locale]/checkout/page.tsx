@@ -47,6 +47,7 @@ type CheckoutOrderResult = {
   orderId: string;
   orderNumber: string;
   paymentStatus: "NOT_INITIATED" | "PENDING" | "CAPTURED";
+  environment?: "TEST" | "LIVE";
   razorpayOrderId?: string;
   publicKeyId?: string;
   amount?: number;
@@ -657,24 +658,29 @@ const [orderResult, setOrderResult] =
         }
 
   
-        // Preserve the existing Razorpay TEST response validation.
-        if (
-          !data.razorpayOrderId ||
-          !data.publicKeyId ||
-          typeof data.amount !== "number" ||
-          !data.currency
-        ) {
-          setNotice(
-            "The server response could not be confirmed. Retry this same checkout attempt; do not start a new one.",
-          );
-          return;
-        }
+// Validate the payment configuration returned by the server.
+if (
+  (data.environment !== "TEST" && data.environment !== "LIVE") ||
+  !data.razorpayOrderId ||
+  !data.publicKeyId ||
+  typeof data.amount !== "number" ||
+  !Number.isSafeInteger(data.amount) ||
+  data.amount <= 0 ||
+  typeof data.currency !== "string" ||
+  !/^[A-Z]{3}$/.test(data.currency)
+) {
+  setNotice(
+    "The server response could not be confirmed. Retry this same checkout attempt; do not start a new one.",
+  );
+  return;
+}
   
 
         setOrderResult({
           orderId: data.orderId,
           orderNumber: data.orderNumber,
           paymentStatus: "PENDING",
+          environment: data.environment,
           razorpayOrderId: data.razorpayOrderId,
           publicKeyId: data.publicKeyId,
           amount: data.amount,
@@ -1061,7 +1067,7 @@ const [orderResult, setOrderResult] =
 
     {orderResult.razorpayOrderId && (
       <p className="mt-1 break-all text-xs">
-        Razorpay TEST order ID: {orderResult.razorpayOrderId}
+     Razorpay {orderResult.environment} order ID: {orderResult.razorpayOrderId}
       </p>
     )}
 

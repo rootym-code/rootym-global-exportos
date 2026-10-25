@@ -8,7 +8,10 @@ import {
 import { NextRequest, NextResponse } from "next/server";
 import Razorpay from "razorpay";
 
-import { Prisma } from "@/lib/generated/prisma";
+import {
+  Prisma,
+  StorePaymentEnvironment,
+} from "@/lib/generated/prisma";
 import prisma from "@/lib/prisma";
 import { decryptSecret } from "@/lib/utils/secret-encryption";
 
@@ -121,24 +124,32 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+
     const configurations =
       await prisma.storePaymentConfiguration.findMany({
         where: {
           provider: "RAZORPAY",
-          environment: "TEST",
-          encryptedWebhookSecret: { not: null },
+          OR: [
+            { encryptedWebhookSecret: { not: null } },
+            { liveEncryptedWebhookSecret: { not: null } },
+          ],
         },
         select: {
           websiteId: true,
           publicKeyId: true,
           encryptedKeySecret: true,
           encryptedWebhookSecret: true,
+          verifiedAt: true,
+          livePublicKeyId: true,
+          liveEncryptedKeySecret: true,
+          liveEncryptedWebhookSecret: true,
+          liveVerifiedAt: true,
         },
       });
 
     if (configurations.length === 0) {
       console.error(
-        "No TEST-mode storefront webhook configurations are available.",
+        "No storefront webhook configurations are available.",
       );
 
       return NextResponse.json(
@@ -147,28 +158,52 @@ export async function POST(request: NextRequest) {
       );
     }
 
+
     let matchedConfiguration:
-      (typeof configurations)[number] | null = null;
+      | ((typeof configurations)[number] & {
+          matchedEnvironment: StorePaymentEnvironment;
+        })
+      | null = null;
 
     // Authenticate the raw request before parsing its JSON.
     for (const configuration of configurations) {
-      if (!configuration.encryptedWebhookSecret) {
-        continue;
+      const candidates = [
+        {
+          environment: StorePaymentEnvironment.TEST,
+          encryptedWebhookSecret: configuration.encryptedWebhookSecret,
+        },
+        {
+          environment: StorePaymentEnvironment.LIVE,
+          encryptedWebhookSecret: configuration.liveEncryptedWebhookSecret,
+        },
+      ];
+
+      for (const candidate of candidates) {
+        if (!candidate.encryptedWebhookSecret) {
+          continue;
+        }
+
+        try {
+          const secret = decryptSecret(
+            candidate.encryptedWebhookSecret,
+          );
+
+          if (isValidSignature(rawBody, signature, secret)) {
+            matchedConfiguration = {
+              ...configuration,
+              matchedEnvironment: candidate.environment,
+            };
+            break;
+          }
+        } catch {
+          console.error(
+            "A storefront webhook secret could not be checked.",
+          );
+        }
       }
 
-      try {
-        const secret = decryptSecret(
-          configuration.encryptedWebhookSecret,
-        );
-
-        if (isValidSignature(rawBody, signature, secret)) {
-          matchedConfiguration = configuration;
-          break;
-        }
-      } catch {
-        console.error(
-          "A storefront webhook secret could not be checked.",
-        );
+      if (matchedConfiguration) {
+        break;
       }
     }
 
@@ -234,6 +269,7 @@ export async function POST(request: NextRequest) {
         websiteId: true,
         currency: true,
         totalAmount: true,
+        providerEnvironment: true,
       },
     });
 
@@ -242,6 +278,22 @@ export async function POST(request: NextRequest) {
         success: true,
         message: "Unknown storefront order ignored.",
       });
+    }
+
+    if (
+      order.providerEnvironment !== matchedConfiguration.matchedEnvironment
+    ) {
+      console.error(
+        "Storefront webhook environment does not match the order environment.",
+      );
+    
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Webhook environment does not match the order.",
+        },
+        { status: 409 },
+      );
     }
 
     let payment: RazorpayEntity | undefined;
@@ -274,43 +326,59 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const paymentConfiguration =
-      await prisma.storePaymentConfiguration.findUnique({
-        where: {
-          websiteId: matchedConfiguration.websiteId,
-        },
-        select: {
-          provider: true,
-          environment: true,
-          publicKeyId: true,
-          encryptedKeySecret: true,
-          paymentsEnabled: true,
-          verifiedAt: true,
-        },
-      });
-    
-    if (
-      !paymentConfiguration ||
-      paymentConfiguration.provider !== "RAZORPAY" ||
-      paymentConfiguration.environment !== "TEST" ||
-      !paymentConfiguration.publicKeyId ||
-      !paymentConfiguration.encryptedKeySecret ||
-      !paymentConfiguration.verifiedAt
-    ) {
-      console.error(
-        "Razorpay TEST credentials are not configured and verified.",
-      );
-    
-      return NextResponse.json(
-        { success: false, message: "Payment verification unavailable." },
-        { status: 503 },
-      );
-    }
-    
-    const publicKeyId = paymentConfiguration.publicKeyId;
-    const encryptedKeySecret =
-      paymentConfiguration.encryptedKeySecret;
 
+      const paymentConfiguration =
+        await prisma.storePaymentConfiguration.findUnique({
+          where: {
+            websiteId: matchedConfiguration.websiteId,
+          },
+          select: {
+            provider: true,
+            publicKeyId: true,
+            encryptedKeySecret: true,
+            verifiedAt: true,
+            livePublicKeyId: true,
+            liveEncryptedKeySecret: true,
+            liveVerifiedAt: true,
+          },
+        });
+
+      const isLiveOrder =
+        order.providerEnvironment === StorePaymentEnvironment.LIVE;
+
+      const publicKeyId = isLiveOrder
+        ? paymentConfiguration?.livePublicKeyId
+        : paymentConfiguration?.publicKeyId;
+
+      const encryptedKeySecret = isLiveOrder
+        ? paymentConfiguration?.liveEncryptedKeySecret
+        : paymentConfiguration?.encryptedKeySecret;
+
+      const verifiedAtForEnvironment = isLiveOrder
+        ? paymentConfiguration?.liveVerifiedAt
+        : paymentConfiguration?.verifiedAt;
+
+      if (
+        !paymentConfiguration ||
+        paymentConfiguration.provider !== "RAZORPAY" ||
+        (
+          order.providerEnvironment !== StorePaymentEnvironment.TEST &&
+          order.providerEnvironment !== StorePaymentEnvironment.LIVE
+        ) ||
+        order.providerEnvironment !== matchedConfiguration.matchedEnvironment ||
+        !publicKeyId ||
+        !encryptedKeySecret ||
+        !verifiedAtForEnvironment
+      ) {
+        console.error(
+          "Razorpay credentials are unavailable or do not match the order environment.",
+        );
+
+        return NextResponse.json(
+          { success: false, message: "Payment verification unavailable." },
+          { status: 503 },
+        );
+      }
       let razorpay: Razorpay;
 
       try {
@@ -443,6 +511,7 @@ export async function POST(request: NextRequest) {
           id: order.id,
           websiteId: matchedConfiguration.websiteId,
           providerOrderId: razorpayOrderId,
+          providerEnvironment: order.providerEnvironment,
           status: "PENDING_PAYMENT",
           paymentStatus: {
             in: ["CREATED", "AUTHORIZED", "FAILED"],
@@ -467,6 +536,7 @@ export async function POST(request: NextRequest) {
         id: order.id,
         websiteId: matchedConfiguration.websiteId,
         providerOrderId: razorpayOrderId,
+        providerEnvironment: order.providerEnvironment,
         status: "PENDING_PAYMENT",
         paymentStatus: {
           in: ["CREATED", "AUTHORIZED", "FAILED"],

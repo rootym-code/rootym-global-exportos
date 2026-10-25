@@ -8,11 +8,14 @@ import {
   createStoreOrder,
   type CreateCheckoutInput,
 } from "@/lib/services/storefront-checkout.service";
+import {
+  StorePaymentEnvironment,
+} from "@/lib/generated/prisma";
 import prisma from "@/lib/prisma";
 import { createGuestOrderAccessToken } from "@/lib/services/guest-order-access.service";
 import {
   StorefrontPaymentError,
-  createRazorpayTestOrder,
+  createRazorpayOrder,
 } from "@/lib/services/storefront-payment.service";
 
 export async function POST(request: NextRequest) {
@@ -29,11 +32,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    if (
-      !body ||
-      typeof body !== "object" ||
-      Array.isArray(body)
-    ) {
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
       return ApiResponse.error({
         message: "A valid checkout request is required.",
         code: "INVALID_CHECKOUT_REQUEST",
@@ -43,8 +42,8 @@ export async function POST(request: NextRequest) {
 
     const checkoutInput = body as CreateCheckoutInput;
 
-    const order = await createStoreOrder(checkoutInput);
-
+    // Read the active server-side payment configuration before creating
+    // the local order. Never accept the payment environment from the client.
     const website = await prisma.website.findFirst({
       where: {
         slug: checkoutInput.websiteSlug,
@@ -54,8 +53,11 @@ export async function POST(request: NextRequest) {
         id: true,
         storePayment: {
           select: {
+            environment: true,
             paymentsEnabled: true,
             verifiedAt: true,
+            livePaymentsEnabled: true,
+            liveVerifiedAt: true,
           },
         },
       },
@@ -69,17 +71,43 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    const configuredEnvironment =
+      website.storePayment?.environment === "LIVE"
+        ? StorePaymentEnvironment.LIVE
+        : StorePaymentEnvironment.TEST;
+
+    const order = await createStoreOrder(checkoutInput, {
+      providerEnvironment: configuredEnvironment,
+    });
+
     const guestAccessToken = createGuestOrderAccessToken(
       order.id,
       website.id,
     );
 
-    // Local order creation is complete. Do not initiate payment
-    // unless payment activation and verification are both present.
-    if (
-      !website.storePayment?.paymentsEnabled ||
-      !website.storePayment?.verifiedAt
-    ) {
+    // Existing idempotent orders must retain their original environment.
+    // Never let an order created in TEST use LIVE credentials, or vice versa.
+    if (order.providerEnvironment !== configuredEnvironment) {
+      return ApiResponse.error({
+        message:
+          "This checkout request belongs to a different payment environment. Start a new checkout attempt.",
+        code: "PAYMENT_ENVIRONMENT_MISMATCH",
+        status: 409,
+      });
+    }
+
+    // Do not initiate payment unless the selected environment is enabled and verified.
+    const paymentsEnabled =
+      configuredEnvironment === StorePaymentEnvironment.LIVE
+        ? website.storePayment?.livePaymentsEnabled
+        : website.storePayment?.paymentsEnabled;
+
+    const verifiedAt =
+      configuredEnvironment === StorePaymentEnvironment.LIVE
+        ? website.storePayment?.liveVerifiedAt
+        : website.storePayment?.verifiedAt;
+
+    if (!paymentsEnabled || !verifiedAt) {
       return ApiResponse.created({
         message:
           "Order created successfully. Online payment is not enabled yet.",
@@ -87,6 +115,7 @@ export async function POST(request: NextRequest) {
           orderId: order.id,
           orderNumber: order.orderNumber,
           paymentStatus: "NOT_INITIATED",
+          environment: configuredEnvironment,
           currency: order.currency,
           guestAccessToken,
           subtotal: order.subtotal.toString(),
@@ -98,7 +127,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const payment = await createRazorpayTestOrder({
+    const payment = await createRazorpayOrder({
       websiteId: website.id,
       storeOrderId: order.id,
     });
@@ -106,11 +135,12 @@ export async function POST(request: NextRequest) {
     const amountInPaise = Math.round(Number(payment.amount) * 100);
 
     return ApiResponse.created({
-      message: "Order created. Continue to Razorpay TEST checkout.",
+      message: `Order created. Continue to Razorpay ${payment.environment} checkout.`,
       data: {
         orderId: payment.orderId,
         orderNumber: payment.orderNumber,
         razorpayOrderId: payment.razorpayOrderId,
+        environment: payment.environment,
         publicKeyId: payment.publicKeyId,
         amount: amountInPaise,
         currency: payment.currency,
@@ -122,7 +152,6 @@ export async function POST(request: NextRequest) {
         totalAmount: order.totalAmount.toString(),
       },
     });
-
   } catch (error) {
     if (error instanceof StorefrontPaymentError) {
       return ApiResponse.error({
