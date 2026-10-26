@@ -41,3 +41,6 @@ yarn-error.log*
 next-env.d.ts
 
 /lib/generated/prisma
+
+# Product uploads are stored externally in Cloudflare R2
+/public/uploads/products/
