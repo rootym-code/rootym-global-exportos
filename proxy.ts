@@ -900,7 +900,10 @@
  
    }
  
-   if (STOREFRONT_HOSTS.has(hostname)) {
+   if (
+    STOREFRONT_HOSTS.has(hostname) &&
+    /^\/[a-z]{2}\/(cart|checkout)(\/|$)/i.test(pathname)
+  ) {
     return NextResponse.next();
   }
  
