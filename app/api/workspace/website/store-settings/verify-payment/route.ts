@@ -128,18 +128,39 @@ export async function POST(request: NextRequest) {
       // This does not independently verify webhook delivery or its signature.
       await razorpay.orders.all({ count: 1 });
     } catch (error) {
+      const err = error as {
+        statusCode?: number;
+        error?: { code?: string; description?: string };
+        response?: {
+          status?: number;
+          data?: {
+            error?: {
+              code?: string;
+              description?: string;
+            };
+          };
+        };
+        code?: string;
+        message?: string;
+      };
+
+      const httpStatus = err.response?.status ?? err.statusCode;
+      const providerError = err.response?.data?.error ?? err.error;
+
       console.error("[Razorpay verification failed]", {
         environment,
         keyIdPrefix: publicKeyId.slice(0, 9),
-        error:
-        error && typeof error === "object"
-          ? JSON.stringify(error, Object.getOwnPropertyNames(error))
-          : String(error),
+        httpStatus: httpStatus ?? null,
+        errorCode: providerError?.code ?? err.code ?? null,
+        errorDescription: providerError?.description ?? null,
+        message: err.message ?? null,
+        hasHttpResponse: Boolean(err.response),
       });
-    
+
       return ApiResponse.error({
-        message:
-          `Razorpay rejected the ${environment.toLowerCase()} credentials or could not be reached. Check the server log for the underlying error.`,
+        message: httpStatus
+          ? `Razorpay ${environment.toLowerCase()} verification failed with HTTP ${httpStatus}. Check the server log for the provider error.`
+          : `Could not complete Razorpay ${environment.toLowerCase()} verification because the API request failed. Check the server log for the underlying error.`,
         code: "RAZORPAY_CREDENTIALS_INVALID",
         status: 422,
       });
@@ -171,24 +192,29 @@ export async function POST(request: NextRequest) {
           paymentsEnabled: false,
         };
 
-    const result = await prisma.storePaymentConfiguration.updateMany({
-      where: {
-        websiteId: website.id,
-        provider: "RAZORPAY",
-        environment,
-        ...credentialWhere,
-      },
-      data: verificationData,
-    });
+        const result = await prisma.storePaymentConfiguration.updateMany({
+          where: {
+            websiteId: website.id,
+            provider: "RAZORPAY",
+            ...(isLiveEnvironment ? {} : { environment: "TEST" }),
+            ...credentialWhere,
+          },
+          data: verificationData,
+        });
 
-    if (result.count !== 1) {
-      return ApiResponse.error({
-        message:
-          "Payment configuration changed during verification. Please verify the current configuration again.",
-        code: "PAYMENT_CONFIGURATION_CHANGED",
-        status: 409,
-      });
-    }
+        console.log("[Razorpay verification persistence]", {
+          environment,
+          matchedRows: result.count,
+        });
+
+        if (result.count !== 1) {
+          return ApiResponse.error({
+            message:
+              "Payment configuration changed during verification. Please verify the current configuration again.",
+            code: "PAYMENT_CONFIGURATION_CHANGED",
+            status: 409,
+          });
+        }
 
     return ApiResponse.success({
       message:

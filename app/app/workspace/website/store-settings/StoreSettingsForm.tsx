@@ -285,7 +285,7 @@ const payload: Record<string, unknown> = {
   };
   const handleSavePaymentCredentials = async () => {
     if (!canEdit || saving || verifyingPayment) return;
-  
+
     if (!publicKeyId.trim()) {
       setError("Enter the Razorpay Key ID for the selected environment.");
       return;
@@ -306,11 +306,11 @@ const payload: Record<string, unknown> = {
         credentialsEnvironment: environment,
         publicKeyId: publicKeyId.trim(),
       };
-  
+
       if (keySecret.trim()) {
         payload.keySecret = keySecret.trim();
       }
-  
+
       if (webhookSecret.trim()) {
         payload.webhookSecret = webhookSecret.trim();
       }
@@ -346,12 +346,12 @@ const payload: Record<string, unknown> = {
   };
   const handleVerifyPayment = async () => {
     if (!canEdit || saving || verifyingPayment) return;
-  
+
     try {
       setVerifyingPayment(true);
       setError("");
       setSuccessMessage("");
-  
+
       const response = await fetch(
         "/api/workspace/website/store-settings/verify-payment",
         {
@@ -363,19 +363,21 @@ const payload: Record<string, unknown> = {
           body: JSON.stringify({ environment }),
         },
       );
-  
+
       const result = await response.json();
         if (!response.ok || !result.success) {
         throw new Error(
           result.message ?? "Unable to verify Razorpay credentials.",
         );
       }
-        setPaymentVerifiedAt(result.data?.verifiedAt ?? null);
+
+      setPaymentVerifiedAt(result.data?.verifiedAt ?? null);
       setPaymentsEnabled(false);
-        setSuccessMessage(
-        "Razorpay TEST API credentials verified successfully. Online payments remain disabled.",
+      setSuccessMessage(
+        `Razorpay ${environment} API credentials verified successfully. Online payments remain disabled.`,
       );
-        await loadSettings();
+      await loadSettings(true);
+
     } catch (err) {
       setError(
         err instanceof Error
@@ -400,7 +402,7 @@ const payload: Record<string, unknown> = {
       setSaving(true);
       setError("");
       setSuccessMessage("");
-  
+
       const response = await fetch(
         "/api/workspace/website/store-settings",
         {
@@ -432,7 +434,79 @@ const payload: Record<string, unknown> = {
       setSaving(false);
     }
   };
+  const handleEnableLivePayments = async () => {
+    if (
+      !canEdit ||
+      saving ||
+      verifyingPayment ||
+      environment !== "LIVE" ||
+      !paymentVerifiedAt
+    ) {
+      return;
+    }
 
+    try {
+      setSaving(true);
+      setError("");
+      setSuccessMessage("");
+
+      // First select LIVE as the active payment environment.
+      const environmentResponse = await fetch(
+        "/api/workspace/website/store-settings",
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ environment: "LIVE" }),
+        },
+      );
+
+      const environmentResult: StoreSettingsResponse =
+        await environmentResponse.json();
+
+      if (!environmentResponse.ok || !environmentResult.success) {
+        throw new Error(
+          environmentResult.message ??
+            "Unable to select the LIVE payment environment.",
+        );
+      }
+
+      // Enable payments separately so the backend's verification guard
+      // can validate the previously verified LIVE credentials.
+      const response = await fetch(
+        "/api/workspace/website/store-settings",
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ paymentsEnabled: true }),
+        },
+      );
+
+      const result: StoreSettingsResponse = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.message ?? "Unable to enable Razorpay LIVE payments.",
+        );
+      }
+
+      setSuccessMessage("Razorpay LIVE payments enabled successfully.");
+      await loadSettings(true);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to enable Razorpay LIVE payments.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
 if (loading) {
     return (
       <section className="rounded-3xl bg-white p-7 shadow-sm ring-1 ring-slate-200 sm:p-8">
@@ -905,7 +979,7 @@ if (loading) {
             <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
   <div>
     <p className="text-sm font-semibold text-slate-900">
-      Verify Razorpay TEST credentials
+    Verify Razorpay {environment} credentials
     </p>
     <p className="mt-1 text-sm leading-6 text-slate-600">
       Save your credentials first, then verify the API connection.
@@ -925,7 +999,6 @@ if (loading) {
       !canEdit ||
       saving ||
       verifyingPayment ||
-      environment !== "TEST" ||
       !publicKeyId.trim() ||
       !keySecretConfigured ||
       !webhookSecretConfigured
@@ -980,7 +1053,43 @@ if (loading) {
                   </Button>
                 </div>
               )}
-              
+              {paymentVerifiedAt && environment === "LIVE" && (
+  <div className="border-t border-slate-200 pt-4">
+    <p className="mb-3 text-sm text-slate-600">
+      Your Razorpay LIVE API credentials are verified. You can now
+      enable LIVE payments for customer checkout.
+    </p>
+
+    <Button
+      type="button"
+      onClick={handleEnableLivePayments}
+      disabled={
+        !canEdit ||
+        saving ||
+        verifyingPayment ||
+        paymentsEnabled
+      }
+    >
+      {saving ? (
+        <>
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Enabling LIVE payments...
+        </>
+      ) : paymentsEnabled ? (
+        <>
+          <CheckCircle2 className="h-4 w-4" />
+          LIVE Payments Enabled
+        </>
+      ) : (
+        <>
+          <CreditCard className="h-4 w-4" />
+          Enable LIVE Payments
+        </>
+      )}
+    </Button>
+  </div>
+)}
+
             </section>
 </fieldset>
 

@@ -38,7 +38,7 @@ liveEncryptedWebhookSecret: true,
 livePaymentsEnabled: true,
 liveVerifiedAt: true,
   } as const;
-  
+
 
 async function getContext() {
   const { tenant, membership } = await requireWorkspaceAccess();
@@ -328,7 +328,7 @@ const nextEnvironment =
 body.credentialsEnvironment ??
 body.environment ??
 existingPayment?.environment ??
-"TEST";  
+"TEST";
     const nextPublicKey =
       body.publicKeyId === undefined
         ? nextEnvironment === "LIVE"
@@ -341,7 +341,7 @@ existingPayment?.environment ??
           ? existingPayment?.liveEncryptedKeySecret ?? null
           : existingPayment?.encryptedKeySecret ?? null
         : encryptSecret(body.keySecret.trim());
-    
+
     const nextWebhookSecret =
       body.webhookSecret === undefined
         ? nextEnvironment === "LIVE"
@@ -377,13 +377,15 @@ if (body.paymentsEnabled === true) {
 
     const verificationStillValid =
     nextVerifiedAt != null &&
-    existingPayment?.verifiedAt != null &&
+    (nextEnvironment === "LIVE"
+      ? existingPayment?.liveVerifiedAt != null
+      : existingPayment?.verifiedAt != null) &&
     body.provider === undefined &&
     body.environment === undefined &&
     body.publicKeyId === undefined &&
     body.keySecret === undefined &&
     body.credentialsEnvironment === undefined &&
-    body.webhookSecret === undefined
+    body.webhookSecret === undefined;
   if (!credentialsReady || !verificationStillValid) {
     return ApiResponse.error({
       message:
@@ -423,29 +425,29 @@ liveVerifiedAt: true,
     body.environment ??
     currentPayment?.environment ??
     "TEST";
-  
-  
+
+
   const lockedNextPublicKey =
     body.publicKeyId === undefined
       ? lockedNextEnvironment === "LIVE"
         ? currentPayment?.livePublicKeyId ?? null
         : currentPayment?.publicKeyId ?? null
       : body.publicKeyId?.trim() || null;
-  
+
   const lockedNextKeySecret =
     body.keySecret === undefined
       ? lockedNextEnvironment === "LIVE"
         ? currentPayment?.liveEncryptedKeySecret ?? null
         : currentPayment?.encryptedKeySecret ?? null
       : encryptSecret(body.keySecret.trim());
-  
+
   const lockedNextWebhookSecret =
     body.webhookSecret === undefined
       ? lockedNextEnvironment === "LIVE"
         ? currentPayment?.liveEncryptedWebhookSecret ?? null
         : currentPayment?.encryptedWebhookSecret ?? null
       : encryptSecret(body.webhookSecret.trim());
-  
+
   const lockedNextVerifiedAt =
     lockedNextEnvironment === "LIVE"
       ? currentPayment?.liveVerifiedAt
