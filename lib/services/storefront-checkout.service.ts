@@ -604,6 +604,7 @@ if (validated.settings.defaultCurrency.trim().toUpperCase() !== "INR") {
 
   const shipmentMeasurements = validated.shipmentMeasurements;
 
+
   let shippingQuote;
 
   try {
@@ -613,13 +614,19 @@ if (validated.settings.defaultCurrency.trim().toUpperCase() !== "INR") {
       destinationPin: validated.customer.postalCode,
       measurements: validated.shipmentMeasurements,
     });
-  } catch {
+  } catch (error) {
+    console.error(
+      "[Storefront checkout] Delhivery quote failed:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+
     throw new CheckoutError(
       "We could not calculate shipping for this address. Please try again later.",
       "SHIPPING_QUOTE_UNAVAILABLE",
       503,
     );
   }
+
 
   const zero = new Prisma.Decimal(0);
 
