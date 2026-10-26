@@ -122,6 +122,9 @@
  
  ]);
  
+ const STOREFRONT_HOSTS = new Set([
+  "rootym.com",
+]);
  
  
  const SAAS_HOSTS = new Set([
@@ -897,7 +900,9 @@
  
    }
  
- 
+   if (STOREFRONT_HOSTS.has(hostname)) {
+    return NextResponse.next();
+  }
  
    /**
  
