@@ -1,8 +1,10 @@
-
+﻿
 const DELHIVERY_API_BASE = "https://track.delhivery.com";
 const VOLUMETRIC_DIVISOR = 5000;
 
+
 export type DelhiveryRateInput = {
+  apiToken: string;
   originPin: string;
   destinationPin: string;
   weightGrams: number;
@@ -10,6 +12,7 @@ export type DelhiveryRateInput = {
   breadthCm: number;
   heightCm: number;
 };
+
 
 export type DelhiveryRateQuote = {
   provider: "DELHIVERY";
@@ -29,12 +32,11 @@ type DelhiveryCharge = {
 export async function getDelhiveryRate(
   input: DelhiveryRateInput,
 ): Promise<DelhiveryRateQuote> {
-  const token = process.env.DELHIVERY_API_TOKEN?.trim();
+  const token = input.apiToken.trim();
 
   if (!token) {
-    throw new Error("Delhivery API token is not configured.");
+    throw new Error("Delhivery API token is not configured for this store.");
   }
-
   if (
     !/^\d{6}$/.test(input.originPin) ||
     !/^\d{6}$/.test(input.destinationPin) ||
@@ -140,7 +142,7 @@ export type ShipmentMeasurementsInput = {
     heightCm: number;
     quantity: number;
   };
-  
+
   export type ShipmentMeasurements = {
     quantity: number;
     totalActualWeightKg: number;
@@ -155,7 +157,7 @@ export type ShipmentMeasurementsInput = {
     volumetricWeightKg: number;
     chargeableWeightGrams: number;
   };
-  
+
   export function calculateShipmentMeasurements(
     input: ShipmentMeasurementsInput,
   ): ShipmentMeasurements {
@@ -166,7 +168,7 @@ export type ShipmentMeasurementsInput = {
       heightCm,
       quantity,
     } = input;
-  
+
     if (
       ![
         weightKg,
@@ -185,32 +187,32 @@ export type ShipmentMeasurementsInput = {
         "Valid positive product measurements and quantity are required.",
       );
     }
-  
+
     const totalActualWeightKg = weightKg * quantity;
-  
+
     const totalActualWeightGrams = Math.ceil(
       totalActualWeightKg * 1000,
     );
-  
+
 
     const unitVolumeCm3 = lengthCm * widthCm * heightCm;
 
     const totalVolumeCm3 = unitVolumeCm3 * quantity;
-    
+
     // Equivalent cube: all three dimensions are equal.
     // This preserves total volume, but does not represent
     // the actual dimensions of the packed parcel.
     const equivalentCubeSideCm =
     Math.ceil(Math.cbrt(totalVolumeCm3) * 1000) / 1000;
-    
+
     const volumetricWeightKg =
       totalVolumeCm3 / VOLUMETRIC_DIVISOR;
-    
-  
+
+
     const chargeableWeightGrams = Math.ceil(
       Math.max(totalActualWeightKg, volumetricWeightKg) * 1000,
     );
-  
+
     if (
       !Number.isFinite(totalActualWeightKg) ||
       !Number.isSafeInteger(totalActualWeightGrams) ||
@@ -222,7 +224,7 @@ export type ShipmentMeasurementsInput = {
         "Calculated shipment measurements are outside the supported range.",
       );
     }
-  
+
 
     return {
         quantity,
@@ -238,17 +240,17 @@ export type ShipmentMeasurementsInput = {
         volumetricWeightKg,
         chargeableWeightGrams,
       };
-      
+
   }
-  
-  
-export type PrepareDelhiveryQuoteInput = {
+
+  export type PrepareDelhiveryQuoteInput = {
+    apiToken: string;
     currency: string;
     originPin: string;
     destinationPin: string;
     measurements: ShipmentMeasurements;
   };
-  
+
   export async function prepareDelhiveryQuote(
     input: PrepareDelhiveryQuoteInput,
   ): Promise<DelhiveryRateQuote> {
@@ -257,17 +259,16 @@ export type PrepareDelhiveryQuoteInput = {
         "Delhivery shipping is currently supported only for INR orders.",
       );
     }
-  
+
     if (
       !/^\d{6}$/.test(input.originPin) ||
       !/^\d{6}$/.test(input.destinationPin)
     ) {
       throw new Error("Valid six-digit Indian PIN codes are required.");
     }
-  
-    const dimensions = input.measurements.equivalentParcelDimensionsCm;
-  
-    return getDelhiveryRate({
+      const dimensions = input.measurements.equivalentParcelDimensionsCm;
+      return getDelhiveryRate({
+      apiToken: input.apiToken,
       originPin: input.originPin,
       destinationPin: input.destinationPin,
       weightGrams: input.measurements.totalActualWeightGrams,
@@ -276,4 +277,4 @@ export type PrepareDelhiveryQuoteInput = {
       heightCm: dimensions.heightCm,
     });
   }
-  
+

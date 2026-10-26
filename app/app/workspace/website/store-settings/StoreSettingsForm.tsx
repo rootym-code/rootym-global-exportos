@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
-
 interface StoreSettingsData {
   id?: string;
   storeEnabled: boolean;
@@ -19,8 +18,9 @@ interface StoreSettingsData {
   guestCheckoutEnabled: boolean;
   defaultCurrency: string;
   shippingMode: string;
+  pickupPin?: string | null;
+  delhiveryApiTokenConfigured?: boolean;
 }
-
 type PaymentEnvironment = "TEST" | "LIVE";
 
 interface PaymentEnvironmentData {
@@ -80,6 +80,11 @@ export default function StoreSettingsForm({
   const [guestCheckoutEnabled, setGuestCheckoutEnabled] =
     useState(true);
   const [defaultCurrency, setDefaultCurrency] = useState("INR");
+
+  const [pickupPin, setPickupPin] = useState("");
+  const [delhiveryApiToken, setDelhiveryApiToken] = useState("");
+  const [delhiveryApiTokenConfigured, setDelhiveryApiTokenConfigured] =
+    useState(false);
 
   const [environment, setEnvironment] =
   useState<PaymentEnvironment>("TEST");
@@ -161,10 +166,18 @@ const [paymentVerifiedAt, setPaymentVerifiedAt] = useState<string | null>(
       setGuestCheckoutEnabled(
         data.settings?.guestCheckoutEnabled ?? true,
       );
+
       setDefaultCurrency(
         data.settings?.defaultCurrency ?? "INR",
       );
 
+      setPickupPin(data.settings?.pickupPin ?? "");
+      setDelhiveryApiTokenConfigured(
+        data.settings?.delhiveryApiTokenConfigured ?? false,
+      );
+
+      // Never populate the token input with a saved secret.
+      setDelhiveryApiToken("");
 
       const activeEnvironment: PaymentEnvironment =
         data.payment?.environment === "LIVE" ? "LIVE" : "TEST";
@@ -283,6 +296,77 @@ const payload: Record<string, unknown> = {
       setSaving(false);
     }
   };
+
+  const handleSaveShippingCredentials = async () => {
+    if (!canEdit || saving || verifyingPayment) return;
+
+    const trimmedPickupPin = pickupPin.trim();
+    const trimmedDelhiveryApiToken = delhiveryApiToken.trim();
+
+    if (trimmedPickupPin && !/^\d{6}$/.test(trimmedPickupPin)) {
+      setError("Enter a valid six-digit Delhivery pickup PIN.");
+      setSuccessMessage("");
+      return;
+    }
+
+    if (!trimmedPickupPin) {
+      setError("Enter the six-digit Delhivery pickup PIN.");
+      setSuccessMessage("");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setError("");
+      setSuccessMessage("");
+
+      const payload: Record<string, unknown> = {
+        pickupPin: trimmedPickupPin,
+      };
+
+      // Only replace the saved token when a new token is provided.
+      if (trimmedDelhiveryApiToken) {
+        payload.delhiveryApiToken = trimmedDelhiveryApiToken;
+      }
+
+      const response = await fetch(
+        "/api/workspace/website/store-settings",
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        },
+      );
+
+      const result: StoreSettingsResponse = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.message ?? "Unable to save Delhivery shipping credentials.",
+        );
+      }
+
+      setDelhiveryApiToken("");
+
+      setSuccessMessage(
+        result.message ?? "Delhivery shipping credentials saved successfully.",
+      );
+
+      await loadSettings(true);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to save Delhivery shipping credentials.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSavePaymentCredentials = async () => {
     if (!canEdit || saving || verifyingPayment) return;
 
@@ -652,11 +736,11 @@ if (loading) {
                 }
                 className={inputClass}
               >
-                <option value="INR">INR — Indian Rupee</option>
-                <option value="USD">USD — US Dollar</option>
-                <option value="EUR">EUR — Euro</option>
-                <option value="GBP">GBP — British Pound</option>
-                <option value="AED">AED — UAE Dirham</option>
+                <option value="INR">INR â€” Indian Rupee</option>
+                <option value="USD">USD â€” US Dollar</option>
+                <option value="EUR">EUR â€” Euro</option>
+                <option value="GBP">GBP â€” British Pound</option>
+                <option value="AED">AED â€” UAE Dirham</option>
               </select>
               <p className="mt-1.5 text-xs text-slate-400">
                 The selected currency must be supported by your
@@ -683,7 +767,7 @@ if (loading) {
         rel="noopener noreferrer"
         className="mt-2 inline-flex text-sm font-semibold text-emerald-800 underline underline-offset-4"
       >
-        Open official Razorpay Help & Documentation ↗
+        Open official Razorpay Help & Documentation â†—
       </a>
     </div>
   </div>
@@ -706,7 +790,7 @@ if (loading) {
           rel="noopener noreferrer"
           className="mt-2 inline-flex text-sm font-semibold text-emerald-800 underline underline-offset-4"
         >
-          Open Razorpay Dashboard ↗
+          Open Razorpay Dashboard â†—
         </a>
       </div>
     </li>
@@ -720,7 +804,7 @@ if (loading) {
         </h4>
         <p className="mt-1 text-sm leading-6 text-slate-600">
           In Razorpay, select Test Mode and navigate to Account &amp;
-          Settings → API Keys → Generate Key. Save both values securely
+          Settings â†’ API Keys â†’ Generate Key. Save both values securely
           when they appear.
         </p>
         <ul className="mt-2 space-y-1 text-sm text-slate-600">
@@ -738,7 +822,7 @@ if (loading) {
           rel="noopener noreferrer"
           className="mt-2 inline-flex text-sm font-semibold text-emerald-800 underline underline-offset-4"
         >
-          Follow the official API key instructions ↗
+          Follow the official API key instructions â†—
         </a>
       </div>
     </li>
@@ -752,7 +836,7 @@ if (loading) {
           Configure the Webhook Secret
         </h4>
         <p className="mt-1 text-sm leading-6 text-slate-600">
-          In Razorpay, open Account &amp; Settings → Webhooks → Add New
+          In Razorpay, open Account &amp; Settings â†’ Webhooks â†’ Add New
           Webhook. ROOTYM must provide the actual public HTTPS webhook
           URL before you can complete this step. Do not enter localhost
           or invent an endpoint.
@@ -768,7 +852,7 @@ if (loading) {
           rel="noopener noreferrer"
           className="mt-2 inline-flex text-sm font-semibold text-emerald-800 underline underline-offset-4"
         >
-          Follow the official webhook setup instructions ↗
+          Follow the official webhook setup instructions â†—
         </a>
       </div>
     </li>
@@ -817,8 +901,112 @@ if (loading) {
     </p>
   </div>
 </section>
+
 <section className="space-y-5 border-t border-slate-200 pt-8">
             <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50">
+                <ShoppingBag className="h-5 w-5 text-emerald-700" />
+              </div>
+
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">
+                  Delhivery shipping configuration
+                </h3>
+                <p className="mt-1 text-sm leading-6 text-slate-500">
+                  Configure shipping credentials for this store. The pickup
+                  PIN and API token are stored with this store's settings.
+                  The API token is never displayed after saving.
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="delhivery-pickup-pin"
+                className="text-sm font-semibold text-slate-800"
+              >
+                Delhivery pickup PIN
+              </label>
+
+              <input
+                id="delhivery-pickup-pin"
+                type="text"
+                inputMode="numeric"
+                autoComplete="postal-code"
+                maxLength={6}
+                value={pickupPin}
+                onChange={(event) =>
+                  setPickupPin(event.target.value.slice(0, 6))
+                }
+                placeholder="Enter six-digit pickup PIN"
+                className={inputClass}
+              />
+
+              <p className="mt-1.5 text-xs text-slate-500">
+                Enter the six-digit PIN for this store's Delhivery pickup
+                location.
+              </p>
+            </div>
+
+            <div>
+              <label
+                htmlFor="delhivery-api-token"
+                className="text-sm font-semibold text-slate-800"
+              >
+                Delhivery API token
+              </label>
+
+              <input
+                id="delhivery-api-token"
+                type="password"
+                autoComplete="new-password"
+                maxLength={2000}
+                value={delhiveryApiToken}
+                onChange={(event) =>
+                  setDelhiveryApiToken(event.target.value)
+                }
+                placeholder={
+                  delhiveryApiTokenConfigured
+                    ? "Saved securely â€” enter only to replace"
+                    : "Enter your Delhivery API token"
+                }
+                className={inputClass}
+              />
+
+              <p className="mt-1.5 text-xs text-slate-500">
+                {delhiveryApiTokenConfigured
+                  ? "An API token is already configured. Leave this field blank to keep it."
+                  : "No Delhivery API token is configured yet."}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                type="button"
+                onClick={handleSaveShippingCredentials}
+                disabled={!canEdit || saving || verifyingPayment}
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Saving shipping credentials...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4" />
+                    Save Shipping Credentials
+                  </>
+                )}
+              </Button>
+
+              <p className="text-xs text-slate-500">
+                Applies only to this store. Razorpay credentials are managed
+                separately below.
+              </p>
+            </div>
+          </section>
+<section className="space-y-5 border-t border-slate-200 pt-8">
+             <div className="flex items-start gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100">
                 <CreditCard className="h-5 w-5 text-slate-700" />
               </div>
@@ -914,7 +1102,7 @@ if (loading) {
                 maxLength={2000}
                 placeholder={
                   keySecretConfigured
-                    ? "Saved securely — enter only to replace"
+                    ? "Saved securely â€” enter only to replace"
                     : "Enter your Razorpay Key Secret"
                 }
                 className={inputClass}
@@ -943,7 +1131,7 @@ if (loading) {
                 maxLength={2000}
                 placeholder={
                   webhookSecretConfigured
-                    ? "Saved securely — enter only to replace"
+                    ? "Saved securely â€” enter only to replace"
                     : "Enter your Razorpay Webhook Secret"
                 }
                 className={inputClass}

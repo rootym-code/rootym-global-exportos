@@ -6,6 +6,7 @@ config({ path: ".env.local" });
 
 async function main() {
   const quote = await getDelhiveryRate({
+    apiToken: process.env.DELHIVERY_API_TOKEN ?? "",
     originPin: process.env.DELHIVERY_PICKUP_PIN ?? "",
     destinationPin: "110001",
     weightGrams: 1000,

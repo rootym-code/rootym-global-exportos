@@ -2083,6 +2083,10 @@ model StoreSettings {
   guestCheckoutEnabled Boolean  @default(true)
   defaultCurrency      String   @default("INR")
   shippingMode         String   @default("MANUAL")
+    /// Tenant-specific Delhivery pickup PIN.
+  pickupPin                    String?
+  /// Encrypted Delhivery API token. Never store plaintext credentials.
+  encryptedDelhiveryApiToken   String?
   /// Configuration only; no calculations are activated by this flag.
   shippingEnabled      Boolean  @default(false)
   /// Configuration only; no tax calculations are activated by this flag.

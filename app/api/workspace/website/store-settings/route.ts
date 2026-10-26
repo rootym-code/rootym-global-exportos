@@ -15,6 +15,8 @@ const SETTINGS_SELECT = {
   guestCheckoutEnabled: true,
   defaultCurrency: true,
   shippingMode: true,
+  pickupPin: true,
+  encryptedDelhiveryApiToken: true,
   createdAt: true,
   updatedAt: true,
 } as const;
@@ -95,7 +97,23 @@ export async function GET() {
             name: website.name,
             slug: website.slug,
           },
-          settings,
+          settings: settings
+          ? {
+              id: settings.id,
+              websiteId: settings.websiteId,
+              storeEnabled: settings.storeEnabled,
+              cartEnabled: settings.cartEnabled,
+              guestCheckoutEnabled: settings.guestCheckoutEnabled,
+              defaultCurrency: settings.defaultCurrency,
+              shippingMode: settings.shippingMode,
+              pickupPin: settings.pickupPin,
+              delhiveryApiTokenConfigured: Boolean(
+                settings.encryptedDelhiveryApiToken,
+              ),
+              createdAt: settings.createdAt,
+              updatedAt: settings.updatedAt,
+            }
+          : null,
 payment: payment
   ? {
       id: payment.id,
@@ -158,12 +176,15 @@ secretsConfigured: {
     return handleApiError(error);
   }
 }
+
 interface SettingsPayload {
   storeEnabled?: boolean;
   cartEnabled?: boolean;
   guestCheckoutEnabled?: boolean;
   defaultCurrency?: string;
   shippingMode?: string;
+  pickupPin?: string | null;
+  delhiveryApiToken?: string;
   provider?: string;
   environment?: string;
   credentialsEnvironment?: string;
@@ -172,8 +193,6 @@ interface SettingsPayload {
   webhookSecret?: string;
   paymentsEnabled?: boolean;
 }
-
-
 export async function PATCH(request: NextRequest) {
   try {
     const { website, membership, error } = await getContext();
@@ -240,6 +259,50 @@ export async function PATCH(request: NextRequest) {
       return ApiResponse.error({
         message: "Only manual shipping is supported currently.",
         code: "INVALID_SHIPPING_MODE",
+        status: 400,
+      });
+    }
+
+    if (
+      body.pickupPin !== undefined &&
+      body.pickupPin !== null &&
+      typeof body.pickupPin !== "string"
+    ) {
+      return ApiResponse.error({
+        message: "Pickup PIN must be a six-digit string.",
+        code: "INVALID_SHIPPING_PICKUP_PIN",
+        status: 400,
+      });
+    }
+
+    const pickupPin =
+      body.pickupPin === undefined
+        ? undefined
+        : body.pickupPin === null || body.pickupPin.trim() === ""
+          ? null
+          : body.pickupPin.trim();
+
+    if (
+      pickupPin !== undefined &&
+      pickupPin !== null &&
+      !/^\d{6}$/.test(pickupPin)
+    ) {
+      return ApiResponse.error({
+        message: "Pickup PIN must contain exactly six digits.",
+        code: "INVALID_SHIPPING_PICKUP_PIN",
+        status: 400,
+      });
+    }
+
+    if (
+      body.delhiveryApiToken !== undefined &&
+      (typeof body.delhiveryApiToken !== "string" ||
+        body.delhiveryApiToken.trim().length === 0 ||
+        body.delhiveryApiToken.length > 2000)
+    ) {
+      return ApiResponse.error({
+        message: "Enter a valid Delhivery API token.",
+        code: "INVALID_DELHIVERY_API_TOKEN",
         status: 400,
       });
     }
@@ -535,23 +598,33 @@ liveVerifiedAt: true,
     select: { id: true },
   });
 
-      const settingsData = {
-        ...(body.storeEnabled !== undefined
-          ? { storeEnabled: body.storeEnabled }
-          : {}),
-        ...(body.cartEnabled !== undefined
-          ? { cartEnabled: body.cartEnabled }
-          : {}),
-        ...(body.guestCheckoutEnabled !== undefined
-          ? { guestCheckoutEnabled: body.guestCheckoutEnabled }
-          : {}),
-        ...(defaultCurrency !== undefined
-          ? { defaultCurrency }
-          : {}),
-        ...(body.shippingMode !== undefined
-          ? { shippingMode: body.shippingMode }
-          : {}),
-      };
+  const settingsData = {
+    ...(body.storeEnabled !== undefined
+      ? { storeEnabled: body.storeEnabled }
+      : {}),
+    ...(body.cartEnabled !== undefined
+      ? { cartEnabled: body.cartEnabled }
+      : {}),
+    ...(body.guestCheckoutEnabled !== undefined
+      ? { guestCheckoutEnabled: body.guestCheckoutEnabled }
+      : {}),
+    ...(defaultCurrency !== undefined
+      ? { defaultCurrency }
+      : {}),
+    ...(body.shippingMode !== undefined
+      ? { shippingMode: body.shippingMode }
+      : {}),
+    ...(pickupPin !== undefined
+      ? { pickupPin }
+      : {}),
+    ...(body.delhiveryApiToken !== undefined
+      ? {
+          encryptedDelhiveryApiToken: encryptSecret(
+            body.delhiveryApiToken.trim(),
+          ),
+        }
+      : {}),
+  };
 
       if (currentSettings) {
         if (Object.keys(settingsData).length > 0) {

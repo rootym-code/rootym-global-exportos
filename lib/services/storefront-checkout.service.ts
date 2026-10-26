@@ -5,6 +5,7 @@ import {
   StorePaymentEnvironment,
 } from "@/lib/generated/prisma";
 import prisma from "@/lib/prisma";
+import { decryptSecret } from "@/lib/utils/secret-encryption";
 import { acquireStorePaymentLock } from "@/lib/services/store-payment-lock.service";
 import { checkProductPurchaseEligibility } from "@/lib/services/product-eligibility.service";
 import { getProductById } from "@/lib/services/product.service";
@@ -583,13 +584,43 @@ if (validated.settings.defaultCurrency.trim().toUpperCase() !== "INR") {
       400,
     );
   }
-
-  const originPin = process.env.DELHIVERY_PICKUP_PIN?.trim();
+  const originPin = validated.settings.pickupPin?.trim();
 
   if (!originPin || !/^\d{6}$/.test(originPin)) {
     throw new CheckoutError(
-      "Shipping is temporarily unavailable because the pickup location is not configured correctly.",
+      "Shipping is temporarily unavailable because this store's pickup location is not configured correctly.",
       "SHIPPING_ORIGIN_NOT_CONFIGURED",
+      503,
+    );
+  }
+
+  const encryptedDelhiveryApiToken =
+    validated.settings.encryptedDelhiveryApiToken;
+
+  if (!encryptedDelhiveryApiToken) {
+    throw new CheckoutError(
+      "Shipping is temporarily unavailable because this store's Delhivery credentials are not configured.",
+      "SHIPPING_CREDENTIALS_NOT_CONFIGURED",
+      503,
+    );
+  }
+
+  let delhiveryApiToken: string;
+
+  try {
+    delhiveryApiToken = decryptSecret(encryptedDelhiveryApiToken);
+  } catch {
+    throw new CheckoutError(
+      "Shipping is temporarily unavailable because this store's Delhivery credentials could not be read.",
+      "SHIPPING_CREDENTIALS_INVALID",
+      503,
+    );
+  }
+
+  if (!delhiveryApiToken.trim()) {
+    throw new CheckoutError(
+      "Shipping is temporarily unavailable because this store's Delhivery credentials are invalid.",
+      "SHIPPING_CREDENTIALS_INVALID",
       503,
     );
   }
@@ -603,12 +634,10 @@ if (validated.settings.defaultCurrency.trim().toUpperCase() !== "INR") {
   }
 
   const shipmentMeasurements = validated.shipmentMeasurements;
-
-
   let shippingQuote;
-
   try {
     shippingQuote = await prepareDelhiveryQuote({
+      apiToken: delhiveryApiToken,
       currency: validated.settings.defaultCurrency,
       originPin,
       destinationPin: validated.customer.postalCode,
@@ -627,9 +656,7 @@ if (validated.settings.defaultCurrency.trim().toUpperCase() !== "INR") {
     );
   }
 
-
   const zero = new Prisma.Decimal(0);
-
   const shippingAmount = new Prisma.Decimal(
     shippingQuote.amount,
   ).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
