@@ -63,34 +63,27 @@ import {
 
 import type { AIMessage } from "@/lib/ai/types";
 
+
+
 function resolveRequestedMode(
-  value: unknown,
-  websiteSlug: string | null
+  websiteSlug: string | null,
+  websiteHostname: string | null,
+  isWorkspaceRequest: boolean,
+  isMarketingRequest: boolean
 ): RCaptainMode {
-  /**
-   * Explicit mode is preferred.
-   *
-   * For backwards compatibility with the existing public
-   * Website widget, a valid Website slug without an explicit
-   * mode is treated as BUYER context.
-   *
-   * Without Website context, the legacy endpoint remains
-   * available as MARKETING context.
-   */
-  if (
-    typeof value === "string" &&
-    (
-      value === "MARKETING" ||
-      value === "BUYER" ||
-      value === "WORKSPACE"
-    )
-  ) {
-    return value;
+  if (isWorkspaceRequest) {
+    return "WORKSPACE";
   }
 
-  return websiteSlug
-    ? "BUYER"
-    : "MARKETING";
+  if (isMarketingRequest) {
+    return "MARKETING";
+  }
+
+  if (websiteSlug || websiteHostname) {
+    return "BUYER";
+  }
+
+  return "MARKETING";
 }
 
 export async function POST(
@@ -144,18 +137,41 @@ export async function POST(
         ? body.messages
         : [];
 
-    const websiteSlug =
-      typeof body.websiteSlug === "string" &&
-      body.websiteSlug.trim()
-        ? body.websiteSlug.trim()
-        : null;
-
-    const mode =
-      resolveRequestedMode(
-        body.mode,
-        websiteSlug
-      );
-
+        const websiteSlug =
+        typeof body.websiteSlug === "string" &&
+        body.websiteSlug.trim()
+          ? body.websiteSlug.trim()
+          : null;
+  
+      const requestHostname =
+        request.headers
+          .get("host")
+          ?.split(":")[0]
+          .trim()
+          .toLowerCase() || null;
+  
+      const isWorkspaceRequest =
+        requestHostname === "app.export.rootym.com" ||
+        requestHostname === "app.export.localhost";
+  
+      const isMarketingRequest =
+        requestHostname === "export.rootym.com" ||
+        requestHostname === "export.localhost";
+  
+      const websiteHostname =
+        !isWorkspaceRequest &&
+        !isMarketingRequest &&
+        !websiteSlug
+          ? requestHostname
+          : null;
+  
+          const mode = resolveRequestedMode(
+            websiteSlug,
+            websiteHostname,
+            isWorkspaceRequest,
+            isMarketingRequest
+          );
+ 
     /**
      * Resolve the authoritative R-CAPTAIN context.
      *
@@ -166,10 +182,11 @@ export async function POST(
     executionStage = "resolve-rcaptain-context";
 
     const rcaptainContext =
-      await resolveRCaptainContext({
-        mode,
-        websiteSlug: websiteSlug ?? undefined,
-      });
+    await resolveRCaptainContext({
+      mode,
+      websiteSlug: websiteSlug ?? undefined,
+      websiteHostname: websiteHostname ?? undefined,
+    });
 
     executionStage = "detect-intent";
 

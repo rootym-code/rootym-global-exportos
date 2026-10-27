@@ -102,6 +102,7 @@ const introByMode: Record<
   },
 };
 
+
 function resolveContext(): {
   mode: RCaptainMode;
   websiteSlug: string | null;
@@ -114,29 +115,44 @@ function resolveContext(): {
   }
 
   const pathname = window.location.pathname;
-  const hostname = window.location.hostname;
+  const hostname = window.location.hostname.toLowerCase();
 
+  // Workspace host always takes priority, including local development.
   const isWorkspaceHost =
     hostname === "app.export.rootym.com" ||
     hostname === "app.export.localhost";
 
-  const isWorkspace =
-    isWorkspaceHost ||
+  const isWorkspaceRoute =
     pathname === "/app/workspace" ||
     pathname.startsWith("/app/workspace/");
 
-  const websiteMatch = pathname.match(
-    /^\/website\/([^/]+)(?:\/|$)/,
-  );
-
-  const websiteSlug = websiteMatch?.[1] ?? null;
-
-  if (isWorkspace) {
+  if (isWorkspaceHost && isWorkspaceRoute) {
     return {
       mode: "WORKSPACE",
       websiteSlug: null,
     };
   }
+
+  // Marketing hosts must remain in Marketing mode.
+  const isMarketingHost =
+    hostname === "export.rootym.com" ||
+    hostname === "export.localhost" ||
+    hostname === "localhost" ||
+    hostname === "127.0.0.1";
+
+  if (isMarketingHost) {
+    return {
+      mode: "MARKETING",
+      websiteSlug: null,
+    };
+  }
+
+  // Public website preview/storefront routes.
+  const websiteMatch = pathname.match(
+    /^\/website\/([^/]+)(?:\/|$)/,
+  );
+
+  const websiteSlug = websiteMatch?.[1] ?? null;
 
   if (websiteSlug) {
     return {
@@ -145,8 +161,20 @@ function resolveContext(): {
     };
   }
 
+  // Known customer domains use Buyer mode.
+  if (
+    hostname !== "app.export.rootym.com" &&
+    hostname !== "app.export.localhost"
+  ) {
+    return {
+      mode: "BUYER",
+      websiteSlug: null,
+    };
+  }
+
+  // Keep other workspace-host pages out of Buyer mode.
   return {
-    mode: "MARKETING",
+    mode: "WORKSPACE",
     websiteSlug: null,
   };
 }

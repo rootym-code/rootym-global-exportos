@@ -60,6 +60,7 @@ export type RCaptainContext = {
 export type ResolveRCaptainContextInput = {
   mode: RCaptainMode;
   websiteSlug?: string;
+  websiteHostname?: string;
 };
 
 /**
@@ -90,19 +91,25 @@ export async function resolveRCaptainContext(
     };
   }
 
+
   if (input.mode === "BUYER") {
-    if (!input.websiteSlug) {
-      throw new Error(
-        "Website slug is required for Buyer R-CAPTAIN context."
-      );
-    }
+    const websiteSlug = input.websiteSlug?.trim();
+    const websiteHostname = input.websiteHostname
+      ?.trim()
+      .toLowerCase();
 
-    const website =
-      await prisma.website.findUnique({
+    let website: {
+      id: string;
+      slug: string;
+      name: string;
+      isActive: boolean;
+    } | null = null;
+
+    if (websiteSlug) {
+      website = await prisma.website.findUnique({
         where: {
-          slug: input.websiteSlug,
+          slug: websiteSlug,
         },
-
         select: {
           id: true,
           slug: true,
@@ -110,6 +117,31 @@ export async function resolveRCaptainContext(
           isActive: true,
         },
       });
+    } else if (websiteHostname) {
+      const domain = await prisma.websiteDomain.findFirst({
+        where: {
+          domain: websiteHostname,
+          verificationStatus: "VERIFIED",
+          sslStatus: "ACTIVE",
+          deploymentStatus: "LIVE",
+          website: {
+            isActive: true,
+          },
+        },
+        select: {
+          website: {
+            select: {
+              id: true,
+              slug: true,
+              name: true,
+              isActive: true,
+            },
+          },
+        },
+      });
+
+      website = domain?.website ?? null;
+    }
 
     if (!website || !website.isActive) {
       throw new Error(
@@ -136,6 +168,7 @@ export async function resolveRCaptainContext(
       },
     };
   }
+
 
   /*
    * Workspace mode MUST use the established authentication
