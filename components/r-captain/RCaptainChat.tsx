@@ -216,6 +216,27 @@ export default function RCaptainChat() {
   const [comparisonProducts, setComparisonProducts] = useState<BuyerProduct[]>([]);
 const [comparisonLoading, setComparisonLoading] = useState(false);
 const [comparisonError, setComparisonError] = useState<string | null>(null);
+const [buyerCompanyName, setBuyerCompanyName] = useState("");
+const [buyerContactPerson, setBuyerContactPerson] = useState("");
+const [buyerEmail, setBuyerEmail] = useState("");
+const [buyerPhone, setBuyerPhone] = useState("");
+const [buyerCountry, setBuyerCountry] = useState("");
+const [buyerMessage, setBuyerMessage] = useState("");
+
+const [productRequestDetails, setProductRequestDetails] = useState<
+  Record<string, { quantity: string; unit: string }>
+>({});
+
+const [quotationSubmitting, setQuotationSubmitting] = useState(false);
+const [quotationStatus, setQuotationStatus] = useState<{
+  type: "success" | "error";
+  message: string;
+} | null>(null);
+
+const submissionKeyRef = useRef<{
+  fingerprint: string;
+  key: string;
+} | null>(null);
 
   const messagesEndRef =
     useRef<HTMLDivElement>(null);
@@ -407,6 +428,109 @@ const [comparisonError, setComparisonError] = useState<string | null>(null);
       );
     } finally {
       setComparisonLoading(false);
+    }
+  }
+
+  async function submitQuotationRequest() {
+    if (
+      context.mode !== "BUYER" ||
+      quotationSubmitting
+    ) {
+      return;
+    }
+
+    const selectedProducts = products
+      .filter((product) =>
+        selectedProductIds.includes(product.id),
+      )
+      .map((product) => {
+        const details = productRequestDetails[product.id];
+
+        return {
+          productId: product.id,
+          quantity: details?.quantity.trim() || undefined,
+          unit: details?.unit.trim() || product.defaultUnit,
+        };
+      });
+
+    if (selectedProducts.length === 0) {
+      setQuotationStatus({
+        type: "error",
+        message: "Please select at least one product.",
+      });
+      return;
+    }
+
+    const requestPayload = {
+      ...(context.websiteSlug
+        ? { websiteSlug: context.websiteSlug }
+        : {}),
+      companyName: buyerCompanyName.trim(),
+      contactPerson: buyerContactPerson.trim(),
+      email: buyerEmail.trim(),
+      phone: buyerPhone.trim(),
+      country: buyerCountry.trim(),
+      message: buyerMessage.trim(),
+      selectedProducts,
+    };
+
+    const fingerprint = JSON.stringify(requestPayload);
+
+    if (
+      !submissionKeyRef.current ||
+      submissionKeyRef.current.fingerprint !== fingerprint
+    ) {
+      submissionKeyRef.current = {
+        fingerprint,
+        key: crypto.randomUUID(),
+      };
+    }
+
+    setQuotationSubmitting(true);
+    setQuotationStatus(null);
+
+    try {
+      const response = await fetch(
+        "/api/r-captain/quotation-request",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...requestPayload,
+            submissionKey: submissionKeyRef.current.key,
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(
+          data.message ||
+            "Unable to submit your quotation request.",
+        );
+      }
+
+      setQuotationStatus({
+        type: "success",
+        message: `Request received. Reference: ${
+          data.inquiry?.inquiryNumber ?? "confirmed"
+        }. Our team will contact you.`,
+      });
+    } catch (error) {
+      console.error("R-CAPTAIN quotation submission error:", error);
+
+      setQuotationStatus({
+        type: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Unable to submit your request. Please retry.",
+      });
+    } finally {
+      setQuotationSubmitting(false);
     }
   }
 
@@ -776,6 +900,206 @@ const [comparisonError, setComparisonError] = useState<string | null>(null);
                   Select up to 10 products to prepare for comparison.
                   Selection does not submit a quotation request.
                 </p>
+<div className="space-y-4 border-t border-green-100 pt-4">
+  <div>
+    <h4 className="text-sm font-semibold text-gray-900">
+      Request a Quotation
+    </h4>
+    <p className="mt-1 text-xs text-gray-500">
+      Select products above, enter your details, and submit
+      your request. No order or payment is created.
+    </p>
+  </div>
+  <div className="space-y-3">
+    {products
+      .filter((product) =>
+        selectedProductIds.includes(product.id),
+      )
+      .map((product) => (
+        <div
+          key={product.id}
+          className="grid grid-cols-1 gap-2 rounded-lg border border-gray-200 p-3 sm:grid-cols-3"
+        >
+          <div className="min-w-0 sm:col-span-1">
+            <p className="text-sm font-medium text-gray-900">
+              {product.name}
+            </p>
+            <p className="text-xs text-gray-500">
+              Unit: {product.defaultUnit}
+            </p>
+          </div>
+
+          <label className="text-xs text-gray-600">
+            Quantity
+            <input
+              type="text"
+              inputMode="decimal"
+              maxLength={50}
+              placeholder="e.g. 1000"
+              value={
+                productRequestDetails[product.id]?.quantity ?? ""
+              }
+              onChange={(event) =>
+                setProductRequestDetails((previous) => ({
+                  ...previous,
+                  [product.id]: {
+                    quantity: event.target.value,
+                    unit:
+                      previous[product.id]?.unit ??
+                      product.defaultUnit,
+                  },
+                }))
+              }
+              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            />
+          </label>
+
+          <label className="text-xs text-gray-600">
+            Unit
+            <input
+              type="text"
+              maxLength={50}
+              value={
+                productRequestDetails[product.id]?.unit ??
+                product.defaultUnit
+              }
+              onChange={(event) =>
+                setProductRequestDetails((previous) => ({
+                  ...previous,
+                  [product.id]: {
+                    quantity:
+                      previous[product.id]?.quantity ?? "",
+                    unit: event.target.value,
+                  },
+                }))
+              }
+              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            />
+          </label>
+        </div>
+      ))}
+
+    {selectedProductIds.length === 0 && (
+      <p className="rounded-lg bg-gray-50 p-3 text-xs text-gray-600">
+        Select one or more products above to begin your request.
+      </p>
+    )}
+  </div>
+
+  <div className="grid gap-3 sm:grid-cols-2">
+    <label className="text-xs font-medium text-gray-700">
+      Company name *
+      <input
+        required
+        maxLength={150}
+        value={buyerCompanyName}
+        onChange={(event) =>
+          setBuyerCompanyName(event.target.value)
+        }
+        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm"
+      />
+    </label>
+
+    <label className="text-xs font-medium text-gray-700">
+      Contact person *
+      <input
+        required
+        maxLength={100}
+        value={buyerContactPerson}
+        onChange={(event) =>
+          setBuyerContactPerson(event.target.value)
+        }
+        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm"
+      />
+    </label>
+
+    <label className="text-xs font-medium text-gray-700">
+      Business email *
+      <input
+        required
+        type="email"
+        maxLength={255}
+        value={buyerEmail}
+        onChange={(event) =>
+          setBuyerEmail(event.target.value)
+        }
+        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm"
+      />
+    </label>
+
+    <label className="text-xs font-medium text-gray-700">
+      Phone / WhatsApp
+      <input
+        type="tel"
+        maxLength={30}
+        value={buyerPhone}
+        onChange={(event) =>
+          setBuyerPhone(event.target.value)
+        }
+        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm"
+      />
+    </label>
+
+    <label className="text-xs font-medium text-gray-700 sm:col-span-2">
+      Country *
+      <input
+        required
+        maxLength={100}
+        value={buyerCountry}
+        onChange={(event) =>
+          setBuyerCountry(event.target.value)
+        }
+        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm"
+      />
+    </label>
+
+    <label className="text-xs font-medium text-gray-700 sm:col-span-2">
+      Requirements / destination / packaging details
+      <textarea
+        rows={3}
+        maxLength={5000}
+        value={buyerMessage}
+        onChange={(event) =>
+          setBuyerMessage(event.target.value)
+        }
+        placeholder="Tell us about your target quantity, packaging, destination, or specifications."
+        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm"
+      />
+    </label>
+  </div>
+
+  {quotationStatus && (
+    <p
+      role={quotationStatus.type === "error" ? "alert" : "status"}
+      className={`rounded-lg p-3 text-sm ${
+        quotationStatus.type === "success"
+          ? "bg-green-50 text-green-800"
+          : "bg-red-50 text-red-700"
+      }`}
+    >
+      {quotationStatus.message}
+    </p>
+  )}
+
+  <button
+    type="button"
+    onClick={() => void submitQuotationRequest()}
+    disabled={
+      quotationSubmitting ||
+      productsLoading ||
+      selectedProductIds.length === 0 ||
+      !buyerCompanyName.trim() ||
+      !buyerContactPerson.trim() ||
+      !buyerEmail.trim() ||
+      !buyerCountry.trim()
+    }
+    className="w-full rounded-xl bg-green-700 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
+  >
+    {quotationSubmitting
+      ? "Submitting request..."
+      : "Submit Quotation Request"}
+  </button>
+</div>
               </div>
             )}
 
