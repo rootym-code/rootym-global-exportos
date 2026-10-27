@@ -25,6 +25,20 @@ interface Message {
   content: string;
 }
 
+interface BuyerProduct {
+  id: string;
+  name: string;
+  slug: string;
+  shortDescription: string | null;
+  description: string | null;
+  category: string | null;
+  origin: string | null;
+  defaultUnit: string;
+  minOrderQty: string | null;
+  maxOrderQty: string | null;
+  imageUrl: string | null;
+}
+
 type RCaptainMode = "MARKETING" | "WORKSPACE" | "BUYER";
 
 interface Attachment {
@@ -192,8 +206,16 @@ export default function RCaptainChat() {
   });
   const [attachment, setAttachment] =
     useState<Attachment | null>(null);
-  const [attachmentError, setAttachmentError] =
+    const [attachmentError, setAttachmentError] =
     useState<string | null>(null);
+
+  const [products, setProducts] = useState<BuyerProduct[]>([]);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [productsError, setProductsError] = useState<string | null>(null);
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [comparisonProducts, setComparisonProducts] = useState<BuyerProduct[]>([]);
+const [comparisonLoading, setComparisonLoading] = useState(false);
+const [comparisonError, setComparisonError] = useState<string | null>(null);
 
   const messagesEndRef =
     useRef<HTMLDivElement>(null);
@@ -212,7 +234,66 @@ export default function RCaptainChat() {
   useEffect(() => {
     setContext(resolveContext());
   }, []);
+  useEffect(() => {
+    if (context.mode !== "BUYER") {
+      setProducts([]);
+      setProductsError(null);
+      setProductsLoading(false);
+      return;
+    }
 
+    let cancelled = false;
+
+    async function loadProducts() {
+      setProductsLoading(true);
+      setProductsError(null);
+
+      try {
+        const response = await fetch("/api/r-captain/buyer-quote", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            action: "list_products",
+            ...(context.websiteSlug
+              ? { websiteSlug: context.websiteSlug }
+              : {}),
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(
+            data.message ?? "Unable to load the product catalogue.",
+          );
+        }
+
+        if (!cancelled) {
+          setProducts(data.products ?? []);
+        }
+      } catch (error) {
+        console.error("R-CAPTAIN product catalogue error:", error);
+
+        if (!cancelled) {
+          setProductsError(
+            "We couldn't load the product catalogue. Please try again later.",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setProductsLoading(false);
+        }
+      }
+    }
+
+    void loadProducts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [context.mode, context.websiteSlug]);
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({
       behavior: "smooth",
@@ -277,6 +358,56 @@ export default function RCaptainChat() {
 
     setAttachment(null);
     setAttachmentError(null);
+  }
+
+  async function compareSelectedProducts() {
+    if (
+      context.mode !== "BUYER" ||
+      selectedProductIds.length < 2 ||
+      comparisonLoading
+    ) {
+      return;
+    }
+
+    setComparisonLoading(true);
+    setComparisonError(null);
+    setComparisonProducts([]);
+
+    try {
+      const response = await fetch("/api/r-captain/buyer-quote", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "compare_products",
+          productIds: selectedProductIds,
+          ...(context.websiteSlug
+            ? { websiteSlug: context.websiteSlug }
+            : {}),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(
+          data.message ?? "Unable to compare the selected products.",
+        );
+      }
+
+      setComparisonProducts(data.products ?? []);
+    } catch (error) {
+      console.error("R-CAPTAIN product comparison error:", error);
+
+      setComparisonError(
+        error instanceof Error
+          ? error.message
+          : "Unable to compare the selected products. Please try again.",
+      );
+    } finally {
+      setComparisonLoading(false);
+    }
   }
 
   async function sendMessage(
@@ -384,12 +515,13 @@ export default function RCaptainChat() {
       setLoading(false);
     }
   }
-
   return (
     <div className="flex h-full min-h-0 w-full flex-col gap-3">
       <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-green-100 bg-white p-4 shadow-inner sm:p-5">
-        {messages.length === 0 && (
-          <div className="space-y-4">
+         {messages.length === 0 && (
+  <div className="space-y-4">
+    {context.mode !== "BUYER" && (
+      <div className="space-y-4">
             <div className="space-y-2">
               <div className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-1 text-[11px] font-semibold text-green-700">
                 {intro.badge}
@@ -441,6 +573,212 @@ export default function RCaptainChat() {
                 ))}
               </div>
             </div>
+            </div>
+    )}
+            {context.mode === "BUYER" && (
+              <div className="space-y-3 rounded-xl border border-green-100 bg-white p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold text-gray-900">
+                    Explore Products
+                  </h3>
+                  <span className="text-xs text-gray-500">
+                    {products.length} available
+                  </span>
+                </div>
+
+                {productsLoading && (
+                  <p className="text-sm text-gray-500">
+                    Loading products...
+                  </p>
+                )}
+
+                {productsError && (
+                  <p className="text-sm text-red-600">
+                    {productsError}
+                  </p>
+                )}
+
+                {!productsLoading &&
+                  !productsError &&
+                  products.length === 0 && (
+                    <p className="text-sm text-gray-500">
+                      No published products are available yet.
+                    </p>
+                  )}
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {products.map((product) => {
+                    const selected = selectedProductIds.includes(product.id);
+
+                    return (
+                      <label
+                        key={product.id}
+                        className={`flex cursor-pointer gap-3 rounded-xl border p-3 transition-colors ${
+                          selected
+                            ? "border-green-500 bg-green-50"
+                            : "border-gray-200 hover:border-green-300"
+                        }`}
+                      >
+                        {product.imageUrl ? (
+                          <img
+                            src={product.imageUrl}
+                            alt={product.name}
+                            className="h-16 w-16 shrink-0 rounded-lg border border-gray-100 object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-green-50 text-xs font-semibold text-green-700">
+                            ROOTYM
+                          </div>
+                        )}
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start gap-2">
+                            <input
+                              type="checkbox"
+                              checked={selected}
+                              onChange={() => {
+                                setSelectedProductIds((previous) =>
+                                  selected
+                                    ? previous.filter((id) => id !== product.id)
+                                    : previous.length < 10
+                                      ? [...previous, product.id]
+                                      : previous,
+                                );
+                              }}
+                              className="mt-1 accent-green-700"
+                              aria-label={`Select ${product.name} for comparison`}
+                            />
+
+                            <span className="text-sm font-semibold text-gray-900">
+                              {product.name}
+                            </span>
+                          </div>
+
+                          <p className="mt-1 line-clamp-3 text-xs leading-5 text-gray-600">
+                            {product.shortDescription ||
+                              product.description ||
+                              product.category ||
+                              "Contact us for product specifications."}
+                          </p>
+
+                          {product.origin && (
+                            <p className="mt-1 text-xs text-gray-500">
+                              Origin: {product.origin}
+                            </p>
+                          )}
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+
+                {selectedProductIds.length >= 2 && (
+                  <button
+                    type="button"
+                    onClick={compareSelectedProducts}
+                    disabled={comparisonLoading}
+                    className="w-full rounded-xl bg-green-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {comparisonLoading
+                      ? "Comparing products..."
+                      : `Compare Selected (${selectedProductIds.length})`}
+                  </button>
+                )}
+
+                {comparisonError && (
+                  <p
+                    role="alert"
+                    className="rounded-lg bg-red-50 p-3 text-sm text-red-700"
+                  >
+                    {comparisonError}
+                  </p>
+                )}
+
+                {comparisonProducts.length > 0 && (
+                  <div className="overflow-x-auto rounded-xl border border-gray-200">
+                    <div className="flex items-center justify-between gap-3 border-b border-gray-200 bg-green-50 p-3">
+                      <h4 className="text-sm font-semibold text-gray-900">
+                        Product Comparison
+                      </h4>
+
+                      <button
+                        type="button"
+                        onClick={() => setComparisonProducts([])}
+                        className="text-xs font-medium text-green-800 hover:underline"
+                      >
+                        Clear comparison
+                      </button>
+                    </div>
+
+                    <table className="w-full min-w-[420px] text-left text-xs">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="p-3 font-semibold text-gray-600">
+                            Details
+                          </th>
+                          {comparisonProducts.map((product) => (
+                            <th
+                              key={product.id}
+                              className="p-3 font-semibold text-gray-900"
+                            >
+                              {product.name}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {(
+                          [
+                            ["Description", (p: BuyerProduct) =>
+                              p.shortDescription || p.description || "Not provided"],
+                            ["Category", (p: BuyerProduct) =>
+                              p.category || "Not specified"],
+                            ["Origin", (p: BuyerProduct) =>
+                              p.origin || "Not specified"],
+                            ["Unit", (p: BuyerProduct) => p.defaultUnit],
+                            ["Minimum order", (p: BuyerProduct) =>
+                              p.minOrderQty
+                                ? `${p.minOrderQty} ${p.defaultUnit}`
+                                : "Not specified"],
+                            ["Maximum order", (p: BuyerProduct) =>
+                              p.maxOrderQty
+                                ? `${p.maxOrderQty} ${p.defaultUnit}`
+                                : "Not specified"],
+                          ] as [
+                            string,
+                            (product: BuyerProduct) => string,
+                          ][]
+                        ).map(([label, getValue]) => (
+                          <tr
+                            key={label}
+                            className="border-t border-gray-100 align-top"
+                          >
+                            <th className="p-3 font-medium text-gray-600">
+                              {label}
+                            </th>
+
+                            {comparisonProducts.map((product) => (
+                              <td
+                                key={product.id}
+                                className="max-w-[220px] whitespace-normal p-3 text-gray-700"
+                              >
+                                {getValue(product)}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                <p className="text-xs text-gray-500">
+                  Select up to 10 products to prepare for comparison.
+                  Selection does not submit a quotation request.
+                </p>
+              </div>
+            )}
+
           </div>
         )}
 
