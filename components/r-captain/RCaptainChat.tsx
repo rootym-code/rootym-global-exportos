@@ -23,6 +23,7 @@ import Markdown from "react-markdown";
 interface Message {
   role: "user" | "assistant";
   content: string;
+  matchedProducts?: BuyerProduct[];
 }
 
 interface BuyerProduct {
@@ -192,7 +193,58 @@ function resolveContext(): {
     websiteSlug: null,
   };
 }
+function findProductsInMessage(
+  message: string,
+  products: BuyerProduct[],
+): BuyerProduct[] {
+  const normalize = (value: string) =>
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
 
+  const messageText = ` ${normalize(message)} `;
+
+  return products.filter((product) => {
+    const name = normalize(product.name);
+    const slug = normalize(product.slug);
+
+    if (
+      name &&
+      messageText.includes(` ${name} `)
+    ) {
+      return true;
+    }
+
+    if (
+      slug &&
+      messageText.includes(` ${slug} `)
+    ) {
+      return true;
+    }
+
+    const productWords = [
+      ...new Set(
+        name.split(" ").filter((word) => word.length >= 3),
+      ),
+    ];
+
+    const matchedWords = productWords.filter((word) =>
+      messageText.includes(` ${word} `),
+    );
+
+    // Allow a distinctive single-word product name, such as "Makhana".
+    if (productWords.length === 1) {
+      return matchedWords.length === 1;
+    }
+
+    // Require at least two matching words for a partial product name.
+    return (
+      matchedWords.length >= 2 &&
+      matchedWords.length / productWords.length >= 0.5
+    );
+  });
+}
 export default function RCaptainChat() {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -238,19 +290,25 @@ const submissionKeyRef = useRef<{
   key: string;
 } | null>(null);
 
-  const messagesEndRef =
-    useRef<HTMLDivElement>(null);
+const messagesEndRef =
+  useRef<HTMLDivElement>(null);
 
-  const textareaRef =
-    useRef<HTMLTextAreaElement>(null);
+const textareaRef =
+  useRef<HTMLTextAreaElement>(null);
 
-  const fileInputRef =
-    useRef<HTMLInputElement>(null);
+const fileInputRef =
+  useRef<HTMLInputElement>(null);
+
+const quotationFormRef =
+  useRef<HTMLDivElement>(null);
 
   const suggestions =
     suggestionsByMode[context.mode];
 
   const intro = introByMode[context.mode];
+
+const [expandedProductInfoIds, setExpandedProductInfoIds] =
+  useState<string[]>([]);
 
   useEffect(() => {
     setContext(resolveContext());
@@ -544,18 +602,22 @@ const submissionKeyRef = useRef<{
       return;
     }
 
+    const currentContext = resolveContext();
+    const matchedProducts =
+      currentContext.mode === "BUYER"
+        ? findProductsInMessage(messageText, products)
+        : [];
     const updatedMessages: Message[] = [
-      ...messages,
-      {
-        role: "user",
-        content: messageText,
-      },
-    ];
-
+    ...messages,
+    {
+      role: "user",
+      content: messageText,
+      matchedProducts,
+    },
+  ];
     setMessages(updatedMessages);
     setInput("");
     setLoading(true);
-
     try {
       /**
        * =====================================================
@@ -567,10 +629,7 @@ const submissionKeyRef = useRef<{
        * can apply the correct authentication and data boundary.
        * =====================================================
        */
-      const currentContext = resolveContext();
-
       setContext(currentContext);
-
       const response = await fetch(
         "/api/r-captain/chat",
         {
@@ -596,9 +655,7 @@ const submissionKeyRef = useRef<{
           }),
         },
       );
-
       const data = await response.json();
-
       setMessages((prev) => [
         ...prev,
         {
@@ -609,7 +666,6 @@ const submissionKeyRef = useRef<{
             "I am unable to respond right now.",
         },
       ]);
-
       /*
        * The current chat API accepts JSON and the backend does
        * not yet process image bytes. We therefore keep the
@@ -642,7 +698,7 @@ const submissionKeyRef = useRef<{
   return (
     <div className="flex h-full min-h-0 w-full flex-col gap-3">
       <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-green-100 bg-white p-4 shadow-inner sm:p-5">
-         {messages.length === 0 && (
+      {(messages.length === 0 || context.mode === "BUYER") && (
   <div className="space-y-4">
     {context.mode !== "BUYER" && (
       <div className="space-y-4">
@@ -900,7 +956,10 @@ const submissionKeyRef = useRef<{
                   Select up to 10 products to prepare for comparison.
                   Selection does not submit a quotation request.
                 </p>
-<div className="space-y-4 border-t border-green-100 pt-4">
+                <div
+  ref={quotationFormRef}
+  className="scroll-mt-4 space-y-4 border-t border-green-100 pt-4"
+>
   <div>
     <h4 className="text-sm font-semibold text-gray-900">
       Request a Quotation
@@ -1175,10 +1234,210 @@ const submissionKeyRef = useRef<{
               ) : (
                 <div>{message.content}</div>
               )}
+
+              {message.role === "user" &&
+                message.matchedProducts &&
+                message.matchedProducts.length > 0 && (
+                  <div className="mt-3 space-y-3">
+                    {message.matchedProducts.map((product) => {
+                      const isExpanded =
+                        expandedProductInfoIds.includes(product.id);
+
+                      const isSelected =
+                        selectedProductIds.includes(product.id);
+
+                      return (
+                        <div
+                          key={product.id}
+                          className="overflow-hidden rounded-xl border border-green-200 bg-white text-gray-800 shadow-sm"
+                        >
+                          <div className="flex gap-3 p-3">
+                            {product.imageUrl && (
+                              <img
+                                src={product.imageUrl}
+                                alt={product.name}
+                                className="h-20 w-20 shrink-0 rounded-lg border border-gray-100 object-cover"
+                              />
+                            )}
+
+                            <div className="min-w-0 flex-1">
+                              <h4 className="font-semibold text-green-900">
+                                {product.name}
+                              </h4>
+
+                              {product.category && (
+                                <p className="mt-1 text-xs text-gray-500">
+                                  Category: {product.category}
+                                </p>
+                              )}
+
+                              {product.origin && (
+                                <p className="text-xs text-gray-500">
+                                  Origin: {product.origin}
+                                </p>
+                              )}
+
+                              {product.shortDescription && (
+                                <p className="mt-2 text-sm leading-5 text-gray-600">
+                                  {product.shortDescription}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          {isExpanded && (
+                            <div className="space-y-2 border-t border-gray-100 bg-gray-50 p-3 text-sm">
+                              {product.description && (
+                                <div>
+                                  <p className="font-semibold text-gray-800">
+                                    Product description
+                                  </p>
+                                  <p className="mt-1 whitespace-pre-wrap text-gray-600">
+                                    {product.description}
+                                  </p>
+                                </div>
+                              )}
+
+                              {product.category && (
+                                <p>
+                                  <span className="font-medium">
+                                    Category:
+                                  </span>{" "}
+                                  {product.category}
+                                </p>
+                              )}
+
+                              {product.origin && (
+                                <p>
+                                  <span className="font-medium">
+                                    Origin:
+                                  </span>{" "}
+                                  {product.origin}
+                                </p>
+                              )}
+
+                              <p>
+                                <span className="font-medium">
+                                  Standard unit:
+                                </span>{" "}
+                                {product.defaultUnit}
+                              </p>
+
+                              {product.minOrderQty && (
+                                <p>
+                                  <span className="font-medium">
+                                    Minimum order quantity:
+                                  </span>{" "}
+                                  {product.minOrderQty} {product.defaultUnit}
+                                </p>
+                              )}
+
+                              {product.maxOrderQty && (
+                                <p>
+                                  <span className="font-medium">
+                                    Maximum order quantity:
+                                  </span>{" "}
+                                  {product.maxOrderQty} {product.defaultUnit}
+                                </p>
+                              )}
+
+                              {!product.description &&
+                                !product.category &&
+                                !product.origin &&
+                                !product.minOrderQty &&
+                                !product.maxOrderQty && (
+                                  <p className="text-xs text-gray-500">
+                                    No additional product information is
+                                    available in the catalogue.
+                                  </p>
+                                )}
+                            </div>
+                          )}
+
+                          <div className="flex flex-wrap gap-2 border-t border-gray-100 p-3">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setExpandedProductInfoIds((previous) =>
+                                  previous.includes(product.id)
+                                    ? previous.filter(
+                                        (id) => id !== product.id,
+                                      )
+                                    : [...previous, product.id],
+                                );
+                              }}
+                              className="rounded-lg border border-green-700 px-3 py-2 text-xs font-semibold text-green-800 transition-colors hover:bg-green-50"
+                            >
+                              {isExpanded
+                                ? "Hide Product Info"
+                                : "View Product Info"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (isSelected) {
+                                  setQuotationStatus({
+                                    type: "success",
+                                    message: `${product.name} is already selected in your quotation request.`,
+                                  });
+                                  quotationFormRef.current?.scrollIntoView({
+                                    behavior: "smooth",
+                                    block: "start",
+                                  });
+                                return;
+                                }
+                                if (selectedProductIds.length >= 10) {
+                                  setQuotationStatus({
+                                    type: "error",
+                                    message:
+                                      "You can select a maximum of 10 products per quotation request. Remove a product from the form before adding another.",
+                                  });
+                                    quotationFormRef.current?.scrollIntoView({
+                                    behavior: "smooth",
+                                    block: "start",
+                                  });
+                                 return;
+                                }
+                              setSelectedProductIds((previous) =>
+                                  previous.includes(product.id)
+                                    ? previous
+                                    : [...previous, product.id],
+                                );
+                                 setProductRequestDetails((previous) => ({
+                                  ...previous,
+                                  [product.id]: previous[product.id] ?? {
+                                    quantity: "",
+                                    unit: product.defaultUnit,
+                                  },
+                                }));
+                                 setQuotationStatus({
+                                  type: "success",
+                                  message: `${product.name} has been added to your quotation request. Complete the existing form to submit your enquiry.`,
+                                });
+                                quotationFormRef.current?.scrollIntoView({
+                                  behavior: "smooth",
+                                  block: "start",
+                                });
+                              }}
+                              className={`rounded-lg px-3 py-2 text-xs font-semibold text-white transition-colors ${
+                                isSelected
+                                  ? "bg-gray-500 hover:bg-gray-600"
+                                  : "bg-green-700 hover:bg-green-800"
+                              }`}
+                            >
+                              {isSelected
+                                ? "Selected for Quote"
+                                : "Request Quote"}
+                            </button>
+                           </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
             </div>
           </div>
         ))}
-
         {loading && (
           <div className="mb-3 flex justify-start">
             <div className="rounded-2xl rounded-bl-sm border border-gray-100 bg-gray-50 px-4 py-2.5 shadow-sm">
@@ -1212,10 +1471,8 @@ const submissionKeyRef = useRef<{
             </div>
           </div>
         )}
-
         <div ref={messagesEndRef} />
       </div>
-
       {attachment && (
         <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
           <img
@@ -1223,7 +1480,6 @@ const submissionKeyRef = useRef<{
             alt="Attached screenshot preview"
             className="h-12 w-12 rounded-lg border border-slate-200 object-cover"
           />
-
           <div className="min-w-0 flex-1">
             <p className="truncate text-xs font-medium text-slate-700">
               {attachment.name}
@@ -1232,7 +1488,6 @@ const submissionKeyRef = useRef<{
               Screenshot attached
             </p>
           </div>
-
           <button
             type="button"
             onClick={removeAttachment}
@@ -1242,13 +1497,11 @@ const submissionKeyRef = useRef<{
           </button>
         </div>
       )}
-
       {attachmentError && (
         <p className="px-1 text-xs text-red-600">
           {attachmentError}
         </p>
       )}
-
       <div className="rounded-2xl border border-slate-200 bg-white p-2.5 shadow-md sm:p-3">
         <div className="flex items-end gap-2">
           <input
@@ -1258,7 +1511,6 @@ const submissionKeyRef = useRef<{
             onChange={handleAttachmentChange}
             className="hidden"
           />
-
           <button
             type="button"
             aria-label="Attach screenshot"
